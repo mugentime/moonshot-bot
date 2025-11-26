@@ -55,30 +55,34 @@ class FundingConfig:
 # =============================================================================
 
 class MoonshotDetectionConfig:
-    MIN_SIGNALS_REQUIRED = 4  # Out of 6
-    
+    MIN_SIGNALS_REQUIRED = 3  # Out of 6 (AGGRESSIVE: was 4)
+
     # Volume
     VOLUME_SPIKE_5M = 3.0  # 3x average
     VOLUME_SPIKE_1H = 5.0  # 5x average
-    
+
     # Price velocity
     PRICE_VELOCITY_5M_LONG = 2.0  # +2%
     PRICE_VELOCITY_5M_SHORT = -2.0  # -2%
     PRICE_VELOCITY_1M = 0.8  # +0.8%
-    
+
     # Open Interest
     OI_SURGE_15M = 5.0  # +5%
     OI_SURGE_1H = 10.0  # +10%
-    
-    # Funding
-    FUNDING_MAX_FOR_LONG = 0.0005  # 0.05%
-    FUNDING_MIN_FOR_SHORT = 0.0008  # 0.08% (overleveraged)
-    
+
+    # Funding (AGGRESSIVE: widened from 0.05%/0.08%)
+    FUNDING_MAX_FOR_LONG = 0.003  # 0.3% - allow entry during hype
+    FUNDING_MIN_FOR_SHORT = 0.002  # 0.2% - more squeeze opportunities
+
     # Breakout
     ATR_MULTIPLIER = 1.5
-    
+
     # Order Book
     IMBALANCE_THRESHOLD = 0.65  # 65%
+
+    # MEGA-SIGNAL OVERRIDE: If price moves >5% in 5min, bypass normal requirements
+    MEGA_SIGNAL_VELOCITY = 5.0  # +5% in 5 min = confirmed moonshot
+    MEGA_SIGNAL_MIN_SIGNALS = 2  # Only need 2/6 signals for mega-moves
 
 # =============================================================================
 # STOP-LOSS
@@ -118,20 +122,31 @@ class TrailingStopConfig:
 class PairFilterConfig:
     QUOTE_ASSETS = ["USDT", "USDC"]
     CONTRACT_TYPE = "PERPETUAL"
-    MIN_VOLUME_24H_USD = 5_000_000
-    MIN_LISTING_AGE_HOURS = 48
+    MIN_VOLUME_24H_USD = 1_000_000  # AGGRESSIVE: was $5M, now $1M to catch smaller caps
+    MIN_LISTING_AGE_HOURS = 4  # AGGRESSIVE: was 48h, now 4h to catch new listings
     MAX_SPREAD_PERCENT = 0.15
     MIN_ORDERBOOK_DEPTH_USD = 200_000
     MIN_LEVERAGE_AVAILABLE = 10
-    
+
     # Exclusions
     STABLECOINS = ["USDCUSDT", "TUSDUSDT", "DAIUSDT", "FDUSDUSDT"]
-    
-    # Scan intervals by tier (seconds)
-    TIER_1_INTERVAL = 3  # Hot pairs
-    TIER_2_INTERVAL = 5  # Active pairs
-    TIER_3_INTERVAL = 10  # Normal pairs
-    TIER_4_INTERVAL = 30  # Low priority
+
+    # Scan intervals by tier (seconds) - AGGRESSIVE: faster scanning
+    TIER_1_INTERVAL = 2  # Hot pairs (was 3)
+    TIER_2_INTERVAL = 3  # Active pairs (was 5)
+    TIER_3_INTERVAL = 5  # Normal pairs (was 10)
+    TIER_4_INTERVAL = 10  # Low priority (was 30)
+
+    # TIER 1 HOT SYMBOLS - Memecoins, AI, and recent moonshots
+    TIER_1_SYMBOLS = [
+        # Classic memecoins
+        "DOGE", "SHIB", "PEPE", "BONK", "FLOKI", "WIF", "MEME", "BOME",
+        # AI sector
+        "FET", "AGIX", "RNDR", "TAO", "ARKM",
+        # Recent top moonshots (last 5 days)
+        "TAC", "PIPPIN", "RVV", "TRUST", "AIA", "MERL", "TANSSI", "TRADOOR",
+        "PARTI", "RATS", "MON", "PARTIVERSE", "BANANAS31", "ARC", "BOB"
+    ]
 
 # =============================================================================
 # MARKET REGIME

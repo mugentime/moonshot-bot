@@ -50,9 +50,15 @@ class TradeManager:
         """Evaluate a moonshot signal and decide whether to trade"""
         symbol = signal.symbol
         direction = signal.direction
-        
+
         # Check 1: Market regime allows this direction?
-        regime_ok, regime_reason = self._check_regime(direction)
+        # MEGA-SIGNALS bypass regime checks - they're confirmed moonshots
+        if getattr(signal, 'is_mega_signal', False):
+            logger.warning(f"🔥 MEGA-SIGNAL bypassing regime check for {symbol}")
+            regime_ok, regime_reason = True, "MEGA-SIGNAL: regime bypassed"
+        else:
+            regime_ok, regime_reason = self._check_regime(direction)
+
         if not regime_ok:
             return TradeDecision(
                 symbol=symbol,

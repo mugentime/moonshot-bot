@@ -19,6 +19,7 @@ class MoonshotSignal:
     signals: Dict[str, bool]
     details: Dict[str, float]
     timestamp: float
+    is_mega_signal: bool = False  # True if price moved >5% in 5min (bypasses regime)
 
 
 class MoonshotDetector:
@@ -80,8 +81,12 @@ class MoonshotDetector:
             
             # Calculate score
             score = sum(signals.values())
-            
-            if score >= self.config.MIN_SIGNALS_REQUIRED:
+
+            # Check for MEGA-SIGNAL: if price moved >5% in 5min, lower the threshold
+            is_mega = abs(price_change) >= getattr(self.config, 'MEGA_SIGNAL_VELOCITY', 5.0)
+            min_signals = getattr(self.config, 'MEGA_SIGNAL_MIN_SIGNALS', 2) if is_mega else self.config.MIN_SIGNALS_REQUIRED
+
+            if score >= min_signals:
                 signal = MoonshotSignal(
                     symbol=symbol,
                     direction="LONG",
@@ -89,16 +94,20 @@ class MoonshotDetector:
                     confidence=score / 6,
                     signals=signals,
                     details=details,
-                    timestamp=time.time()
+                    timestamp=time.time(),
+                    is_mega_signal=is_mega
                 )
-                
+
                 self.active_moonshots[symbol] = signal
-                logger.info(f"🚀 MOONSHOT LONG detected: {symbol} (score: {score}/6)")
-                
+                if is_mega:
+                    logger.warning(f"🔥 MEGA MOONSHOT LONG detected: {symbol} (+{price_change:.1f}% in 5min, score: {score}/6)")
+                else:
+                    logger.info(f"🚀 MOONSHOT LONG detected: {symbol} (score: {score}/6)")
+
                 return signal
-            
+
             return None
-            
+
         except Exception as e:
             logger.error(f"Error scanning {symbol} for long: {e}")
             return None
@@ -141,8 +150,12 @@ class MoonshotDetector:
             
             # Calculate score
             score = sum(signals.values())
-            
-            if score >= self.config.MIN_SIGNALS_REQUIRED:
+
+            # Check for MEGA-SIGNAL: if price moved >5% in 5min (either direction), lower the threshold
+            is_mega = abs(price_change) >= getattr(self.config, 'MEGA_SIGNAL_VELOCITY', 5.0)
+            min_signals = getattr(self.config, 'MEGA_SIGNAL_MIN_SIGNALS', 2) if is_mega else self.config.MIN_SIGNALS_REQUIRED
+
+            if score >= min_signals:
                 signal = MoonshotSignal(
                     symbol=symbol,
                     direction="SHORT",
@@ -150,16 +163,20 @@ class MoonshotDetector:
                     confidence=score / 6,
                     signals=signals,
                     details=details,
-                    timestamp=time.time()
+                    timestamp=time.time(),
+                    is_mega_signal=is_mega
                 )
-                
+
                 self.active_moonshots[symbol] = signal
-                logger.info(f"📉 MOONSHOT SHORT detected: {symbol} (score: {score}/6)")
-                
+                if is_mega:
+                    logger.warning(f"🔥 MEGA MOONSHOT SHORT detected: {symbol} ({price_change:.1f}% in 5min, score: {score}/6)")
+                else:
+                    logger.info(f"📉 MOONSHOT SHORT detected: {symbol} (score: {score}/6)")
+
                 return signal
-            
+
             return None
-            
+
         except Exception as e:
             logger.error(f"Error scanning {symbol} for short: {e}")
             return None
