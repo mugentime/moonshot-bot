@@ -233,26 +233,37 @@ class DataFeed:
             return None
     
     async def get_account_balance(self) -> float:
-        """Get total margin balance (wallet + unrealized PnL)"""
+        """Get total account equity across all assets"""
         try:
             account = await self.client.futures_account()
 
-            # Use totalMarginBalance for accurate equity (includes unrealized PnL)
+            # Log all balances for debugging
             total_margin = float(account.get('totalMarginBalance', 0))
+            total_wallet = float(account.get('totalWalletBalance', 0))
+            available = float(account.get('availableBalance', 0))
+
+            # Sum all asset balances (in case of multi-asset mode)
+            total_from_assets = 0.0
+            for asset in account.get('assets', []):
+                margin_balance = float(asset.get('marginBalance', 0))
+                if margin_balance > 0:
+                    logger.debug(f"Asset {asset['asset']}: marginBalance=${margin_balance:.2f}")
+                    total_from_assets += margin_balance
+
+            logger.info(f"💰 Account balances - totalMargin: ${total_margin:.2f}, "
+                       f"totalWallet: ${total_wallet:.2f}, available: ${available:.2f}, "
+                       f"sumAssets: ${total_from_assets:.2f}")
+
+            # Use totalMarginBalance (includes all assets + unrealized PnL)
             if total_margin > 0:
                 return total_margin
 
-            # Fallback to totalWalletBalance
-            total_wallet = float(account.get('totalWalletBalance', 0))
-            if total_wallet > 0:
-                return total_wallet
+            # Fallback to sum of all asset margin balances
+            if total_from_assets > 0:
+                return total_from_assets
 
-            # Last resort: sum USDT asset
-            for asset in account['assets']:
-                if asset['asset'] == 'USDT':
-                    return float(asset['walletBalance'])
-
-            return 0.0
+            # Last fallback to totalWalletBalance
+            return total_wallet
 
         except Exception as e:
             logger.error(f"Error getting account balance: {e}")
