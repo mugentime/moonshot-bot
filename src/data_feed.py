@@ -233,16 +233,27 @@ class DataFeed:
             return None
     
     async def get_account_balance(self) -> float:
-        """Get USDT balance"""
+        """Get total margin balance (wallet + unrealized PnL)"""
         try:
             account = await self.client.futures_account()
-            
+
+            # Use totalMarginBalance for accurate equity (includes unrealized PnL)
+            total_margin = float(account.get('totalMarginBalance', 0))
+            if total_margin > 0:
+                return total_margin
+
+            # Fallback to totalWalletBalance
+            total_wallet = float(account.get('totalWalletBalance', 0))
+            if total_wallet > 0:
+                return total_wallet
+
+            # Last resort: sum USDT asset
             for asset in account['assets']:
                 if asset['asset'] == 'USDT':
                     return float(asset['walletBalance'])
-            
+
             return 0.0
-            
+
         except Exception as e:
             logger.error(f"Error getting account balance: {e}")
             return 0.0
