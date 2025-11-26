@@ -21,23 +21,42 @@ class SizingState:
 class PositionSizer:
     """
     Calculates margin per trade using the hybrid floor compound method
-    
+
     Formula: margin = max(MIN_MARGIN, min(equity / MAX_TRADES, equity * MAX_PERCENT))
-    
+
     Recalculates when:
     - Equity changes ±10% from snapshot
     - All positions closed
     - 24 hours passed
     """
-    
+
     def __init__(self, data_feed):
         self.data_feed = data_feed
         self.config = PositionSizingConfig
-        
+
+        # Use INITIAL_EQUITY as fallback, will be updated on initialize()
         self.equity_snapshot = INITIAL_EQUITY
         self.current_margin = self._calculate_margin(INITIAL_EQUITY)
         self.last_recalc_time = time.time()
         self.open_positions_count = 0
+        self._initialized = False
+
+    async def initialize(self):
+        """Initialize position sizer with real account balance"""
+        try:
+            real_equity = await self.data_feed.get_account_balance()
+
+            if real_equity > 0:
+                self.equity_snapshot = real_equity
+                self.current_margin = self._calculate_margin(real_equity)
+                self.last_recalc_time = time.time()
+                self._initialized = True
+                logger.info(f"💰 Position Sizer initialized with real equity: ${real_equity:.2f}")
+            else:
+                logger.warning(f"⚠️ Could not fetch real equity, using fallback: ${INITIAL_EQUITY:.2f}")
+        except Exception as e:
+            logger.error(f"❌ Error fetching account balance: {e}")
+            logger.warning(f"⚠️ Using fallback equity: ${INITIAL_EQUITY:.2f}")
     
     def _calculate_margin(self, equity: float) -> float:
         """

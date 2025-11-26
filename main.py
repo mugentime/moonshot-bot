@@ -115,6 +115,11 @@ class MoonshotBot:
             await self.pair_filter.initialize()
             logger.info("✅ Pair filter ready")
 
+            # Initialize position sizer with real account balance
+            logger.info("💰 Fetching real account balance...")
+            await self.position_sizer.initialize()
+            logger.info("✅ Position sizer ready")
+
             # Initial regime evaluation
             logger.info("📊 Evaluating market regime...")
             await self.market_regime.evaluate()

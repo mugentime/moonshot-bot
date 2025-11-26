@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(railway logs:*)",
+      "mcp__memory-keeper__context_search",
+      "Bash(railway whoami:*)",
+      "Bash(railway list:*)",
+      "Bash(dir /a)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
