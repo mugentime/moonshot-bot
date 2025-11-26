@@ -5,6 +5,7 @@ Captures moonshot opportunities on Binance Futures
 import asyncio
 import signal
 import sys
+import traceback
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
@@ -32,6 +33,26 @@ logger.add(
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
     level=LOG_LEVEL
 )
+
+
+# Global health status - allows /health to respond immediately
+class HealthStatus:
+    def __init__(self):
+        self.initialized = False
+        self.initializing = False
+        self.running = False
+        self.error = None
+        self.error_traceback = None
+
+    def to_dict(self):
+        return {
+            "initialized": self.initialized,
+            "initializing": self.initializing,
+            "running": self.running,
+            "error": self.error,
+        }
+
+health_status = HealthStatus()
 
 
 class MoonshotBot:
@@ -68,47 +89,75 @@ class MoonshotBot:
     
     async def initialize(self):
         """Initialize all modules"""
-        logger.info("🚀 Initializing Moonshot Bot...")
-        
-        # Initialize data feed (Binance connection)
-        await self.data_feed.initialize()
-        
-        # Initialize order executor
-        await self.order_executor.initialize()
-        
-        # Initialize position tracker (Redis)
-        await self.position_tracker.initialize()
-        
-        # Initialize pair filter
-        await self.pair_filter.initialize()
-        
-        # Initial regime evaluation
-        await self.market_regime.evaluate()
-        
-        # Log initial status
-        self.position_sizer.log_status()
-        self.position_tracker.log_status()
-        
-        logger.info(f"✅ Bot initialized | Regime: {self.market_regime.current_regime.value}")
+        global health_status
+        health_status.initializing = True
+
+        try:
+            logger.info("🚀 Initializing Moonshot Bot...")
+
+            # Initialize data feed (Binance connection)
+            logger.info("📡 Connecting to Binance...")
+            await self.data_feed.initialize()
+            logger.info("✅ Binance connection established")
+
+            # Initialize order executor
+            logger.info("📝 Initializing order executor...")
+            await self.order_executor.initialize()
+            logger.info("✅ Order executor ready")
+
+            # Initialize position tracker (Redis)
+            logger.info("🗄️ Connecting to Redis...")
+            await self.position_tracker.initialize()
+            logger.info("✅ Redis connection established")
+
+            # Initialize pair filter
+            logger.info("🔍 Initializing pair filter...")
+            await self.pair_filter.initialize()
+            logger.info("✅ Pair filter ready")
+
+            # Initial regime evaluation
+            logger.info("📊 Evaluating market regime...")
+            await self.market_regime.evaluate()
+            logger.info("✅ Market regime evaluated")
+
+            # Log initial status
+            self.position_sizer.log_status()
+            self.position_tracker.log_status()
+
+            health_status.initialized = True
+            health_status.initializing = False
+            logger.info(f"✅ Bot initialized | Regime: {self.market_regime.current_regime.value}")
+
+        except Exception as e:
+            health_status.error = str(e)
+            health_status.error_traceback = traceback.format_exc()
+            health_status.initializing = False
+            logger.error(f"❌ Initialization failed: {e}")
+            logger.error(traceback.format_exc())
+            raise
     
     async def start(self):
         """Start the bot"""
+        global health_status
         self._running = True
-        
+        health_status.running = True
+
         logger.info("▶️ Starting Moonshot Bot...")
-        
+
         # Start background tasks
         self._scan_task = asyncio.create_task(self._scan_loop())
         self._monitor_task = asyncio.create_task(self._monitor_loop())
         self._regime_task = asyncio.create_task(self._regime_loop())
-        
+
         logger.info("✅ Bot running!")
     
     async def stop(self):
         """Stop the bot gracefully"""
+        global health_status
         logger.info("⏹️ Stopping Moonshot Bot...")
         self._running = False
-        
+        health_status.running = False
+
         # Cancel tasks
         for task in [self._scan_task, self._monitor_task, self._regime_task]:
             if task:
@@ -117,11 +166,18 @@ class MoonshotBot:
                     await task
                 except asyncio.CancelledError:
                     pass
-        
+
         # Close connections
-        await self.position_tracker.close()
-        await self.data_feed.close()
-        
+        try:
+            await self.position_tracker.close()
+        except Exception as e:
+            logger.error(f"Error closing position tracker: {e}")
+
+        try:
+            await self.data_feed.close()
+        except Exception as e:
+            logger.error(f"Error closing data feed: {e}")
+
         logger.info("✅ Bot stopped")
     
     async def _scan_loop(self):
@@ -353,19 +409,49 @@ class MoonshotBot:
         }
 
 
-# Global bot instance
-bot = MoonshotBot()
+# Global bot instance (created lazily)
+bot = None
+_init_task = None
+
+
+async def initialize_and_start_bot():
+    """Initialize and start the bot in background"""
+    global bot, health_status
+
+    try:
+        logger.info("🚀 Starting bot initialization in background...")
+        bot = MoonshotBot()
+        await bot.initialize()
+        await bot.start()
+        logger.info("✅ Bot fully operational!")
+    except Exception as e:
+        logger.error(f"❌ Bot initialization failed: {e}")
+        health_status.error = str(e)
+        health_status.error_traceback = traceback.format_exc()
 
 
 # FastAPI app for health checks
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    await bot.initialize()
-    await bot.start()
-    yield
+    global _init_task
+
+    # Start initialization in background - don't block the server
+    logger.info("🌐 HTTP server starting - bot will initialize in background...")
+    _init_task = asyncio.create_task(initialize_and_start_bot())
+
+    yield  # Server is now running and accepting requests
+
     # Shutdown
-    await bot.stop()
+    logger.info("🛑 Shutting down...")
+    if _init_task and not _init_task.done():
+        _init_task.cancel()
+        try:
+            await _init_task
+        except asyncio.CancelledError:
+            pass
+
+    if bot:
+        await bot.stop()
 
 
 app = FastAPI(title="Moonshot Bot", lifespan=lifespan)
@@ -373,23 +459,72 @@ app = FastAPI(title="Moonshot Bot", lifespan=lifespan)
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "bot": bot.get_status()}
+    """
+    Health check endpoint - responds immediately even during initialization.
+    Railway healthcheck will hit this endpoint.
+    """
+    global health_status, bot
+
+    # Always return 200 so Railway healthcheck passes
+    # Include status info for debugging
+    status_info = {
+        "status": "healthy",
+        "health": health_status.to_dict(),
+    }
+
+    if health_status.initialized and bot:
+        try:
+            status_info["bot"] = bot.get_status()
+        except Exception as e:
+            status_info["bot_error"] = str(e)
+    elif health_status.error:
+        status_info["error"] = health_status.error
+
+    return status_info
 
 
 @app.get("/status")
 async def status():
-    return bot.get_status()
+    """Get detailed bot status"""
+    global health_status, bot
+
+    if not health_status.initialized:
+        return {
+            "status": "initializing" if health_status.initializing else "not_started",
+            "error": health_status.error,
+            "health": health_status.to_dict(),
+        }
+
+    if bot:
+        return bot.get_status()
+
+    return {"status": "no_bot_instance", "health": health_status.to_dict()}
 
 
 @app.get("/positions")
 async def positions():
-    return [p.to_dict() for p in bot.position_tracker.get_all_positions()]
+    """Get open positions"""
+    global bot
+
+    if not bot or not health_status.initialized:
+        return {"error": "Bot not initialized", "positions": []}
+
+    try:
+        return [p.to_dict() for p in bot.position_tracker.get_all_positions()]
+    except Exception as e:
+        return {"error": str(e), "positions": []}
 
 
 @app.post("/stop")
 async def stop_bot():
-    await bot.stop()
-    return {"status": "stopped"}
+    """Stop the bot"""
+    global bot
+
+    if bot:
+        await bot.stop()
+        return {"status": "stopped"}
+
+    return {"status": "no_bot_to_stop"}
 
 
 def handle_signal(signum, frame):
