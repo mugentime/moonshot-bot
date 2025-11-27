@@ -397,6 +397,10 @@ class MoonshotBot:
     
     def _calculate_pnl(self, position, current_price: float) -> float:
         """Calculate unrealized P&L"""
+        # Guard against division by zero
+        if position.entry_price == 0 or position.entry_price is None:
+            return 0.0
+
         if position.direction == "LONG":
             return (current_price - position.entry_price) / position.entry_price * 100 * position.leverage
         else:

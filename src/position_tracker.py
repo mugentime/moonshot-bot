@@ -111,9 +111,14 @@ class PositionTracker:
             for p in account:
                 if float(p['positionAmt']) != 0:
                     symbol = p['symbol']
+                    entry_price = float(p['entryPrice'])
+                    # Skip positions with invalid entry price (would cause division by zero)
+                    if entry_price == 0:
+                        logger.warning(f"Skipping {symbol} - entry price is 0")
+                        continue
                     exchange_positions[symbol] = {
                         'quantity': abs(float(p['positionAmt'])),
-                        'entry_price': float(p['entryPrice']),
+                        'entry_price': entry_price,
                         'direction': 'LONG' if float(p['positionAmt']) > 0 else 'SHORT',
                         'unrealized_pnl': float(p['unRealizedProfit']),
                         'leverage': int(p['leverage'])
