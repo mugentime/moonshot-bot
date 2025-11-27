@@ -188,14 +188,13 @@ class MoonshotBot:
     async def _scan_loop(self):
         """Main loop for scanning moonshots"""
         logger.info("🔍 Scan loop started")
-        
+
         while self._running:
             try:
-                # Skip if regime doesn't allow entries
-                if not self.market_regime.allows_new_entries():
-                    await asyncio.sleep(5)
-                    continue
-                
+                # NOTE: We ALWAYS scan, even during CHOPPY regime!
+                # Mega-signals (>5% moves) bypass regime check in trade_manager.evaluate_signal()
+                # This ensures we don't miss moonshots during sideways markets
+
                 # Get pairs to scan
                 pairs_to_scan = self.pair_filter.get_pairs_to_scan()
                 
