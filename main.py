@@ -100,18 +100,6 @@ class MoonshotBot:
             await self.data_feed.initialize()
             logger.info("✅ Binance connection established")
 
-            # Start WebSocket streams for real-time data (non-blocking, best-effort)
-            try:
-                logger.info("🔌 Starting WebSocket streams...")
-                # Get hot symbols for kline streaming (Tier 1 + some active pairs)
-                from config import PairFilterConfig
-                kline_symbols = [f"{s}USDT" for s in PairFilterConfig.TIER_1_SYMBOLS[:50]]
-                await self.data_feed.start_all_streams(kline_symbols=kline_symbols)
-                logger.info("✅ WebSocket streams active")
-            except Exception as ws_err:
-                logger.warning(f"⚠️ WebSocket streams failed to start: {ws_err}")
-                logger.warning("Continuing with REST API fallback...")
-
             # Initialize order executor
             logger.info("📝 Initializing order executor...")
             await self.order_executor.initialize()
@@ -455,7 +443,7 @@ class MoonshotBot:
     
     def get_status(self) -> dict:
         """Get bot status for API"""
-        status = {
+        return {
             "running": self._running,
             "regime": self.market_regime.current_regime.value,
             "positions": self.position_tracker.get_position_count(),
@@ -463,14 +451,6 @@ class MoonshotBot:
             "pairs_tracked": len(self.pair_filter.pairs),
             "active_moonshots": len(self.moonshot_detector.active_moonshots)
         }
-
-        # Add WebSocket stream status
-        try:
-            status["streams"] = self.data_feed.get_stream_status()
-        except Exception:
-            status["streams"] = {"error": "unavailable"}
-
-        return status
 
 
 # Global bot instance (created lazily)
@@ -577,20 +557,6 @@ async def positions():
         return [p.to_dict() for p in bot.position_tracker.get_all_positions()]
     except Exception as e:
         return {"error": str(e), "positions": []}
-
-
-@app.get("/streams")
-async def streams():
-    """Get WebSocket stream status"""
-    global bot
-
-    if not bot or not health_status.initialized:
-        return {"error": "Bot not initialized", "streams": {}}
-
-    try:
-        return bot.data_feed.get_stream_status()
-    except Exception as e:
-        return {"error": str(e)}
 
 
 @app.post("/stop")
