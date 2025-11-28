@@ -77,16 +77,26 @@ class PositionTracker:
         """Load positions from Redis"""
         if not self.redis:
             return
-        
+
         try:
             data = await self.redis.get(self._redis_key)
             if data:
                 positions_data = json.loads(data)
+                loaded = 0
+                skipped = 0
                 for symbol, pos_dict in positions_data.items():
+                    # Validate position data before loading
+                    entry_price = pos_dict.get('entry_price', 0)
+                    leverage = pos_dict.get('leverage', 0)
+                    if entry_price <= 0 or leverage <= 0:
+                        logger.warning(f"Skipping invalid position from Redis: {symbol} (entry_price={entry_price}, leverage={leverage})")
+                        skipped += 1
+                        continue
                     self.positions[symbol] = TrackedPosition.from_dict(pos_dict)
-                
-                logger.info(f"Loaded {len(self.positions)} positions from Redis")
-                
+                    loaded += 1
+
+                logger.info(f"Loaded {loaded} positions from Redis (skipped {skipped} invalid)")
+
         except Exception as e:
             logger.error(f"Error loading positions from Redis: {e}")
     

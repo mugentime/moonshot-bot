@@ -105,7 +105,11 @@ class ExitManager:
     
     def _calculate_initial_stop_loss(self, entry_price: float, direction: str, leverage: int) -> float:
         """Calculate initial stop-loss considering liquidation"""
-        
+
+        # Guard against division by zero
+        if leverage <= 0:
+            leverage = 10  # Default to 10x if invalid
+
         # Liquidation price
         if direction == "LONG":
             liquidation = entry_price * (1 - (1 / leverage))
@@ -136,7 +140,12 @@ class ExitManager:
             return None
         
         pos = self.positions[symbol]
-        
+
+        # Guard against division by zero
+        if pos.entry_price <= 0:
+            logger.warning(f"Invalid entry_price for {symbol}: {pos.entry_price}")
+            return None
+
         # Update highest/lowest price
         if pos.direction == "LONG":
             pos.highest_price = max(pos.highest_price, current_price)

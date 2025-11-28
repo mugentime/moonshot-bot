@@ -129,6 +129,9 @@ class MoonshotBot:
             self.position_sizer.log_status()
             self.position_tracker.log_status()
 
+            # Initialize exit manager for any synced positions
+            await self._sync_exit_manager_with_positions()
+
             health_status.initialized = True
             health_status.initializing = False
             logger.info(f"✅ Bot initialized | Regime: {self.market_regime.current_regime.value}")
@@ -259,7 +262,10 @@ class MoonshotBot:
                 
                 # Sync with exchange periodically
                 await self.position_tracker.sync_with_exchange()
-                
+
+                # Ensure exit manager has all positions
+                await self._sync_exit_manager_with_positions()
+
                 # Wait before next check
                 await asyncio.sleep(2)
                 
@@ -289,14 +295,42 @@ class MoonshotBot:
                 logger.error(f"Error in regime loop: {e}")
                 await asyncio.sleep(60)
     
+    async def _sync_exit_manager_with_positions(self):
+        """Sync exit manager with tracked positions (for positions synced from exchange)"""
+        positions = self.position_tracker.get_all_positions()
+        synced_count = 0
+
+        for pos in positions:
+            # Skip if already tracked in exit manager
+            if self.exit_manager.get_position_state(pos.symbol):
+                continue
+
+            # Skip invalid positions
+            if pos.entry_price <= 0 or pos.leverage <= 0:
+                logger.warning(f"Skipping invalid position for exit manager: {pos.symbol}")
+                continue
+
+            # Initialize in exit manager
+            self.exit_manager.initialize_position(
+                symbol=pos.symbol,
+                direction=pos.direction,
+                entry_price=pos.entry_price,
+                margin=pos.margin,
+                leverage=pos.leverage
+            )
+            synced_count += 1
+
+        if synced_count > 0:
+            logger.info(f"📍 Synced {synced_count} positions to exit manager")
+
     async def _on_regime_change(self, old_regime: MarketRegime, new_regime: MarketRegime):
         """Handle regime changes"""
         logger.warning(f"📊 Regime changed: {old_regime.value} → {new_regime.value}")
-        
+
         # If changed to CHOPPY, close all positions
         if new_regime == MarketRegime.CHOPPY:
             exit_actions = self.exit_manager.on_regime_change_to_choppy()
-            
+
             for action in exit_actions:
                 await self._execute_exit(action)
     
@@ -396,8 +430,10 @@ class MoonshotBot:
     
     def _calculate_pnl(self, position, current_price: float) -> float:
         """Calculate unrealized P&L"""
-        # Guard against division by zero
-        if position.entry_price == 0 or position.entry_price is None:
+        # Guard against division by zero and invalid values
+        if not position.entry_price or position.entry_price <= 0:
+            return 0.0
+        if not position.leverage or position.leverage <= 0:
             return 0.0
 
         if position.direction == "LONG":
