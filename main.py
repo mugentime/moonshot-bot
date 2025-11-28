@@ -100,6 +100,15 @@ class MoonshotBot:
             await self.data_feed.initialize()
             logger.info("✅ Binance connection established")
 
+            # Start WebSocket streams for real-time data (reduces API calls by 70%+)
+            logger.info("🔌 Starting WebSocket streams...")
+            await self.data_feed.start_ticker_stream()
+            await asyncio.sleep(2)  # Allow stream to populate cache
+            if self.data_feed._ticker_stream_active:
+                logger.info(f"✅ Ticker stream active - {self.data_feed._ticker_update_count} updates received")
+            else:
+                logger.warning("⚠️ Ticker stream not active - will use REST API fallback")
+
             # Initialize order executor
             logger.info("📝 Initializing order executor...")
             await self.order_executor.initialize()
@@ -174,6 +183,12 @@ class MoonshotBot:
                     await task
                 except asyncio.CancelledError:
                     pass
+
+        # Stop WebSocket streams
+        try:
+            await self.data_feed.stop_streams()
+        except Exception as e:
+            logger.error(f"Error stopping WebSocket streams: {e}")
 
         # Close connections
         try:

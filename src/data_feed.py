@@ -57,29 +57,35 @@ class DataFeed:
     """
     Manages all data streams from Binance Futures
     """
-    
+
     def __init__(self):
         self.client: Optional[AsyncClient] = None
         self.bsm: Optional[BinanceSocketManager] = None
-        
+
         # Data storage
         self.tickers: Dict[str, TickerData] = {}
         self.klines: Dict[str, Dict[str, List[KlineData]]] = defaultdict(lambda: defaultdict(list))
         self.orderbooks: Dict[str, OrderBookData] = {}
         self.funding_rates: Dict[str, FundingRateData] = {}
         self.open_interest: Dict[str, float] = {}
-        
+
         # Volume tracking for spike detection
         self.volume_history: Dict[str, List[float]] = defaultdict(list)
         self.price_history: Dict[str, List[Dict]] = defaultdict(list)
-        
+
         # Callbacks
         self.on_ticker_update: Optional[Callable] = None
         self.on_kline_update: Optional[Callable] = None
-        
+
         # State
         self._running = False
         self._sockets = []
+
+        # WebSocket stream state
+        self._stream_running = False
+        self._ticker_stream_task = None
+        self._ticker_stream_active = False
+        self._ticker_update_count = 0
     
     async def initialize(self):
         """Initialize Binance client"""
@@ -114,8 +120,91 @@ class DataFeed:
         
         if self.client:
             await self.client.close_connection()
-        
+
         logger.info("DataFeed closed")
+
+    # ==================== WebSocket Stream Methods ====================
+
+    async def start_ticker_stream(self):
+        """Start the all-market ticker stream for futures"""
+        self._stream_running = True
+        self._ticker_stream_task = asyncio.create_task(self._run_ticker_stream())
+        logger.info("🔌 Ticker stream task started")
+
+    async def _run_ticker_stream(self):
+        """Run the ticker stream with auto-reconnect"""
+        reconnect_delay = 1
+        max_delay = 60
+
+        while self._stream_running:
+            try:
+                logger.info("🔌 Connecting to futures ticker stream...")
+                ts = self.bsm.futures_multiplex_socket(['!ticker@arr'])
+
+                async with ts as stream:
+                    self._ticker_stream_active = True
+                    reconnect_delay = 1  # Reset on successful connect
+                    logger.info("✅ Futures ticker stream connected")
+
+                    while self._stream_running:
+                        try:
+                            msg = await asyncio.wait_for(stream.recv(), timeout=30)
+                            if msg and 'data' in msg:
+                                self._process_ticker_update(msg['data'])
+                        except asyncio.TimeoutError:
+                            continue  # Just retry recv
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self._ticker_stream_active = False
+                logger.error(f"❌ Ticker stream error: {e}")
+                if self._stream_running:
+                    logger.info(f"🔄 Reconnecting in {reconnect_delay}s...")
+                    await asyncio.sleep(reconnect_delay)
+                    reconnect_delay = min(reconnect_delay * 2, max_delay)
+
+        self._ticker_stream_active = False
+        logger.info("🔌 Ticker stream stopped")
+
+    def _process_ticker_update(self, data):
+        """Process incoming ticker data from WebSocket"""
+        if isinstance(data, list):
+            for ticker in data:
+                self._update_single_ticker(ticker)
+        else:
+            self._update_single_ticker(data)
+
+    def _update_single_ticker(self, ticker):
+        """Update a single ticker in cache from WebSocket data"""
+        symbol = ticker.get('s')
+        if not symbol:
+            return
+
+        self.tickers[symbol] = TickerData(
+            symbol=symbol,
+            price=float(ticker.get('c', 0)),
+            price_change_percent_24h=float(ticker.get('P', 0)),
+            volume_24h=float(ticker.get('q', 0)),
+            high_24h=float(ticker.get('h', 0)),
+            low_24h=float(ticker.get('l', 0))
+        )
+        self._ticker_update_count += 1
+
+    async def stop_streams(self):
+        """Stop all WebSocket streams"""
+        logger.info("Stopping WebSocket streams...")
+        self._stream_running = False
+        if self._ticker_stream_task:
+            self._ticker_stream_task.cancel()
+            try:
+                await self._ticker_stream_task
+            except asyncio.CancelledError:
+                pass
+        self._ticker_stream_active = False
+        logger.info("WebSocket streams stopped")
+
+    # ==================== End WebSocket Stream Methods ====================
     
     async def get_all_futures_symbols(self) -> List[str]:
         """Get all available USDT/USDC perpetual futures symbols"""
@@ -132,10 +221,22 @@ class DataFeed:
         return symbols
     
     async def get_ticker(self, symbol: str) -> Optional[TickerData]:
-        """Get current ticker for a symbol"""
+        """Get current ticker - from WebSocket cache if fresh, else REST API"""
+        # Check WebSocket cache first
+        if symbol in self.tickers:
+            cached = self.tickers[symbol]
+            age = time.time() - cached.timestamp
+            if age < 2.0:  # Data is fresh (under 2 seconds old)
+                return cached
+
+        # Fallback to REST API
+        return await self._fetch_ticker_rest(symbol)
+
+    async def _fetch_ticker_rest(self, symbol: str) -> Optional[TickerData]:
+        """Fetch ticker from REST API (fallback when WebSocket cache is stale)"""
         try:
             ticker = await self.client.futures_ticker(symbol=symbol)
-            
+
             data = TickerData(
                 symbol=symbol,
                 price=float(ticker['lastPrice']),
@@ -144,10 +245,10 @@ class DataFeed:
                 high_24h=float(ticker['highPrice']),
                 low_24h=float(ticker['lowPrice'])
             )
-            
+
             self.tickers[symbol] = data
             return data
-            
+
         except Exception as e:
             logger.error(f"Error getting ticker for {symbol}: {e}")
             return None
