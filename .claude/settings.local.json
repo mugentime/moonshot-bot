@@ -5,7 +5,11 @@
       "mcp__memory-keeper__context_search",
       "Bash(railway whoami:*)",
       "Bash(railway list:*)",
-      "Bash(dir /a)"
+      "Bash(dir /a)",
+      "mcp__memory-keeper__context_session_start",
+      "mcp__memory-keeper__context_save",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ],
     "deny": [],
     "ask": []

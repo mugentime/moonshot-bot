@@ -492,6 +492,10 @@ class DataFeed:
         """
         logger.info("🔌 Starting WebSocket streams...")
 
+        # IMPORTANT: Set running flag BEFORE starting stream tasks
+        # Otherwise the while self._running loops will exit immediately
+        self._running = True
+
         # Start all-market ticker stream
         self._ticker_stream_task = asyncio.create_task(
             self._run_ticker_stream_with_reconnect()
