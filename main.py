@@ -100,13 +100,17 @@ class MoonshotBot:
             await self.data_feed.initialize()
             logger.info("✅ Binance connection established")
 
-            # Start WebSocket streams for real-time data
-            logger.info("🔌 Starting WebSocket streams...")
-            # Get hot symbols for kline streaming (Tier 1 + some active pairs)
-            from config import PairFilterConfig
-            kline_symbols = [f"{s}USDT" for s in PairFilterConfig.TIER_1_SYMBOLS[:50]]
-            await self.data_feed.start_all_streams(kline_symbols=kline_symbols)
-            logger.info("✅ WebSocket streams active")
+            # Start WebSocket streams for real-time data (non-blocking, best-effort)
+            try:
+                logger.info("🔌 Starting WebSocket streams...")
+                # Get hot symbols for kline streaming (Tier 1 + some active pairs)
+                from config import PairFilterConfig
+                kline_symbols = [f"{s}USDT" for s in PairFilterConfig.TIER_1_SYMBOLS[:50]]
+                await self.data_feed.start_all_streams(kline_symbols=kline_symbols)
+                logger.info("✅ WebSocket streams active")
+            except Exception as ws_err:
+                logger.warning(f"⚠️ WebSocket streams failed to start: {ws_err}")
+                logger.warning("Continuing with REST API fallback...")
 
             # Initialize order executor
             logger.info("📝 Initializing order executor...")
