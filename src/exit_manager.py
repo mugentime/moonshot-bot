@@ -250,17 +250,22 @@ class ExitManager:
                     pos.trailing_tight = True
                     logger.info(f"📍 {pos.symbol}: Trailing stop tightened to {self.trailing_config.TIGHT_DISTANCE}%")
                 
+                details = {
+                    "level": level['profit'],
+                    "action": action,
+                    "trailing_active": pos.trailing_active
+                }
+
+                # Only include new_sl when stop-loss actually moved
+                if action == "move_sl_breakeven":
+                    details["new_sl"] = pos.stop_loss
+
                 return ExitAction(
                     type="CLOSE_PARTIAL",
                     symbol=pos.symbol,
                     reason=ExitReason.TAKE_PROFIT,
                     close_percent=level['close'],
-                    details={
-                        "level": level['profit'],
-                        "action": action,
-                        "new_sl": pos.stop_loss,
-                        "trailing_active": pos.trailing_active
-                    }
+                    details=details
                 )
         
         return None
