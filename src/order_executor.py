@@ -156,18 +156,34 @@ class OrderExecutor:
             )
             
             logger.info(f"🟢 LONG opened: {symbol} | Qty: {quantity} | Price: ~{price}")
-            
+
             # Set stop-loss if provided
             if stop_loss:
                 await self._set_stop_loss(symbol, "LONG", quantity, stop_loss)
-            
+
+            # Get actual entry price from position (avgPrice in response is often 0)
+            actual_price = float(order.get('avgPrice', 0))
+            if actual_price <= 0:
+                # Query position to get real entry price
+                try:
+                    positions = await self.client.futures_position_information(symbol=symbol)
+                    for p in positions:
+                        if p['symbol'] == symbol and float(p['positionAmt']) != 0:
+                            actual_price = float(p['entryPrice'])
+                            break
+                except Exception:
+                    pass
+                # Fallback to ticker price
+                if actual_price <= 0:
+                    actual_price = price
+
             return OrderResult(
                 success=True,
                 order_id=str(order['orderId']),
                 symbol=symbol,
                 side="BUY",
                 quantity=quantity,
-                price=float(order.get('avgPrice', price))
+                price=actual_price
             )
             
         except Exception as e:
@@ -219,18 +235,34 @@ class OrderExecutor:
             )
             
             logger.info(f"🔴 SHORT opened: {symbol} | Qty: {quantity} | Price: ~{price}")
-            
+
             # Set stop-loss if provided
             if stop_loss:
                 await self._set_stop_loss(symbol, "SHORT", quantity, stop_loss)
-            
+
+            # Get actual entry price from position (avgPrice in response is often 0)
+            actual_price = float(order.get('avgPrice', 0))
+            if actual_price <= 0:
+                # Query position to get real entry price
+                try:
+                    positions = await self.client.futures_position_information(symbol=symbol)
+                    for p in positions:
+                        if p['symbol'] == symbol and float(p['positionAmt']) != 0:
+                            actual_price = float(p['entryPrice'])
+                            break
+                except Exception:
+                    pass
+                # Fallback to ticker price
+                if actual_price <= 0:
+                    actual_price = price
+
             return OrderResult(
                 success=True,
                 order_id=str(order['orderId']),
                 symbol=symbol,
                 side="SELL",
                 quantity=quantity,
-                price=float(order.get('avgPrice', price))
+                price=actual_price
             )
             
         except Exception as e:
