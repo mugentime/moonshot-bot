@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 
 from config import BINANCE_API_KEY, BINANCE_API_SECRET, BINANCE_TESTNET
+from src.velocity_scanner import VelocityScanner, VelocityAlert
 
 
 @dataclass
@@ -86,6 +87,11 @@ class DataFeed:
         self._ticker_stream_task = None
         self._ticker_stream_active = False
         self._ticker_update_count = 0
+
+        # Velocity scanner for real-time moonshot detection
+        self.velocity_scanner = VelocityScanner()
+        self.velocity_alerts: List[VelocityAlert] = []  # Recent alerts queue
+        self._velocity_alert_callback = None  # Optional callback for alerts
     
     async def initialize(self):
         """Initialize Binance client"""
@@ -181,15 +187,27 @@ class DataFeed:
         if not symbol:
             return
 
+        price = float(ticker.get('c', 0))
+
         self.tickers[symbol] = TickerData(
             symbol=symbol,
-            price=float(ticker.get('c', 0)),
+            price=price,
             price_change_percent_24h=float(ticker.get('P', 0)),
             volume_24h=float(ticker.get('q', 0)),
             high_24h=float(ticker.get('h', 0)),
             low_24h=float(ticker.get('l', 0))
         )
         self._ticker_update_count += 1
+
+        # Feed to velocity scanner for real-time detection
+        if price > 0:
+            alert = self.velocity_scanner.on_ticker_update(symbol, price)
+            if alert:
+                # Store alert for processing
+                self.velocity_alerts.append(alert)
+                # Keep only last 100 alerts
+                if len(self.velocity_alerts) > 100:
+                    self.velocity_alerts = self.velocity_alerts[-100:]
 
     async def stop_streams(self):
         """Stop all WebSocket streams"""

@@ -6,10 +6,10 @@
       "Bash(railway whoami:*)",
       "Bash(railway list:*)",
       "Bash(dir /a)",
-      "mcp__memory-keeper__context_session_start",
-      "mcp__memory-keeper__context_save",
-      "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs"
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(git fetch:*)",
+      "Bash(railway status:*)"
     ],
     "deny": [],
     "ask": []

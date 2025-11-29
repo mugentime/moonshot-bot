@@ -44,47 +44,84 @@ class MoonshotDetector:
         self.active_moonshots: Dict[str, MoonshotSignal] = {}
     
     async def scan_for_long(self, symbol: str) -> Optional[MoonshotSignal]:
-        """Scan a symbol for LONG moonshot signals"""
+        """Scan a symbol for LONG moonshot signals - ENHANCED"""
         try:
+            # Get ticker for 24h change check
+            ticker = await self.data_feed.get_ticker(symbol)
+
+            # MOONSHOT MEGA-SIGNAL: If 24h change >= +20%, check if still pumping
+            if ticker and ticker.price_change_percent_24h >= 20:
+                # Check recent velocity from klines
+                await self.data_feed.get_klines(symbol, '1m', 10)
+                velocity_5m = self.data_feed.get_price_change_percent(symbol, 5)
+
+                if velocity_5m > 1.0:  # Still pumping more than +1% in last 5min
+                    signal = MoonshotSignal(
+                        symbol=symbol,
+                        direction="LONG",
+                        score=5,  # High score for mega-moonshots
+                        confidence=0.8,
+                        signals={
+                            'volume': True,
+                            'price': True,
+                            'oi': True,
+                            'funding': True,
+                            'breakout': True,
+                            'orderbook': False
+                        },
+                        details={
+                            'price_change_24h': ticker.price_change_percent_24h,
+                            'price_change_5m': velocity_5m,
+                            'volume_ratio': 0,
+                            'mega_pump': True
+                        },
+                        timestamp=time.time(),
+                        is_mega_signal=True
+                    )
+
+                    self.active_moonshots[symbol] = signal
+                    logger.warning(f"🚀 MEGA-PUMP detected: {symbol} (+{ticker.price_change_percent_24h:.1f}% 24h, still pumping +{velocity_5m:.1f}%/5min)")
+                    return signal
+
             signals = {}
             details = {}
-            
+
             # Signal 1: Volume spike
             vol_spike, vol_ratio = await self._check_volume_spike(symbol)
             signals['volume'] = vol_spike
             details['volume_ratio'] = vol_ratio
-            
+
             # Signal 2: Price acceleration
             price_acc, price_change = await self._check_price_acceleration_long(symbol)
             signals['price'] = price_acc
             details['price_change_5m'] = price_change
-            
+
             # Signal 3: Open Interest surge
             oi_surge, oi_change = await self._check_oi_surge(symbol)
             signals['oi'] = oi_surge
             details['oi_change_15m'] = oi_change
-            
+
             # Signal 4: Funding favorable for long
             funding_ok, funding_rate = await self._check_funding_for_long(symbol)
             signals['funding'] = funding_ok
             details['funding_rate'] = funding_rate
-            
+
             # Signal 5: Breakout
             breakout, breakout_strength = await self._check_breakout(symbol)
             signals['breakout'] = breakout
             details['breakout_strength'] = breakout_strength
-            
+
             # Signal 6: Order book imbalance (bids > asks)
             ob_imbalance, imbalance_ratio = await self._check_orderbook_long(symbol)
             signals['orderbook'] = ob_imbalance
             details['orderbook_imbalance'] = imbalance_ratio
-            
+
             # Calculate score
             score = sum(signals.values())
 
-            # Check for MEGA-SIGNAL: if price moved >5% in 5min, lower the threshold
-            is_mega = abs(price_change) >= getattr(self.config, 'MEGA_SIGNAL_VELOCITY', 5.0)
-            min_signals = getattr(self.config, 'MEGA_SIGNAL_MIN_SIGNALS', 2) if is_mega else self.config.MIN_SIGNALS_REQUIRED
+            # Check for MEGA-SIGNAL: if price moved >3% in 5min (lowered from 5%), lower the threshold
+            is_mega = abs(price_change) >= getattr(self.config, 'MEGA_SIGNAL_VELOCITY', 3.0)
+            min_signals = getattr(self.config, 'MEGA_SIGNAL_MIN_SIGNALS', 1) if is_mega else self.config.MIN_SIGNALS_REQUIRED
 
             if score >= min_signals:
                 signal = MoonshotSignal(
@@ -113,47 +150,84 @@ class MoonshotDetector:
             return None
     
     async def scan_for_short(self, symbol: str) -> Optional[MoonshotSignal]:
-        """Scan a symbol for SHORT moonshot signals"""
+        """Scan a symbol for SHORT moonshot signals - ENHANCED MOONDROP DETECTION"""
         try:
+            # Get ticker for 24h change check
+            ticker = await self.data_feed.get_ticker(symbol)
+
+            # MOONDROP MEGA-SIGNAL: If 24h change <= -20%, check if still dropping
+            if ticker and ticker.price_change_percent_24h <= -20:
+                # Check recent velocity from klines
+                await self.data_feed.get_klines(symbol, '1m', 10)
+                velocity_5m = self.data_feed.get_price_change_percent(symbol, 5)
+
+                if velocity_5m < -1.0:  # Still dropping more than -1% in last 5min
+                    signal = MoonshotSignal(
+                        symbol=symbol,
+                        direction="SHORT",
+                        score=5,  # High score for moondrops
+                        confidence=0.8,
+                        signals={
+                            'volume': True,
+                            'price': True,
+                            'oi': True,
+                            'funding': True,
+                            'breakdown': True,
+                            'orderbook': False
+                        },
+                        details={
+                            'price_change_24h': ticker.price_change_percent_24h,
+                            'price_change_5m': velocity_5m,
+                            'volume_ratio': 0,
+                            'moondrop': True
+                        },
+                        timestamp=time.time(),
+                        is_mega_signal=True
+                    )
+
+                    self.active_moonshots[symbol] = signal
+                    logger.warning(f"🌑 MOONDROP detected: {symbol} ({ticker.price_change_percent_24h:.1f}% 24h, still dropping {velocity_5m:.1f}%/5min)")
+                    return signal
+
             signals = {}
             details = {}
-            
+
             # Signal 1: Volume spike (same for both)
             vol_spike, vol_ratio = await self._check_volume_spike(symbol)
             signals['volume'] = vol_spike
             details['volume_ratio'] = vol_ratio
-            
+
             # Signal 2: Price dump
             price_dump, price_change = await self._check_price_acceleration_short(symbol)
             signals['price'] = price_dump
             details['price_change_5m'] = price_change
-            
+
             # Signal 3: Open Interest surge
             oi_surge, oi_change = await self._check_oi_surge(symbol)
             signals['oi'] = oi_surge
             details['oi_change_15m'] = oi_change
-            
+
             # Signal 4: Funding overleveraged (high = squeeze incoming)
             funding_high, funding_rate = await self._check_funding_for_short(symbol)
             signals['funding'] = funding_high
             details['funding_rate'] = funding_rate
-            
+
             # Signal 5: Breakdown
             breakdown, breakdown_strength = await self._check_breakdown(symbol)
             signals['breakdown'] = breakdown
             details['breakdown_strength'] = breakdown_strength
-            
+
             # Signal 6: Order book imbalance (asks > bids)
             ob_imbalance, imbalance_ratio = await self._check_orderbook_short(symbol)
             signals['orderbook'] = ob_imbalance
             details['orderbook_imbalance'] = imbalance_ratio
-            
+
             # Calculate score
             score = sum(signals.values())
 
-            # Check for MEGA-SIGNAL: if price moved >5% in 5min (either direction), lower the threshold
-            is_mega = abs(price_change) >= getattr(self.config, 'MEGA_SIGNAL_VELOCITY', 5.0)
-            min_signals = getattr(self.config, 'MEGA_SIGNAL_MIN_SIGNALS', 2) if is_mega else self.config.MIN_SIGNALS_REQUIRED
+            # Check for MEGA-SIGNAL: if price moved >3% in 5min (lowered from 5%), lower the threshold
+            is_mega = abs(price_change) >= getattr(self.config, 'MEGA_SIGNAL_VELOCITY', 3.0)
+            min_signals = getattr(self.config, 'MEGA_SIGNAL_MIN_SIGNALS', 1) if is_mega else self.config.MIN_SIGNALS_REQUIRED
 
             if score >= min_signals:
                 signal = MoonshotSignal(

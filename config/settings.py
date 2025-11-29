@@ -57,14 +57,14 @@ class FundingConfig:
 class MoonshotDetectionConfig:
     MIN_SIGNALS_REQUIRED = 3  # Out of 6 (AGGRESSIVE: was 4)
 
-    # Volume
-    VOLUME_SPIKE_5M = 3.0  # 3x average
-    VOLUME_SPIKE_1H = 5.0  # 5x average
+    # Volume - LOWERED for more sensitivity
+    VOLUME_SPIKE_5M = 2.0  # 2x average (was 3x)
+    VOLUME_SPIKE_1H = 3.0  # 3x average (was 5x)
 
-    # Price velocity
-    PRICE_VELOCITY_5M_LONG = 2.0  # +2%
-    PRICE_VELOCITY_5M_SHORT = -2.0  # -2%
-    PRICE_VELOCITY_1M = 0.8  # +0.8%
+    # Price velocity - LOWERED to catch earlier
+    PRICE_VELOCITY_5M_LONG = 1.5  # +1.5% (was 2%)
+    PRICE_VELOCITY_5M_SHORT = -1.5  # -1.5% (was -2%)
+    PRICE_VELOCITY_1M = 0.5  # +0.5% (was 0.8%)
 
     # Open Interest
     OI_SURGE_15M = 5.0  # +5%
@@ -80,9 +80,9 @@ class MoonshotDetectionConfig:
     # Order Book
     IMBALANCE_THRESHOLD = 0.65  # 65%
 
-    # MEGA-SIGNAL OVERRIDE: If price moves >5% in 5min, bypass normal requirements
-    MEGA_SIGNAL_VELOCITY = 5.0  # +5% in 5 min = confirmed moonshot
-    MEGA_SIGNAL_MIN_SIGNALS = 2  # Only need 2/6 signals for mega-moves
+    # MEGA-SIGNAL OVERRIDE: If price moves >3% in 5min, bypass normal requirements
+    MEGA_SIGNAL_VELOCITY = 3.0  # +3% in 5 min = confirmed moonshot (was 5%)
+    MEGA_SIGNAL_MIN_SIGNALS = 1  # Only need 1/6 signals for mega-moves (was 2)
 
 # =============================================================================
 # STOP-LOSS
@@ -122,10 +122,10 @@ class TrailingStopConfig:
 class PairFilterConfig:
     QUOTE_ASSETS = ["USDT", "USDC"]
     CONTRACT_TYPE = "PERPETUAL"
-    MIN_VOLUME_24H_USD = 1_000_000  # AGGRESSIVE: was $5M, now $1M to catch smaller caps
-    MIN_LISTING_AGE_HOURS = 4  # AGGRESSIVE: was 48h, now 4h to catch new listings
-    MAX_SPREAD_PERCENT = 0.15
-    MIN_ORDERBOOK_DEPTH_USD = 200_000
+    MIN_VOLUME_24H_USD = 100_000  # ULTRA-AGGRESSIVE: $100K to catch small caps before moon
+    MIN_LISTING_AGE_HOURS = 0  # Scan immediately on listing
+    MAX_SPREAD_PERCENT = 0.5  # Allow wider spreads for moonshots (was 0.15)
+    MIN_ORDERBOOK_DEPTH_USD = 50_000  # Lower depth requirement (was 200K)
     MIN_LEVERAGE_AVAILABLE = 10
 
     # Exclusions

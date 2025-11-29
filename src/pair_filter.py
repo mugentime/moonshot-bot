@@ -67,38 +67,49 @@ class PairFilter:
     
     async def _passes_filters(self, symbol: str) -> bool:
         """Check if symbol passes all inclusion/exclusion filters"""
-        
+
         # Exclusion: Stablecoins
         if symbol in self.config.STABLECOINS:
             return False
-        
+
         # Exclusion: Quote asset check
         quote_valid = False
         for quote in self.config.QUOTE_ASSETS:
             if symbol.endswith(quote):
                 quote_valid = True
                 break
-        
+
         if not quote_valid:
             return False
-        
+
         try:
             # Get ticker data
             ticker = await self.data_feed.get_ticker(symbol)
             if not ticker:
                 return False
-            
-            # Volume filter
+
+            # MEGA-MOVER BYPASS: If 24h change > 20%, ALWAYS include regardless of volume/spread
+            if abs(ticker.price_change_percent_24h) > 20:
+                logger.debug(f"🔥 Mega-mover bypass for {symbol}: {ticker.price_change_percent_24h:.1f}% 24h change")
+                return True
+
+            # HOT MOVER BYPASS: If 24h change > 10%, relax volume/spread requirements
+            if abs(ticker.price_change_percent_24h) > 10:
+                # Only require $50K volume for hot movers
+                if ticker.volume_24h >= 50_000:
+                    return True
+
+            # Normal volume filter
             if ticker.volume_24h < self.config.MIN_VOLUME_24H_USD:
                 return False
-            
-            # Spread filter
+
+            # Spread filter (relaxed for volatile coins)
             spread = await self.data_feed.get_spread(symbol)
             if spread > self.config.MAX_SPREAD_PERCENT:
                 return False
-            
+
             return True
-            
+
         except Exception as e:
             logger.debug(f"Error checking filters for {symbol}: {e}")
             return False
@@ -232,3 +243,33 @@ class PairFilter:
     def get_all_active_pairs(self) -> List[str]:
         """Get all pairs (tier 1-4)"""
         return list(self.pairs.keys())
+
+    def get_hot_movers(self) -> List[str]:
+        """Get symbols with >10% 24h change - always scan these first"""
+        hot = []
+        for symbol, ticker in self.data_feed.tickers.items():
+            if abs(ticker.price_change_percent_24h) > 10:
+                hot.append(symbol)
+        return sorted(hot, key=lambda s: abs(self.data_feed.tickers[s].price_change_percent_24h), reverse=True)
+
+    def get_mega_movers(self) -> List[str]:
+        """Get symbols with >20% 24h change - top priority"""
+        mega = []
+        for symbol, ticker in self.data_feed.tickers.items():
+            if abs(ticker.price_change_percent_24h) > 20:
+                mega.append(symbol)
+        return sorted(mega, key=lambda s: abs(self.data_feed.tickers[s].price_change_percent_24h), reverse=True)
+
+    def get_all_symbols_sorted_by_movement(self) -> List[str]:
+        """Get ALL symbols from WebSocket cache sorted by absolute 24h change"""
+        all_symbols = list(self.data_feed.tickers.keys())
+
+        # Filter out stablecoins
+        filtered = [s for s in all_symbols if s not in self.config.STABLECOINS]
+
+        # Sort by absolute 24h change (biggest movers first)
+        return sorted(
+            filtered,
+            key=lambda s: abs(self.data_feed.tickers[s].price_change_percent_24h),
+            reverse=True
+        )

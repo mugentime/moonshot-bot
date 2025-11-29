@@ -204,46 +204,127 @@ class MoonshotBot:
         logger.info("✅ Bot stopped")
     
     async def _scan_loop(self):
-        """Main loop for scanning moonshots"""
-        logger.info("🔍 Scan loop started")
+        """Main loop for scanning moonshots - AGGRESSIVE VERSION"""
+        logger.info("🔍 Scan loop started (AGGRESSIVE MODE)")
 
         while self._running:
             try:
-                # NOTE: We ALWAYS scan, even during CHOPPY regime!
-                # Mega-signals (>5% moves) bypass regime check in trade_manager.evaluate_signal()
-                # This ensures we don't miss moonshots during sideways markets
+                # PHASE 1: Process velocity alerts from WebSocket (INSTANT detection)
+                await self._process_velocity_alerts()
 
-                # Get pairs to scan
-                pairs_to_scan = self.pair_filter.get_pairs_to_scan()
-                
-                for symbol in pairs_to_scan:
+                # PHASE 2: Scan ALL symbols from WebSocket cache, sorted by movement
+                # This catches moonshots even if they weren't in the initial pair pool
+                all_symbols = self.pair_filter.get_all_symbols_sorted_by_movement()
+
+                # Log periodic stats
+                if hasattr(self, '_scan_count'):
+                    self._scan_count += 1
+                else:
+                    self._scan_count = 1
+
+                if self._scan_count % 60 == 0:  # Every ~60 seconds
+                    hot_movers = self.pair_filter.get_hot_movers()
+                    mega_movers = self.pair_filter.get_mega_movers()
+                    logger.info(f"📊 Scanning {len(all_symbols)} symbols | Hot: {len(hot_movers)} | Mega: {len(mega_movers)}")
+
+                # Scan top 100 movers FIRST (biggest 24h change = highest priority)
+                symbols_scanned = 0
+                for symbol in all_symbols[:100]:
                     if not self._running:
                         break
-                    
+
                     # Scan for moonshot
                     signal = await self.moonshot_detector.scan(symbol)
-                    
+
                     if signal:
                         # Evaluate and possibly execute trade
                         decision = await self.trade_manager.evaluate_signal(signal)
-                        
+
                         if decision.approved:
                             await self._execute_trade(decision)
-                    
-                    # Mark as scanned
-                    self.pair_filter.mark_scanned(symbol)
-                    
-                    # Small delay between pairs
-                    await asyncio.sleep(0.1)
-                
-                # Wait before next scan cycle
+
+                    symbols_scanned += 1
+
+                    # Small delay to prevent overwhelming the system
+                    if symbols_scanned % 20 == 0:
+                        await asyncio.sleep(0.05)
+
+                # Scan remaining symbols (less priority)
+                for symbol in all_symbols[100:]:
+                    if not self._running:
+                        break
+
+                    signal = await self.moonshot_detector.scan(symbol)
+
+                    if signal:
+                        decision = await self.trade_manager.evaluate_signal(signal)
+                        if decision.approved:
+                            await self._execute_trade(decision)
+
+                    symbols_scanned += 1
+
+                    # Slightly longer delay for lower priority symbols
+                    if symbols_scanned % 50 == 0:
+                        await asyncio.sleep(0.1)
+
+                # Wait before next scan cycle (1 second)
                 await asyncio.sleep(1)
-                
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error(f"Error in scan loop: {e}")
                 await asyncio.sleep(5)
+
+    async def _process_velocity_alerts(self):
+        """Process velocity alerts from WebSocket (real-time detection)"""
+        # Get pending alerts
+        alerts = self.data_feed.velocity_alerts.copy()
+        self.data_feed.velocity_alerts.clear()
+
+        for alert in alerts:
+            try:
+                # Skip if we already have a position
+                if self.position_tracker.has_position(alert.symbol):
+                    continue
+
+                # Create a moonshot signal from the velocity alert
+                from src.moonshot_detector import MoonshotSignal
+
+                # Build signal based on velocity alert
+                signal = MoonshotSignal(
+                    symbol=alert.symbol,
+                    direction=alert.direction,
+                    score=4 if alert.priority == "HIGH" else 3,  # High score for velocity alerts
+                    confidence=0.7 if alert.priority == "HIGH" else 0.5,
+                    signals={
+                        'velocity': True,
+                        'volume': False,  # Will be checked by normal scan
+                        'price': True,
+                        'oi': False,
+                        'funding': True,  # Assume favorable
+                        'breakout': True if alert.direction == "LONG" else False,
+                        'orderbook': False
+                    },
+                    details={
+                        'velocity_percent': alert.velocity,
+                        'velocity_timeframe': alert.timeframe,
+                        'price_change_5m': alert.velocity if alert.timeframe == "5min" else 0
+                    },
+                    timestamp=alert.timestamp,
+                    is_mega_signal=abs(alert.velocity) >= 5.0  # 5%+ = mega
+                )
+
+                logger.info(f"⚡ Velocity alert -> Signal: {alert.symbol} {alert.direction} ({alert.velocity:+.1f}% in {alert.timeframe})")
+
+                # Evaluate and possibly execute
+                decision = await self.trade_manager.evaluate_signal(signal)
+
+                if decision.approved:
+                    await self._execute_trade(decision)
+
+            except Exception as e:
+                logger.error(f"Error processing velocity alert for {alert.symbol}: {e}")
     
     async def _monitor_loop(self):
         """Loop for monitoring open positions"""
