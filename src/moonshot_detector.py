@@ -46,6 +46,25 @@ class MoonshotDetector:
     async def scan_for_long(self, symbol: str) -> Optional[MoonshotSignal]:
         """Scan a symbol for LONG moonshot signals - ENHANCED"""
         try:
+            # EXTREME VELOCITY CHECK FIRST - 5%+ in 5min is definite moonshot
+            await self.data_feed.get_klines(symbol, '1m', 10)
+            change_5m = self.data_feed.get_price_change_percent(symbol, 5)
+
+            if change_5m >= 5.0:
+                logger.warning(f"EXTREME VELOCITY LONG: {symbol} +{change_5m:.1f}% in 5min")
+                signal = MoonshotSignal(
+                    symbol=symbol,
+                    direction="LONG",
+                    score=6,
+                    confidence=1.0,
+                    signals={'extreme_velocity': True, 'volume': True, 'price': True, 'oi': True, 'funding': True, 'breakout': True, 'orderbook': True},
+                    details={'price_change_5m': change_5m, 'extreme_velocity': True},
+                    timestamp=time.time(),
+                    is_mega_signal=True
+                )
+                self.active_moonshots[symbol] = signal
+                return signal
+
             # Get ticker for 24h change check
             ticker = await self.data_feed.get_ticker(symbol)
 
@@ -152,6 +171,25 @@ class MoonshotDetector:
     async def scan_for_short(self, symbol: str) -> Optional[MoonshotSignal]:
         """Scan a symbol for SHORT moonshot signals - ENHANCED MOONDROP DETECTION"""
         try:
+            # EXTREME VELOCITY CHECK FIRST - 5%+ drop in 5min is definite moondrop
+            await self.data_feed.get_klines(symbol, '1m', 10)
+            change_5m = self.data_feed.get_price_change_percent(symbol, 5)
+
+            if change_5m <= -5.0:
+                logger.warning(f"EXTREME VELOCITY SHORT: {symbol} {change_5m:.1f}% in 5min")
+                signal = MoonshotSignal(
+                    symbol=symbol,
+                    direction="SHORT",
+                    score=6,
+                    confidence=1.0,
+                    signals={'extreme_velocity': True, 'volume': True, 'price': True, 'oi': True, 'funding': True, 'breakdown': True, 'orderbook': True},
+                    details={'price_change_5m': change_5m, 'extreme_velocity': True},
+                    timestamp=time.time(),
+                    is_mega_signal=True
+                )
+                self.active_moonshots[symbol] = signal
+                return signal
+
             # Get ticker for 24h change check
             ticker = await self.data_feed.get_ticker(symbol)
 
@@ -291,35 +329,51 @@ class MoonshotDetector:
             return False, 0.0
     
     async def _check_price_acceleration_long(self, symbol: str) -> Tuple[bool, float]:
-        """Check if price is accelerating upward"""
+        """Check if price is accelerating upward - ENHANCED with OR logic for strong moves"""
         try:
             await self.data_feed.get_klines(symbol, '1m', 10)
-            
+
             change_5m = self.data_feed.get_price_change_percent(symbol, 5)
             change_1m = self.data_feed.get_price_change_percent(symbol, 1)
-            
+
             velocity_ok = change_5m >= self.config.PRICE_VELOCITY_5M_LONG
             accelerating = change_1m >= self.config.PRICE_VELOCITY_1M
-            
+
+            # BALANCED FIX: OR logic for strong moves
+            # If 5m velocity is very strong (>5%), bypass 1m requirement entirely
+            if change_5m >= 5.0:
+                return True, change_5m
+            # If 5m velocity is strong (>3%), only require weak 1m confirmation (0.2%)
+            if change_5m >= 3.0 and change_1m >= 0.2:
+                return True, change_5m
+
             return velocity_ok and accelerating, change_5m
-            
+
         except Exception as e:
             logger.debug(f"Error checking price for {symbol}: {e}")
             return False, 0.0
     
     async def _check_price_acceleration_short(self, symbol: str) -> Tuple[bool, float]:
-        """Check if price is accelerating downward"""
+        """Check if price is accelerating downward - ENHANCED with OR logic for strong moves"""
         try:
             await self.data_feed.get_klines(symbol, '1m', 10)
-            
+
             change_5m = self.data_feed.get_price_change_percent(symbol, 5)
             change_1m = self.data_feed.get_price_change_percent(symbol, 1)
-            
+
             velocity_ok = change_5m <= self.config.PRICE_VELOCITY_5M_SHORT
             accelerating = change_1m <= -self.config.PRICE_VELOCITY_1M
-            
+
+            # BALANCED FIX: OR logic for strong moves
+            # If 5m velocity is very strong (<-5%), bypass 1m requirement entirely
+            if change_5m <= -5.0:
+                return True, change_5m
+            # If 5m velocity is strong (<-3%), only require weak 1m confirmation (-0.2%)
+            if change_5m <= -3.0 and change_1m <= -0.2:
+                return True, change_5m
+
             return velocity_ok and accelerating, change_5m
-            
+
         except Exception as e:
             logger.debug(f"Error checking price for {symbol}: {e}")
             return False, 0.0

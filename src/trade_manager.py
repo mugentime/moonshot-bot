@@ -57,7 +57,7 @@ class TradeManager:
             logger.warning(f"🔥 MEGA-SIGNAL bypassing regime check for {symbol}")
             regime_ok, regime_reason = True, "MEGA-SIGNAL: regime bypassed"
         else:
-            regime_ok, regime_reason = self._check_regime(direction)
+            regime_ok, regime_reason = self._check_regime(direction, signal)
 
         if not regime_ok:
             return TradeDecision(
@@ -151,14 +151,22 @@ class TradeManager:
             signal=signal
         )
     
-    def _check_regime(self, direction: str) -> tuple:
+    def _check_regime(self, direction: str, signal: Optional[MoonshotSignal] = None) -> tuple:
         """Check if current regime allows this trade direction"""
         regime = self.market_regime.current_regime
-        
-        # CHOPPY and EXTREME block all entries
+
+        # CHOPPY: Allow entries for high-scoring signals (4+/6) or mega-signals
         if regime == MarketRegime.CHOPPY:
-            return False, "Market regime is CHOPPY - entries blocked"
-        
+            if signal is not None:
+                is_mega = getattr(signal, 'is_mega_signal', False)
+                if is_mega or signal.score >= 4:
+                    logger.info(f"Allowing CHOPPY entry for {signal.symbol} (score={signal.score}, mega={is_mega})")
+                    # Continue to direction check below
+                else:
+                    return False, "Market regime is CHOPPY - need score >= 4 or mega-signal"
+            else:
+                return False, "Market regime is CHOPPY - entries blocked"
+
         if regime == MarketRegime.EXTREME_VOLATILITY:
             return False, "Market regime is EXTREME VOLATILITY - entries blocked"
         

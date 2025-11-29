@@ -1,5 +1,5 @@
 """
-Check actual trade history from Binance for the last 24 hours
+Check actual trade history from Binance for the last 7 hours
 and compare against moonshots that happened
 """
 import asyncio
@@ -17,23 +17,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
 
-# Load credentials from environment or Railway
-# Run: railway run python scripts/check_trade_history.py
+# Credentials - set via environment or railway run
 
-# Moonshots that happened in last 24h (from our scan)
+# Moonshots that happened in last 7h (from our scan)
 MOONSHOTS_UP = [
-    "ALPACAUSDT", "TRADOORUSDT", "BNXUSDT", "TURBOUSDT", "SQDUSDT", "ARCUSDT",
-    "ALPHAUSDT", "BANANAUSDT", "CLOUSDT", "OCEANUSDT", "DGBUSDT", "AGIXUSDT",
-    "MERLUSDT", "AWEUSDT", "AINUSDT", "FUNUSDT", "LINAUSDT", "SIRENUSDT",
-    "BATUSDT", "PIPPINUSDT", "SKYUSDT", "MOODENGUSDT", "AI16ZUSDT", "LOKAUSDT",
-    "USELESSUSDT", "NEIROUSDT"
+    "LSKUSDT", "SKLUSDT", "BEATUSDT"
 ]
 
 MOONSHOTS_DOWN = [
-    "PORT3USDT", "BSWUSDT", "NEIROETHUSDT", "VIDTUSDT", "TROYUSDT", "BAKEUSDT",
-    "AMBUSDT", "KDAUSDT", "FLMUSDT", "MEMEFIUSDT", "ATUSDT", "NULSUSDT",
-    "BANANAS31USDT", "IRYSUSDT", "PERPUSDT", "HIFIUSDT", "RVVUSDT", "LEVERUSDT",
-    "1000XUSDT", "MYROUSDT", "DAMUSDT", "PTBUSDT", "MONUSDT", "XEMUSDT"
+    "ARCUSDT", "HEMIUSDT", "BNBUSDT", "FUNUSDT"
 ]
 
 ALL_MOONSHOTS = MOONSHOTS_UP + MOONSHOTS_DOWN
@@ -77,14 +69,14 @@ async def get_trade_history():
         else:
             print("  No open positions")
 
-        # Get account trade history for last 24h
+        # Get account trade history for last 7h
         print("\n" + "=" * 80)
-        print("TRADE HISTORY (LAST 24 HOURS)")
+        print("TRADE HISTORY (LAST 7 HOURS)")
         print("=" * 80)
 
-        # Calculate timestamp for 24h ago
+        # Calculate timestamp for 7h ago
         now = datetime.now(timezone.utc)
-        yesterday = now - timedelta(hours=24)
+        yesterday = now - timedelta(hours=7)
         start_time = int(yesterday.timestamp() * 1000)
 
         # Get all trades - need to check each symbol unfortunately
