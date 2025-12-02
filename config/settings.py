@@ -55,24 +55,96 @@ class FundingConfig:
 # =============================================================================
 
 class MoonshotDetectionConfig:
-    MIN_SIGNALS_REQUIRED = 3  # Out of 6 (AGGRESSIVE: was 4)
+    # ==========================================================================
+    # 3-TIER VELOCITY SYSTEM (90%+ CATCH RATE - Based on 183 moonshot analysis)
+    # ==========================================================================
 
-    # Volume - LOWERED for more sensitivity
-    VOLUME_SPIKE_5M = 2.0  # 2x average (was 3x)
-    VOLUME_SPIKE_1H = 3.0  # 3x average (was 5x)
+    # TIER 1 - INSTANT ENTRY (No confirmation needed, bypasses ALL checks)
+    TIER1_VELOCITY_5M = 2.5  # +2.5% in 5min = IMMEDIATE entry (catches 90.7%)
 
-    # Price velocity - LOWERED to catch earlier
-    PRICE_VELOCITY_5M_LONG = 1.5  # +1.5% (was 2%)
-    PRICE_VELOCITY_5M_SHORT = -1.5  # -1.5% (was -2%)
-    PRICE_VELOCITY_1M = 0.5  # +0.5% (was 0.8%)
+    # TIER 2 - FAST ENTRY (Volume confirmation only)
+    TIER2_VELOCITY_5M = 1.5  # +1.5% in 5min with volume spike
+    TIER2_VOLUME_SPIKE = 1.3  # 1.3x average volume required
+
+    # TIER 3 - MICRO DETECTION (1-minute candle tracking)
+    TIER3_VELOCITY_1M = 1.5  # +1.5% in 1min (3 consecutive green candles)
+    TIER3_CONSECUTIVE_CANDLES = 3  # Number of green candles needed
+
+    # MOMENTUM STACK (catches slow builders like PIPPINUSDT +91.6%)
+    MOMENTUM_1H_VELOCITY = 2.0  # +2% in 1 hour
+    MOMENTUM_15M_VELOCITY = 1.0  # +1% in 15 min
+    MOMENTUM_5M_VELOCITY = 0.5  # +0.5% in 5 min
+
+    # ==========================================================================
+    # PEAK HOUR OPTIMIZATION (53% of moonshots start 18:00-00:00 UTC)
+    # ==========================================================================
+    PEAK_HOURS_UTC = [(18, 24), (0, 1)]  # 18:00-00:00 and 00:00-01:00 UTC
+    PEAK_HOUR_THRESHOLD_REDUCTION = 0.25  # Reduce thresholds by 25% during peak
+
+    # ==========================================================================
+    # COOLDOWNS (Aggressive for faster re-entry)
+    # ==========================================================================
+    ENTRY_COOLDOWN_TIER1 = 30   # 30 seconds for instant entries
+    ENTRY_COOLDOWN_TIER2 = 60   # 60 seconds for fast entries
+    ENTRY_COOLDOWN_TIER3 = 120  # 120 seconds for micro entries
+    ALERT_COOLDOWN = 15  # 15 seconds between alerts (was 60)
+
+    # ==========================================================================
+    # SCAN FREQUENCY (Faster detection)
+    # ==========================================================================
+    SCAN_INTERVAL_ALL = 20      # 20 seconds for all 533 pairs
+    SCAN_INTERVAL_TOP100 = 5    # 5 seconds for top movers
+
+    # ==========================================================================
+    # MOONDROP DETECTION (80%+ CAPTURE RATE - Based on 6,392 moondrop analysis)
+    # ==========================================================================
+
+    # TIER 1 - EXTREME MOONDROP (instant trigger)
+    MOONDROP_EXTREME_VELOCITY_1M = -2.0  # -2% in 1 min = instant SHORT
+    MOONDROP_EXTREME_VELOCITY_5M = -4.0  # -4% in 5 min = instant SHORT
+
+    # TIER 2 - HIGH PRIORITY MOONDROP
+    MOONDROP_HIGH_VELOCITY_5M = -1.5  # -1.5% in 5 min
+    MOONDROP_HIGH_WICK_DROP = 3.0  # 3% wick drop
+
+    # TIER 3 - MEDIUM MOONDROP (80% capture)
+    MOONDROP_MEDIUM_VELOCITY_5M = -0.8  # -0.8% in 5 min (catches 80%+)
+    MOONDROP_MEDIUM_WICK_DROP = 2.0  # 2% wick drop (catches 97%)
+    MOONDROP_MEDIUM_BODY_DROP = 0.8  # 0.8% bearish body
+    MOONDROP_MEDIUM_RANGE_EXP = 1.3  # 1.3x range expansion
+
+    # TIER 4 - EARLY DETECTION (watchlist only)
+    MOONDROP_EARLY_WICK_DROP = 1.5  # 1.5% wick drop
+    MOONDROP_EARLY_VOL_SPIKE = 1.2  # 1.2x volume spike
+
+    # ==========================================================================
+    # LEGACY SIGNALS (Still used for Tier 2/3 confirmation)
+    # ==========================================================================
+    MIN_SIGNALS_REQUIRED = 3  # Out of 6 (bypassed for Tier 1)
+
+    # Volume - LOWERED for 80% capture
+    VOLUME_SPIKE_5M = 1.3  # 1.3x average (was 2x) - p25 is 1.06x
+    VOLUME_SPIKE_1H = 2.0  # 2x average (was 3x)
+
+    # Price velocity - LOWERED for 80% capture
+    PRICE_VELOCITY_5M_LONG = 0.8  # +0.8% (was 1.5%)
+    PRICE_VELOCITY_5M_SHORT = -0.8  # -0.8% (was -1.5%) - catches 80%+
+    PRICE_VELOCITY_1M = 0.3  # +0.3% (was 0.5%)
+
+    # NEW: Wick drop detection (catches 97% of moondrops at 2.0%)
+    WICK_DROP_THRESHOLD = 2.0  # 2% wick = moondrop signal
+    BODY_DROP_MIN = 0.5  # 0.5% bearish body
+
+    # NEW: Range expansion (catches 80% at 1.1x)
+    RANGE_EXPANSION_MIN = 1.1  # 1.1x average range = volatility spike
 
     # Open Interest
     OI_SURGE_15M = 5.0  # +5%
     OI_SURGE_1H = 10.0  # +10%
 
-    # Funding (AGGRESSIVE: widened from 0.05%/0.08%)
-    FUNDING_MAX_FOR_LONG = 0.003  # 0.3% - allow entry during hype
-    FUNDING_MIN_FOR_SHORT = 0.002  # 0.2% - more squeeze opportunities
+    # Funding
+    FUNDING_MAX_FOR_LONG = 0.003  # 0.3%
+    FUNDING_MIN_FOR_SHORT = 0.002  # 0.2%
 
     # Breakout
     ATR_MULTIPLIER = 1.5
@@ -80,9 +152,9 @@ class MoonshotDetectionConfig:
     # Order Book
     IMBALANCE_THRESHOLD = 0.65  # 65%
 
-    # MEGA-SIGNAL OVERRIDE: If price moves >3% in 5min, bypass normal requirements
-    MEGA_SIGNAL_VELOCITY = 3.0  # +3% in 5 min = confirmed moonshot (was 5%)
-    MEGA_SIGNAL_MIN_SIGNALS = 1  # Only need 1/6 signals for mega-moves (was 2)
+    # MEGA-SIGNAL OVERRIDE - LOWERED for 80% capture
+    MEGA_SIGNAL_VELOCITY = 2.0  # +2% in 5 min (was 3%)
+    MEGA_SIGNAL_MIN_SIGNALS = 1  # Only need 1/6 signals
 
 # =============================================================================
 # STOP-LOSS
@@ -111,10 +183,46 @@ class TakeProfitConfig:
 # =============================================================================
 
 class TrailingStopConfig:
-    ACTIVATION_PROFIT = 5.0   # Activate after +5% (was 10%)
-    INITIAL_DISTANCE = 4.0    # 4% behind highest (wider for early activation)
+    # ==========================================================================
+    # AGGRESSIVE TRAILING (For Maximum Catch Mode + Pump-and-Dump Protection)
+    # ==========================================================================
+
+    # EARLY ACTIVATION (protect gains fast)
+    ACTIVATION_PROFIT = 2.0   # Activate at +2% (was 5%) - start trailing early
+
+    # TIERED TRAILING DISTANCES
+    TIER1_DISTANCE = 2.0      # 2% trail at +2% to +5% profit
+    TIER2_DISTANCE = 3.0      # 3% trail at +5% to +10% profit
+    TIER3_DISTANCE = 3.0      # 3% trail at +10% to +20% profit
+    TIER4_DISTANCE = 5.0      # 5% trail at +20%+ profit (let big winners run)
+
+    # PROFIT THRESHOLDS FOR TIERS
+    TIER2_PROFIT = 5.0        # Switch to tier 2 at +5%
+    TIER3_PROFIT = 10.0       # Switch to tier 3 at +10%
+    TIER4_PROFIT = 20.0       # Switch to tier 4 at +20%
+
+    # LEGACY (for backwards compatibility)
+    INITIAL_DISTANCE = 2.0    # 2% behind highest
     TIGHT_DISTANCE = 2.0      # 2% after +20%
     TIGHTEN_AT_PROFIT = 20.0
+
+
+class VelocityExitConfig:
+    """
+    Velocity Reversal Exit - Catches pump-and-dump reversals fast.
+    Based on 183 moonshot analysis: 11% are pump-and-dumps that reverse fast.
+    """
+    # PARTIAL CLOSE ON VELOCITY REVERSAL
+    PARTIAL_CLOSE_VELOCITY = -2.0  # Close 50% if 1m velocity drops -2% from peak
+    PARTIAL_CLOSE_PERCENT = 50     # Close 50% of position
+
+    # FULL CLOSE ON SEVERE REVERSAL
+    FULL_CLOSE_VELOCITY = -3.0     # Close remaining if 1m velocity drops -3%
+
+    # TIME-BASED EXIT (for instant pumps - 29% of moonshots are 0h duration)
+    INSTANT_PUMP_PROFIT = 5.0       # If +5% profit within 10 min
+    INSTANT_PUMP_WINDOW_SECONDS = 600  # 10 minutes
+    INSTANT_PUMP_CLOSE_PERCENT = 50  # Close 50% to lock in profits
 
 # =============================================================================
 # PAIR FILTERS

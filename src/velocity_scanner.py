@@ -35,10 +35,15 @@ class VelocityScanner:
         # Track price snapshots: symbol -> [(timestamp, price), ...]
         self.price_snapshots: Dict[str, List[Tuple[float, float]]] = defaultdict(list)
 
-        # Alert thresholds (AGGRESSIVE)
-        self.VELOCITY_1MIN = 3.0      # 3% in 1 minute = HIGH priority alert
-        self.VELOCITY_5MIN = 8.0      # 8% in 5 minutes = MEDIUM priority
-        self.VELOCITY_15MIN = 15.0    # 15% in 15 minutes = LOW priority (still significant)
+        # Alert thresholds (LOWERED for 80% moondrop capture rate)
+        # Based on analysis of 6,392 moondrops - p20 thresholds to catch 80%+
+        self.VELOCITY_1MIN = 1.5      # 1.5% in 1 minute = HIGH priority (was 3.0%)
+        self.VELOCITY_5MIN = 2.0      # 2.0% in 5 minutes = MEDIUM priority (was 8.0%)
+        self.VELOCITY_15MIN = 4.0     # 4.0% in 15 minutes = LOW priority (was 15.0%)
+
+        # Early warning thresholds (for watchlist)
+        self.VELOCITY_1MIN_EARLY = 0.8   # 0.8% in 1 min = early warning
+        self.VELOCITY_5MIN_EARLY = 1.2   # 1.2% in 5 min = early warning
 
         # Cooldown tracking: symbol -> last_alert_time
         self.last_alerts: Dict[str, float] = {}

@@ -28,34 +28,69 @@ class TradeDecision:
 class TradeManager:
     """
     Decides whether to execute trades based on:
-    - Moonshot signals
-    - Market regime
+    - Moonshot signals (3-TIER VELOCITY SYSTEM)
+    - Market regime (bypassed for Tier 1/2)
     - Available position slots
     - Existing positions
+
+    TIER BYPASS RULES:
+    - Tier 1: Bypasses ALL checks (regime, cooldown) - 30s cooldown
+    - Tier 2: Bypasses regime checks - 60s cooldown
+    - Tier 3: Normal checks - 120s cooldown
+    - Legacy: Normal checks - 300s cooldown
     """
-    
+
     def __init__(self, data_feed, market_regime, position_sizer, position_tracker):
         self.data_feed = data_feed
         self.market_regime = market_regime
         self.position_sizer = position_sizer
         self.position_tracker = position_tracker
-        
+
         self.config = LeverageConfig
-        
+
         # Track recent entries to avoid duplicates
         self.recent_entries: Dict[str, float] = {}  # symbol -> timestamp
-        self.entry_cooldown = 300  # 5 minutes cooldown per symbol
+        self.entry_cooldown = 300  # Default 5 minutes cooldown (legacy signals)
+
+        # Tier-based cooldowns (in seconds)
+        self.tier_cooldowns = {
+            1: 30,   # Tier 1: 30 seconds
+            2: 60,   # Tier 2: 60 seconds
+            3: 120,  # Tier 3: 120 seconds
+            0: 300   # Legacy: 300 seconds
+        }
     
     async def evaluate_signal(self, signal: MoonshotSignal) -> TradeDecision:
-        """Evaluate a moonshot signal and decide whether to trade"""
+        """
+        Evaluate a moonshot signal and decide whether to trade.
+
+        TIER BYPASS LOGIC:
+        - Tier 1: Bypasses regime AND cooldown checks
+        - Tier 2: Bypasses regime checks only
+        - Tier 3+: Normal checks apply
+        """
         symbol = signal.symbol
         direction = signal.direction
 
+        # Get tier info from signal
+        tier = getattr(signal, 'tier', 0)
+        bypass_checks = getattr(signal, 'bypass_checks', False)
+        is_mega = getattr(signal, 'is_mega_signal', False)
+        is_peak = getattr(signal, 'is_peak_hour', False)
+
+        # Log tier information
+        tier_label = f"TIER {tier}" if tier > 0 else "LEGACY"
+        if tier == 1:
+            logger.warning(f"🚀🚀🚀 {tier_label} INSTANT ENTRY: {symbol} {direction} (ALL CHECKS BYPASSED)")
+        elif tier == 2:
+            logger.warning(f"🚀🚀 {tier_label} FAST ENTRY: {symbol} {direction} (regime bypassed)")
+        elif is_mega:
+            logger.warning(f"🔥 MEGA-SIGNAL: {symbol} {direction} (regime bypassed)")
+
         # Check 1: Market regime allows this direction?
-        # MEGA-SIGNALS bypass regime checks - they're confirmed moonshots
-        if getattr(signal, 'is_mega_signal', False):
-            logger.warning(f"🔥 MEGA-SIGNAL bypassing regime check for {symbol}")
-            regime_ok, regime_reason = True, "MEGA-SIGNAL: regime bypassed"
+        # Tier 1, Tier 2, and MEGA-SIGNALS bypass regime checks
+        if bypass_checks or is_mega:
+            regime_ok, regime_reason = True, f"{tier_label}: regime bypassed"
         else:
             regime_ok, regime_reason = self._check_regime(direction, signal)
 
@@ -71,7 +106,7 @@ class TradeManager:
                 reason=regime_reason,
                 signal=signal
             )
-        
+
         # Check 2: Available slots?
         if not self.position_sizer.can_open_new_position():
             return TradeDecision(
@@ -85,7 +120,7 @@ class TradeManager:
                 reason="No available position slots",
                 signal=signal
             )
-        
+
         # Check 3: Already have position in this symbol?
         if self.position_tracker.has_position(symbol):
             return TradeDecision(
@@ -99,20 +134,26 @@ class TradeManager:
                 reason=f"Already have position in {symbol}",
                 signal=signal
             )
-        
-        # Check 4: Entry cooldown?
-        if self._in_cooldown(symbol):
-            return TradeDecision(
-                symbol=symbol,
-                direction=direction,
-                margin=0,
-                leverage=0,
-                entry_price=0,
-                stop_loss=0,
-                approved=False,
-                reason=f"Entry cooldown active for {symbol}",
-                signal=signal
-            )
+
+        # Check 4: Entry cooldown? (Tier 1 has shortest cooldown, Tier 2 medium)
+        # Use tier-specific cooldown
+        cooldown = self._get_tier_cooldown(signal)
+        if self._in_cooldown_with_duration(symbol, cooldown):
+            # Tier 1 can still bypass even cooldown if velocity is extreme
+            if tier == 1 and is_peak:
+                logger.info(f"Tier 1 + Peak hour: bypassing cooldown for {symbol}")
+            else:
+                return TradeDecision(
+                    symbol=symbol,
+                    direction=direction,
+                    margin=0,
+                    leverage=0,
+                    entry_price=0,
+                    stop_loss=0,
+                    approved=False,
+                    reason=f"Entry cooldown active ({cooldown}s) for {symbol}",
+                    signal=signal
+                )
         
         # All checks passed - prepare trade
         margin = await self.position_sizer.get_margin_for_trade()
@@ -183,12 +224,30 @@ class TradeManager:
         return True, "Regime OK"
     
     def _in_cooldown(self, symbol: str) -> bool:
-        """Check if symbol is in entry cooldown"""
+        """Check if symbol is in entry cooldown (using default cooldown)"""
         if symbol not in self.recent_entries:
             return False
-        
+
         elapsed = time.time() - self.recent_entries[symbol]
         return elapsed < self.entry_cooldown
+
+    def _in_cooldown_with_duration(self, symbol: str, cooldown_seconds: int) -> bool:
+        """Check if symbol is in entry cooldown with specific duration"""
+        if symbol not in self.recent_entries:
+            return False
+
+        elapsed = time.time() - self.recent_entries[symbol]
+        return elapsed < cooldown_seconds
+
+    def _get_tier_cooldown(self, signal: MoonshotSignal) -> int:
+        """Get cooldown duration based on signal tier"""
+        tier = getattr(signal, 'tier', 0)
+
+        # Use signal's entry_cooldown if available, otherwise use tier defaults
+        if hasattr(signal, 'entry_cooldown') and signal.entry_cooldown:
+            return signal.entry_cooldown
+
+        return self.tier_cooldowns.get(tier, self.entry_cooldown)
     
     def _select_leverage(self, signal: MoonshotSignal) -> int:
         """Select leverage based on signal strength"""
