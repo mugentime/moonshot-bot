@@ -157,54 +157,51 @@ class MoonshotDetectionConfig:
     MEGA_SIGNAL_MIN_SIGNALS = 1  # Only need 1/6 signals
 
 # =============================================================================
-# STOP-LOSS
+# STOP-LOSS - HARD 2% STOP (ACCOUNT PROTECTION)
 # =============================================================================
 
 class StopLossConfig:
-    INITIAL_PERCENT = 3.5  # -3.5% from entry
-    BUFFER_BEFORE_LIQUIDATION = 1.5  # %
-    MOVE_TO_BREAKEVEN_AT = 3.0  # When profit reaches +3% (was 5%)
+    INITIAL_PERCENT = 2.0  # -2% HARD STOP (was 3.5% - killing account)
+    BUFFER_BEFORE_LIQUIDATION = 1.0  # %
+    MOVE_TO_BREAKEVEN_AT = 5.0  # When profit reaches +5%, move SL to breakeven
 
 # =============================================================================
-# TAKE-PROFIT
+# TAKE-PROFIT - 10% TARGET WITH 5% TRAILING
 # =============================================================================
 
 class TakeProfitConfig:
     LEVELS: List[Dict] = [
-        {"profit": 2.0, "close": 20, "action": "secure_early"},       # NEW: Lock 20% profit early
-        {"profit": 5.0, "close": 25, "action": "move_sl_breakeven"},  # Reduced from 30%
-        {"profit": 10.0, "close": 25, "action": "activate_trailing"},
-        {"profit": 20.0, "close": 20, "action": "tighten_trailing"},  # Reduced from 25%
-        {"profit": 50.0, "close": 10, "action": "let_ride"},          # Reduced from 20%
+        {"profit": 5.0, "close": 30, "action": "move_sl_breakeven"},  # At +5%: Lock 30%, SL to breakeven
+        {"profit": 10.0, "close": 50, "action": "activate_trailing"}, # At +10%: Take 50%, activate 5% trailing
     ]
 
 # =============================================================================
-# TRAILING STOP
+# TRAILING STOP - 5% TRAILING AFTER 10% PROFIT
 # =============================================================================
 
 class TrailingStopConfig:
     # ==========================================================================
-    # AGGRESSIVE TRAILING (For Maximum Catch Mode + Pump-and-Dump Protection)
+    # SIMPLIFIED TRAILING: 5% DISTANCE AFTER 10% PROFIT
     # ==========================================================================
 
-    # EARLY ACTIVATION (protect gains fast)
-    ACTIVATION_PROFIT = 2.0   # Activate at +2% (was 5%) - start trailing early
+    # ACTIVATION - Only after TP hit
+    ACTIVATION_PROFIT = 10.0  # Activate trailing at +10% profit (after TP1)
 
-    # TIERED TRAILING DISTANCES
-    TIER1_DISTANCE = 2.0      # 2% trail at +2% to +5% profit
-    TIER2_DISTANCE = 3.0      # 3% trail at +5% to +10% profit
-    TIER3_DISTANCE = 3.0      # 3% trail at +10% to +20% profit
-    TIER4_DISTANCE = 5.0      # 5% trail at +20%+ profit (let big winners run)
+    # SINGLE 5% TRAILING DISTANCE (simplified)
+    TIER1_DISTANCE = 5.0      # 5% trailing stop distance
+    TIER2_DISTANCE = 5.0      # 5% trailing (same)
+    TIER3_DISTANCE = 5.0      # 5% trailing (same)
+    TIER4_DISTANCE = 5.0      # 5% trailing (same)
 
-    # PROFIT THRESHOLDS FOR TIERS
-    TIER2_PROFIT = 5.0        # Switch to tier 2 at +5%
-    TIER3_PROFIT = 10.0       # Switch to tier 3 at +10%
-    TIER4_PROFIT = 20.0       # Switch to tier 4 at +20%
+    # PROFIT THRESHOLDS (all use same 5% distance)
+    TIER2_PROFIT = 15.0
+    TIER3_PROFIT = 20.0
+    TIER4_PROFIT = 30.0
 
-    # LEGACY (for backwards compatibility)
-    INITIAL_DISTANCE = 2.0    # 2% behind highest
-    TIGHT_DISTANCE = 2.0      # 2% after +20%
-    TIGHTEN_AT_PROFIT = 20.0
+    # LEGACY (backwards compat)
+    INITIAL_DISTANCE = 5.0    # 5% behind highest
+    TIGHT_DISTANCE = 5.0      # 5% always
+    TIGHTEN_AT_PROFIT = 30.0
 
 
 class VelocityExitConfig:
