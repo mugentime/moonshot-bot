@@ -454,6 +454,12 @@ class MoonshotBot:
                 )
             
             if result.success:
+                # VALIDATION: Check entry price is valid before tracking
+                if result.price <= 0:
+                    logger.error(f"❌ Invalid entry price {result.price} for {symbol} - closing position immediately")
+                    await self.order_executor.close_position(symbol, percent=100)
+                    return
+
                 # Track position
                 await self.position_tracker.add_position(
                     symbol=symbol,
@@ -464,7 +470,7 @@ class MoonshotBot:
                     leverage=decision.leverage,
                     order_id=result.order_id
                 )
-                
+
                 # Initialize exit manager tracking
                 self.exit_manager.initialize_position(
                     symbol=symbol,
@@ -473,16 +479,16 @@ class MoonshotBot:
                     margin=decision.margin,
                     leverage=decision.leverage
                 )
-                
+
                 # Update position sizer
                 self.position_sizer.on_position_opened()
-                
+
                 # Mark entry for cooldown
                 self.trade_manager.mark_entry(symbol)
-                
+
                 # Upgrade pair to hot tier
                 self.pair_filter.upgrade_to_hot(symbol)
-                
+
                 logger.info(f"✅ Trade executed: {symbol} {direction} @ {result.price}")
             else:
                 logger.error(f"❌ Trade failed: {symbol} - {result.error}")

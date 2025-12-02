@@ -91,7 +91,7 @@ class MoonshotDetectionConfig:
 class StopLossConfig:
     INITIAL_PERCENT = 3.5  # -3.5% from entry
     BUFFER_BEFORE_LIQUIDATION = 1.5  # %
-    MOVE_TO_BREAKEVEN_AT = 5.0  # When profit reaches +5%
+    MOVE_TO_BREAKEVEN_AT = 3.0  # When profit reaches +3% (was 5%)
 
 # =============================================================================
 # TAKE-PROFIT
@@ -99,10 +99,11 @@ class StopLossConfig:
 
 class TakeProfitConfig:
     LEVELS: List[Dict] = [
-        {"profit": 5.0, "close": 30, "action": "move_sl_breakeven"},
+        {"profit": 2.0, "close": 20, "action": "secure_early"},       # NEW: Lock 20% profit early
+        {"profit": 5.0, "close": 25, "action": "move_sl_breakeven"},  # Reduced from 30%
         {"profit": 10.0, "close": 25, "action": "activate_trailing"},
-        {"profit": 20.0, "close": 25, "action": "tighten_trailing"},
-        {"profit": 50.0, "close": 20, "action": "let_ride"},
+        {"profit": 20.0, "close": 20, "action": "tighten_trailing"},  # Reduced from 25%
+        {"profit": 50.0, "close": 10, "action": "let_ride"},          # Reduced from 20%
     ]
 
 # =============================================================================
@@ -110,9 +111,9 @@ class TakeProfitConfig:
 # =============================================================================
 
 class TrailingStopConfig:
-    ACTIVATION_PROFIT = 10.0  # Activate after +10%
-    INITIAL_DISTANCE = 3.0  # 3% behind highest
-    TIGHT_DISTANCE = 2.0  # 2% after +20%
+    ACTIVATION_PROFIT = 5.0   # Activate after +5% (was 10%)
+    INITIAL_DISTANCE = 4.0    # 4% behind highest (wider for early activation)
+    TIGHT_DISTANCE = 2.0      # 2% after +20%
     TIGHTEN_AT_PROFIT = 20.0
 
 # =============================================================================

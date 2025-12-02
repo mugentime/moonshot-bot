@@ -273,26 +273,39 @@ class OrderExecutor:
                 error=str(e)
             )
     
-    async def _set_stop_loss(self, symbol: str, direction: str, quantity: float, stop_price: float):
-        """Set a stop-loss order"""
+    async def _set_stop_loss(self, symbol: str, direction: str, quantity: float, stop_price: float) -> bool:
+        """Set a stop-loss order with verification"""
         try:
             _, price_precision, _ = await self.get_symbol_precision(symbol)
             stop_price = round(stop_price, price_precision)
-            
+
             side = SIDE_SELL if direction == "LONG" else SIDE_BUY
-            
-            await self.client.futures_create_order(
+
+            order = await self.client.futures_create_order(
                 symbol=symbol,
                 side=side,
                 type=FUTURE_ORDER_TYPE_STOP_MARKET,
                 stopPrice=stop_price,
                 closePosition=True
             )
-            
-            logger.debug(f"Stop-loss set for {symbol} at {stop_price}")
-            
+
+            # Verify order was accepted
+            if order and 'orderId' in order:
+                logger.info(f"✅ Stop-loss confirmed for {symbol} at {stop_price} (Order: {order['orderId']})")
+                return True
+            else:
+                logger.critical(f"🚨 STOP-LOSS NOT CONFIRMED for {symbol} - response: {order}")
+                return False
+
         except Exception as e:
-            logger.error(f"Error setting stop-loss for {symbol}: {e}")
+            logger.critical(f"🚨 STOP-LOSS FAILED for {symbol}: {e} - POSITION AT RISK")
+            # Try to close position if SL cannot be set
+            try:
+                await self.close_position(symbol, percent=100)
+                logger.warning(f"⚠️ Position {symbol} closed due to SL failure")
+            except Exception as close_error:
+                logger.critical(f"🚨 CRITICAL: Could not close {symbol} after SL failure: {close_error}")
+            return False
     
     async def close_position(self, symbol: str, percent: float = 100) -> OrderResult:
         """Close a position (fully or partially)"""

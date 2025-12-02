@@ -156,12 +156,13 @@ class TradeManager:
         regime = self.market_regime.current_regime
 
         # CHOPPY: Allow entries for high-scoring signals (4+/6) or mega-signals
+        # FIX: Return immediately to bypass direction check that would reject CHOPPY
         if regime == MarketRegime.CHOPPY:
             if signal is not None:
                 is_mega = getattr(signal, 'is_mega_signal', False)
                 if is_mega or signal.score >= 4:
                     logger.info(f"Allowing CHOPPY entry for {signal.symbol} (score={signal.score}, mega={is_mega})")
-                    # Continue to direction check below
+                    return True, "High confidence signal bypassing CHOPPY"  # FIXED: Return immediately
                 else:
                     return False, "Market regime is CHOPPY - need score >= 4 or mega-signal"
             else:
@@ -169,16 +170,16 @@ class TradeManager:
 
         if regime == MarketRegime.EXTREME_VOLATILITY:
             return False, "Market regime is EXTREME VOLATILITY - entries blocked"
-        
-        # Check direction
+
+        # Check direction (only for non-CHOPPY regimes)
         if direction == "LONG":
             if not self.market_regime.allows_long():
                 return False, f"Regime {regime.value} does not allow LONG entries"
-        
+
         if direction == "SHORT":
             if not self.market_regime.allows_short():
                 return False, f"Regime {regime.value} does not allow SHORT entries"
-        
+
         return True, "Regime OK"
     
     def _in_cooldown(self, symbol: str) -> bool:
