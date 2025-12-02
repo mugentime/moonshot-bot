@@ -1,6 +1,12 @@
 """
 Exit Manager Module
 Manages all exit conditions: SL, TP, trailing, funding-based exits
+
+AGGRESSIVE EXIT STRATEGY (For Maximum Catch Mode + Pump-and-Dump Protection):
+- Early trailing stop activation at +2% profit
+- Tiered trailing distances (2% -> 3% -> 5%)
+- Velocity reversal detection for pump-and-dump protection
+- Time-based exits for instant pumps
 """
 from typing import Optional, Dict, List
 from dataclasses import dataclass, field
@@ -9,8 +15,8 @@ from loguru import logger
 import time
 
 from config import (
-    StopLossConfig, TakeProfitConfig, TrailingStopConfig, 
-    FundingConfig, TimeLimitsConfig, LeverageConfig
+    StopLossConfig, TakeProfitConfig, TrailingStopConfig,
+    FundingConfig, TimeLimitsConfig, LeverageConfig, VelocityExitConfig
 )
 
 
@@ -21,6 +27,8 @@ class ExitReason(Enum):
     FUNDING_EXIT = "funding_exit"
     MAX_HOLD_TIME = "max_hold_time"
     REGIME_CHANGE = "regime_change"
+    VELOCITY_REVERSAL = "velocity_reversal"  # NEW: Pump-and-dump protection
+    INSTANT_PUMP_EXIT = "instant_pump_exit"  # NEW: Time-based for fast pumps
     MANUAL = "manual"
 
 
@@ -48,6 +56,11 @@ class PositionState:
     trailing_tight: bool = False
     entry_time: float = field(default_factory=time.time)
     remaining_percent: float = 100.0
+    # NEW: Velocity tracking for pump-and-dump protection
+    peak_profit_percent: float = 0.0  # Track highest profit reached
+    last_velocity_1m: float = 0.0  # Track 1m velocity for reversal detection
+    velocity_partial_closed: bool = False  # Track if partial close happened on reversal
+    instant_pump_closed: bool = False  # Track if instant pump partial close happened
 
 
 class ExitManager:
@@ -55,23 +68,32 @@ class ExitManager:
     Manages all exit logic for positions:
     - Initial stop-loss
     - Escalonated take-profit
-    - Trailing stop
+    - AGGRESSIVE TIERED trailing stop (early activation at +2%)
     - Funding-based exits
     - Time-based exits
     - Regime change exits
+    - NEW: Velocity reversal detection (pump-and-dump protection)
+    - NEW: Instant pump time-based exits
+
+    AGGRESSIVE EXIT STRATEGY:
+    - Trailing activates at +2% (not waiting for +10%)
+    - Tiered distances: 2% (profit 2-5%), 3% (5-20%), 5% (20%+)
+    - Velocity reversal: Close 50% on -2% drop from peak, 100% on -3%
+    - Instant pump: Close 50% if +5% profit within 10 minutes
     """
-    
+
     def __init__(self, data_feed):
         self.data_feed = data_feed
-        
+
         self.positions: Dict[str, PositionState] = {}
-        
+
         # Configs
         self.sl_config = StopLossConfig
         self.tp_levels = TakeProfitConfig.LEVELS
         self.trailing_config = TrailingStopConfig
         self.funding_config = FundingConfig
         self.time_config = TimeLimitsConfig
+        self.velocity_exit_config = VelocityExitConfig  # NEW: Pump-and-dump protection
     
     def initialize_position(
         self, 
@@ -131,14 +153,21 @@ class ExitManager:
         
         return stop_loss
     
-    async def update_position(self, symbol: str, current_price: float) -> Optional[ExitAction]:
+    async def update_position(
+        self, symbol: str, current_price: float, velocity_1m: float = 0.0
+    ) -> Optional[ExitAction]:
         """
         Update position state and check for exit conditions
         Call this on every tick for each position
+
+        Args:
+            symbol: Trading pair symbol
+            current_price: Current market price
+            velocity_1m: 1-minute price velocity (optional, for reversal detection)
         """
         if symbol not in self.positions:
             return None
-        
+
         pos = self.positions[symbol]
 
         # Guard against division by zero
@@ -153,7 +182,18 @@ class ExitManager:
         else:
             pos.lowest_price = min(pos.lowest_price, current_price)
             profit_percent = ((pos.entry_price - current_price) / pos.entry_price) * 100
-        
+
+        # Update peak profit tracking
+        pos.peak_profit_percent = max(pos.peak_profit_percent, profit_percent)
+        pos.last_velocity_1m = velocity_1m
+
+        # AGGRESSIVE EARLY TRAILING ACTIVATION (at +2% instead of waiting for TP levels)
+        if profit_percent >= self.trailing_config.ACTIVATION_PROFIT and not pos.trailing_active:
+            pos.trailing_active = True
+            # Move SL to breakeven immediately
+            pos.stop_loss = pos.entry_price
+            logger.info(f"📍 {symbol}: Early trailing activated at +{profit_percent:.1f}% (SL->breakeven)")
+
         # CHECK 1: Stop-Loss
         if self._check_stop_loss_hit(pos, current_price):
             return ExitAction(
@@ -163,24 +203,34 @@ class ExitManager:
                 close_percent=100,
                 details={"price": current_price, "stop_loss": pos.stop_loss}
             )
-        
-        # CHECK 2: Funding rate
+
+        # CHECK 2: Velocity reversal (PUMP-AND-DUMP PROTECTION) - High priority
+        reversal_action = self._check_velocity_reversal(pos, profit_percent, velocity_1m)
+        if reversal_action:
+            return reversal_action
+
+        # CHECK 3: Instant pump time-based exit
+        instant_pump_action = self._check_instant_pump_exit(pos, profit_percent)
+        if instant_pump_action:
+            return instant_pump_action
+
+        # CHECK 4: Funding rate
         funding_action = await self._check_funding_exit(pos, profit_percent)
         if funding_action:
             return funding_action
-        
-        # CHECK 3: Take-Profit levels
+
+        # CHECK 5: Take-Profit levels
         tp_action = self._check_take_profit(pos, profit_percent)
         if tp_action:
             return tp_action
-        
-        # CHECK 4: Trailing stop
+
+        # CHECK 6: Tiered trailing stop (aggressive distances)
         if pos.trailing_active:
-            trailing_action = self._check_trailing_stop(pos, current_price)
+            trailing_action = self._check_tiered_trailing_stop(pos, current_price, profit_percent)
             if trailing_action:
                 return trailing_action
-        
-        # CHECK 5: Max hold time
+
+        # CHECK 7: Max hold time
         if self._check_max_hold_time(pos):
             return ExitAction(
                 type="CLOSE_ALL",
@@ -189,7 +239,7 @@ class ExitManager:
                 close_percent=100,
                 details={"held_hours": (time.time() - pos.entry_time) / 3600}
             )
-        
+
         return None
     
     def _check_stop_loss_hit(self, pos: PositionState, current_price: float) -> bool:
@@ -280,13 +330,13 @@ class ExitManager:
         return None
     
     def _check_trailing_stop(self, pos: PositionState, current_price: float) -> Optional[ExitAction]:
-        """Check trailing stop"""
+        """Check trailing stop (legacy - use _check_tiered_trailing_stop instead)"""
         distance = self.trailing_config.TIGHT_DISTANCE if pos.trailing_tight else self.trailing_config.INITIAL_DISTANCE
         distance_ratio = distance / 100
-        
+
         if pos.direction == "LONG":
             trailing_stop = pos.highest_price * (1 - distance_ratio)
-            
+
             if current_price <= trailing_stop:
                 return ExitAction(
                     type="CLOSE_ALL",
@@ -301,7 +351,7 @@ class ExitManager:
                 )
         else:
             trailing_stop = pos.lowest_price * (1 + distance_ratio)
-            
+
             if current_price >= trailing_stop:
                 return ExitAction(
                     type="CLOSE_ALL",
@@ -314,7 +364,189 @@ class ExitManager:
                         "trigger_price": current_price
                     }
                 )
-        
+
+        return None
+
+    def _check_tiered_trailing_stop(
+        self, pos: PositionState, current_price: float, profit_percent: float
+    ) -> Optional[ExitAction]:
+        """
+        AGGRESSIVE TIERED TRAILING STOP
+
+        Trailing distances based on profit level:
+        - 2-5% profit: 2% trailing distance
+        - 5-10% profit: 3% trailing distance
+        - 10-20% profit: 3% trailing distance
+        - 20%+ profit: 5% trailing distance (let winners run)
+        """
+        # Determine trailing distance based on profit tier
+        if profit_percent >= self.trailing_config.TIER4_PROFIT:
+            distance = self.trailing_config.TIER4_DISTANCE  # 5%
+        elif profit_percent >= self.trailing_config.TIER3_PROFIT:
+            distance = self.trailing_config.TIER3_DISTANCE  # 3%
+        elif profit_percent >= self.trailing_config.TIER2_PROFIT:
+            distance = self.trailing_config.TIER2_DISTANCE  # 3%
+        else:
+            distance = self.trailing_config.TIER1_DISTANCE  # 2%
+
+        distance_ratio = distance / 100
+
+        if pos.direction == "LONG":
+            trailing_stop = pos.highest_price * (1 - distance_ratio)
+
+            if current_price <= trailing_stop:
+                return ExitAction(
+                    type="CLOSE_ALL",
+                    symbol=pos.symbol,
+                    reason=ExitReason.TRAILING_STOP,
+                    close_percent=pos.remaining_percent,
+                    details={
+                        "highest": pos.highest_price,
+                        "trailing_stop": trailing_stop,
+                        "trigger_price": current_price,
+                        "distance_percent": distance,
+                        "profit_tier": self._get_profit_tier_name(profit_percent)
+                    }
+                )
+        else:
+            trailing_stop = pos.lowest_price * (1 + distance_ratio)
+
+            if current_price >= trailing_stop:
+                return ExitAction(
+                    type="CLOSE_ALL",
+                    symbol=pos.symbol,
+                    reason=ExitReason.TRAILING_STOP,
+                    close_percent=pos.remaining_percent,
+                    details={
+                        "lowest": pos.lowest_price,
+                        "trailing_stop": trailing_stop,
+                        "trigger_price": current_price,
+                        "distance_percent": distance,
+                        "profit_tier": self._get_profit_tier_name(profit_percent)
+                    }
+                )
+
+        return None
+
+    def _get_profit_tier_name(self, profit_percent: float) -> str:
+        """Get human-readable profit tier name"""
+        if profit_percent >= 20:
+            return "TIER4 (20%+)"
+        elif profit_percent >= 10:
+            return "TIER3 (10-20%)"
+        elif profit_percent >= 5:
+            return "TIER2 (5-10%)"
+        else:
+            return "TIER1 (2-5%)"
+
+    def _check_velocity_reversal(
+        self, pos: PositionState, profit_percent: float, velocity_1m: float
+    ) -> Optional[ExitAction]:
+        """
+        VELOCITY REVERSAL EXIT - Pump-and-dump protection
+
+        Catches fast reversals that indicate pump-and-dump patterns:
+        - Partial close (50%) on -2% velocity drop from peak
+        - Full close on -3% velocity drop
+        """
+        # Only check if in profit (don't add to losses)
+        if profit_percent <= 0:
+            return None
+
+        # Calculate velocity drop from peak
+        # For LONG: negative velocity means price dropping
+        # For SHORT: positive velocity means price rising (bad)
+        if pos.direction == "LONG":
+            reversal_velocity = velocity_1m  # Negative = dropping
+        else:
+            reversal_velocity = -velocity_1m  # Invert for shorts
+
+        # Check for severe reversal (full close)
+        if reversal_velocity <= self.velocity_exit_config.FULL_CLOSE_VELOCITY:
+            logger.warning(
+                f"🚨 VELOCITY REVERSAL [{pos.symbol}]: {velocity_1m:+.1f}% velocity drop - FULL CLOSE"
+            )
+            return ExitAction(
+                type="CLOSE_ALL",
+                symbol=pos.symbol,
+                reason=ExitReason.VELOCITY_REVERSAL,
+                close_percent=pos.remaining_percent,
+                details={
+                    "velocity_1m": velocity_1m,
+                    "peak_profit": pos.peak_profit_percent,
+                    "current_profit": profit_percent,
+                    "reversal_type": "SEVERE"
+                }
+            )
+
+        # Check for partial reversal (partial close)
+        if reversal_velocity <= self.velocity_exit_config.PARTIAL_CLOSE_VELOCITY:
+            if not pos.velocity_partial_closed:
+                pos.velocity_partial_closed = True
+                close_pct = self.velocity_exit_config.PARTIAL_CLOSE_PERCENT
+                logger.warning(
+                    f"⚠️ VELOCITY REVERSAL [{pos.symbol}]: {velocity_1m:+.1f}% velocity - PARTIAL CLOSE {close_pct}%"
+                )
+                return ExitAction(
+                    type="CLOSE_PARTIAL",
+                    symbol=pos.symbol,
+                    reason=ExitReason.VELOCITY_REVERSAL,
+                    close_percent=close_pct,
+                    details={
+                        "velocity_1m": velocity_1m,
+                        "peak_profit": pos.peak_profit_percent,
+                        "current_profit": profit_percent,
+                        "reversal_type": "PARTIAL"
+                    }
+                )
+
+        return None
+
+    def _check_instant_pump_exit(
+        self, pos: PositionState, profit_percent: float
+    ) -> Optional[ExitAction]:
+        """
+        INSTANT PUMP TIME-BASED EXIT
+
+        For fast pumps (29% of moonshots are 0h duration):
+        - If +5% profit within 10 minutes, close 50% to lock in gains
+        - Rationale: TRADOORUSDT-style pumps dump fast
+        """
+        # Already did instant pump close?
+        if pos.instant_pump_closed:
+            return None
+
+        # Check if within instant pump window
+        time_held = time.time() - pos.entry_time
+        window_seconds = self.velocity_exit_config.INSTANT_PUMP_WINDOW_SECONDS
+
+        if time_held > window_seconds:
+            return None  # Outside window
+
+        # Check if profit threshold reached
+        if profit_percent >= self.velocity_exit_config.INSTANT_PUMP_PROFIT:
+            pos.instant_pump_closed = True
+            close_pct = self.velocity_exit_config.INSTANT_PUMP_CLOSE_PERCENT
+            minutes_held = time_held / 60
+
+            logger.warning(
+                f"⚡ INSTANT PUMP [{pos.symbol}]: +{profit_percent:.1f}% in {minutes_held:.1f}min - "
+                f"LOCKING {close_pct}% profits"
+            )
+            return ExitAction(
+                type="CLOSE_PARTIAL",
+                symbol=pos.symbol,
+                reason=ExitReason.INSTANT_PUMP_EXIT,
+                close_percent=close_pct,
+                details={
+                    "profit_percent": profit_percent,
+                    "time_held_seconds": time_held,
+                    "time_held_minutes": minutes_held,
+                    "threshold_profit": self.velocity_exit_config.INSTANT_PUMP_PROFIT,
+                    "threshold_window": window_seconds
+                }
+            )
+
         return None
     
     def _check_max_hold_time(self, pos: PositionState) -> bool:

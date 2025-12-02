@@ -277,7 +277,13 @@ class MoonshotBot:
                 await asyncio.sleep(5)
 
     async def _process_velocity_alerts(self):
-        """Process velocity alerts from WebSocket (real-time detection)"""
+        """Process velocity alerts from WebSocket (real-time detection)
+
+        TIER SYSTEM (90%+ catch rate):
+        - Tier 1: 2.5%+ in 5min = INSTANT entry (bypasses ALL checks)
+        - Tier 2: 1.5%+ in 5min = FAST entry
+        - Tier 3: 1.5%+ in 1min = MICRO entry
+        """
         # Get pending alerts
         alerts = self.data_feed.velocity_alerts.copy()
         self.data_feed.velocity_alerts.clear()
@@ -291,12 +297,39 @@ class MoonshotBot:
                 # Create a moonshot signal from the velocity alert
                 from src.moonshot_detector import MoonshotSignal
 
-                # Build signal based on velocity alert
+                # Get tier info from alert (if available from enhanced VelocityScanner)
+                tier = getattr(alert, 'tier', 0)
+                bypass_checks = getattr(alert, 'bypass_checks', False)
+                is_peak_hour = getattr(alert, 'is_peak_hour', False)
+
+                # Score based on tier and priority
+                if tier == 1:
+                    score = 6  # Max score for tier 1
+                    confidence = 0.9
+                elif tier == 2:
+                    score = 5
+                    confidence = 0.8
+                elif tier == 3:
+                    score = 4
+                    confidence = 0.7
+                elif alert.priority == "CRITICAL":
+                    score = 6  # CRITICAL priority = tier 1
+                    tier = 1
+                    bypass_checks = True
+                    confidence = 0.9
+                elif alert.priority == "HIGH":
+                    score = 5 if tier == 0 else 4
+                    confidence = 0.7
+                else:
+                    score = 3
+                    confidence = 0.5
+
+                # Build signal based on velocity alert with tier info
                 signal = MoonshotSignal(
                     symbol=alert.symbol,
                     direction=alert.direction,
-                    score=4 if alert.priority == "HIGH" else 3,  # High score for velocity alerts
-                    confidence=0.7 if alert.priority == "HIGH" else 0.5,
+                    score=score,
+                    confidence=confidence,
                     signals={
                         'velocity': True,
                         'volume': False,  # Will be checked by normal scan
@@ -309,13 +342,25 @@ class MoonshotBot:
                     details={
                         'velocity_percent': alert.velocity,
                         'velocity_timeframe': alert.timeframe,
-                        'price_change_5m': alert.velocity if alert.timeframe == "5min" else 0
+                        'price_change_5m': alert.velocity if alert.timeframe == "5min" else 0,
+                        'tier': tier,
+                        'is_peak_hour': is_peak_hour
                     },
                     timestamp=alert.timestamp,
-                    is_mega_signal=abs(alert.velocity) >= 5.0  # 5%+ = mega
+                    is_mega_signal=abs(alert.velocity) >= 5.0,  # 5%+ = mega
+                    tier=tier,
+                    bypass_checks=bypass_checks,
+                    is_peak_hour=is_peak_hour
                 )
 
-                logger.info(f"⚡ Velocity alert -> Signal: {alert.symbol} {alert.direction} ({alert.velocity:+.1f}% in {alert.timeframe})")
+                # Log with tier info
+                tier_label = f"TIER {tier}" if tier > 0 else "LEGACY"
+                bypass_text = " (BYPASS ALL)" if bypass_checks else ""
+                peak_text = " [PEAK HOUR]" if is_peak_hour else ""
+                logger.info(
+                    f"⚡ {tier_label} Velocity -> Signal: {alert.symbol} {alert.direction} "
+                    f"({alert.velocity:+.1f}% in {alert.timeframe}){bypass_text}{peak_text}"
+                )
 
                 # Evaluate and possibly execute
                 decision = await self.trade_manager.evaluate_signal(signal)
@@ -327,44 +372,57 @@ class MoonshotBot:
                 logger.error(f"Error processing velocity alert for {alert.symbol}: {e}")
     
     async def _monitor_loop(self):
-        """Loop for monitoring open positions"""
-        logger.info("📊 Monitor loop started")
-        
+        """Loop for monitoring open positions
+
+        ENHANCED: Now passes 1m velocity to exit manager for:
+        - Velocity reversal detection (pump-and-dump protection)
+        - Instant pump time-based exits
+        """
+        logger.info("📊 Monitor loop started (with velocity reversal detection)")
+
         while self._running:
             try:
                 # Get all tracked positions
                 positions = self.position_tracker.get_all_positions()
-                
+
                 for pos in positions:
                     if not self._running:
                         break
-                    
+
                     # Get current price
                     ticker = await self.data_feed.get_ticker(pos.symbol)
                     if not ticker:
                         continue
-                    
+
                     current_price = ticker.price
-                    
+
+                    # Get 1-minute velocity for reversal detection
+                    # Uses velocity scanner's internal tracking
+                    velocity_1m = 0.0
+                    if hasattr(self.data_feed, 'velocity_scanner') and self.data_feed.velocity_scanner:
+                        velocity_1m = self.data_feed.velocity_scanner._calculate_velocity(pos.symbol, 60)
+
                     # Update position tracker
                     pnl = self._calculate_pnl(pos, current_price)
                     await self.position_tracker.update_position(pos.symbol, current_price, pnl)
-                    
-                    # Check exit conditions
-                    exit_action = await self.exit_manager.update_position(pos.symbol, current_price)
-                    
+
+                    # Check exit conditions (with velocity for reversal detection)
+                    exit_action = await self.exit_manager.update_position(
+                        pos.symbol, current_price, velocity_1m=velocity_1m
+                    )
+
                     if exit_action:
                         await self._execute_exit(exit_action)
-                
+
                 # Sync with exchange periodically
                 await self.position_tracker.sync_with_exchange()
 
                 # Ensure exit manager has all positions
                 await self._sync_exit_manager_with_positions()
 
-                # Wait before next check
+                # Wait before next check (2 seconds for responsive exits)
                 await asyncio.sleep(2)
-                
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
