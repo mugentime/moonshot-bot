@@ -54,9 +54,30 @@ class PositionSizer:
                 logger.info(f"💰 Position Sizer initialized with real equity: ${real_equity:.2f}")
             else:
                 logger.warning(f"⚠️ Could not fetch real equity, using fallback: ${INITIAL_EQUITY:.2f}")
+
+            # CRITICAL: Sync position count with actual exchange positions
+            await self.sync_position_count()
         except Exception as e:
             logger.error(f"❌ Error fetching account balance: {e}")
             logger.warning(f"⚠️ Using fallback equity: ${INITIAL_EQUITY:.2f}")
+
+    async def sync_position_count(self):
+        """Sync open_positions_count with actual exchange positions - CRITICAL for trading"""
+        try:
+            account = await self.data_feed.client.futures_position_information()
+            actual_count = 0
+            for p in account:
+                if float(p['positionAmt']) != 0:
+                    actual_count += 1
+
+            if actual_count != self.open_positions_count:
+                logger.warning(f"⚠️ Position count mismatch! Local: {self.open_positions_count}, Exchange: {actual_count}")
+                self.open_positions_count = actual_count
+                logger.info(f"✅ Position count synced to {actual_count}")
+            else:
+                logger.info(f"✅ Position count verified: {actual_count} positions")
+        except Exception as e:
+            logger.error(f"❌ Error syncing position count: {e}")
     
     def _calculate_margin(self, equity: float) -> float:
         """

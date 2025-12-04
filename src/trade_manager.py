@@ -109,6 +109,10 @@ class TradeManager:
 
         # Check 2: Available slots?
         if not self.position_sizer.can_open_new_position():
+            available = self.position_sizer.get_available_slots()
+            max_pos = self.position_sizer.get_max_positions()
+            current = self.position_sizer.open_positions_count
+            logger.warning(f"❌ NO SLOTS: {symbol} | Current: {current}, Available: {available}, Max: {max_pos}")
             return TradeDecision(
                 symbol=symbol,
                 direction=direction,
@@ -117,7 +121,7 @@ class TradeManager:
                 entry_price=0,
                 stop_loss=0,
                 approved=False,
-                reason="No available position slots",
+                reason=f"No available position slots ({current}/{max_pos})",
                 signal=signal
             )
 
@@ -284,10 +288,10 @@ class TradeManager:
     async def process_signals(self, signals: List[MoonshotSignal]) -> List[TradeDecision]:
         """Process multiple signals and return approved trades"""
         approved = []
-        
+
         for signal in signals:
             decision = await self.evaluate_signal(signal)
-            
+
             if decision.approved:
                 approved.append(decision)
                 logger.info(
@@ -296,8 +300,13 @@ class TradeManager:
                     f"Leverage: {decision.leverage}x"
                 )
             else:
-                logger.debug(f"❌ Trade rejected: {signal.symbol} - {decision.reason}")
-        
+                # Log rejections at INFO level for Tier 1/2 signals to help diagnose issues
+                tier = getattr(signal, 'tier', 0)
+                if tier in [1, 2]:
+                    logger.warning(f"❌ TIER {tier} REJECTED: {signal.symbol} - {decision.reason}")
+                else:
+                    logger.debug(f"❌ Trade rejected: {signal.symbol} - {decision.reason}")
+
         return approved
     
     def get_status(self) -> Dict:

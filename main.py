@@ -225,7 +225,14 @@ class MoonshotBot:
                 if self._scan_count % 60 == 0:  # Every ~60 seconds
                     hot_movers = self.pair_filter.get_hot_movers()
                     mega_movers = self.pair_filter.get_mega_movers()
+                    velocity_stats = self.data_feed.velocity_scanner.get_stats()
                     logger.info(f"📊 Scanning {len(all_symbols)} symbols | Hot: {len(hot_movers)} | Mega: {len(mega_movers)}")
+                    logger.info(f"📡 WebSocket: {'ACTIVE' if self.data_feed._ticker_stream_active else 'INACTIVE'} | "
+                               f"Updates: {self.data_feed._ticker_update_count} | "
+                               f"Velocity alerts: T1={velocity_stats['tier1_alerts']}, T2={velocity_stats['tier2_alerts']}, T3={velocity_stats['tier3_alerts']}")
+                    logger.info(f"💰 Slots: {self.position_sizer.get_available_slots()}/{self.position_sizer.get_max_positions()} | "
+                               f"Regime: {self.market_regime.current_regime.value} | "
+                               f"Positions: {self.position_tracker.get_position_count()}")
 
                 # Scan top 100 movers FIRST (biggest 24h change = highest priority)
                 symbols_scanned = 0
@@ -379,6 +386,7 @@ class MoonshotBot:
         - Instant pump time-based exits
         """
         logger.info("📊 Monitor loop started (with velocity reversal detection)")
+        sync_counter = 0
 
         while self._running:
             try:
@@ -419,6 +427,12 @@ class MoonshotBot:
 
                 # Ensure exit manager has all positions
                 await self._sync_exit_manager_with_positions()
+
+                # CRITICAL: Sync position sizer count every 30 iterations (~60 seconds)
+                sync_counter += 1
+                if sync_counter >= 30:
+                    await self.position_sizer.sync_position_count()
+                    sync_counter = 0
 
                 # Wait before next check (2 seconds for responsive exits)
                 await asyncio.sleep(2)
