@@ -312,30 +312,32 @@ class OrderExecutor:
         try:
             # Get current position
             positions = await self.client.futures_position_information(symbol=symbol)
-            
+
             position = None
             for p in positions:
                 if p['symbol'] == symbol and float(p['positionAmt']) != 0:
                     position = p
                     break
-            
+
             if not position:
+                # No position - still cancel any orphaned orders
+                await self.cancel_all_orders(symbol)
                 return OrderResult(
                     success=False, order_id=None, symbol=symbol,
                     side="", quantity=0, price=0,
                     error="No position found"
                 )
-            
+
             position_amt = float(position['positionAmt'])
-            
+
             # Calculate quantity to close
             close_qty = abs(position_amt) * (percent / 100)
-            
+
             # Round to precision
             qty_precision, _, min_qty = await self.get_symbol_precision(symbol)
             close_qty = round(close_qty, qty_precision)
             close_qty = max(close_qty, min_qty)
-            
+
             # Determine side (opposite of position)
             if position_amt > 0:
                 side = SIDE_SELL
@@ -343,7 +345,12 @@ class OrderExecutor:
             else:
                 side = SIDE_BUY
                 direction = "SHORT"
-            
+
+            # CRITICAL: Cancel ALL orders BEFORE closing to avoid orphaned SL/TP orders
+            if percent >= 100:
+                await self.cancel_all_orders(symbol)
+                logger.info(f"🧹 Cancelled all orders for {symbol} before full close")
+
             # Close position
             order = await self.client.futures_create_order(
                 symbol=symbol,
@@ -352,9 +359,9 @@ class OrderExecutor:
                 quantity=close_qty,
                 reduceOnly=True
             )
-            
+
             logger.info(f"📤 Position closed: {symbol} {direction} | {percent}% | Qty: {close_qty}")
-            
+
             return OrderResult(
                 success=True,
                 order_id=str(order['orderId']),

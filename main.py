@@ -432,6 +432,8 @@ class MoonshotBot:
                 sync_counter += 1
                 if sync_counter >= 30:
                     await self.position_sizer.sync_position_count()
+                    # Also cleanup orphaned orders (orders for symbols with no position)
+                    await self._cleanup_orphaned_orders()
                     sync_counter = 0
 
                 # Wait before next check (2 seconds for responsive exits)
@@ -490,6 +492,38 @@ class MoonshotBot:
 
         if synced_count > 0:
             logger.info(f"📍 Synced {synced_count} positions to exit manager")
+
+    async def _cleanup_orphaned_orders(self):
+        """Cancel orders for symbols that no longer have positions - prevents orphaned SL orders"""
+        try:
+            # Get all open orders
+            open_orders = await self.data_feed.client.futures_get_open_orders()
+            if not open_orders:
+                return
+
+            # Get symbols with actual positions
+            position_symbols = set(self.position_tracker.get_symbols())
+
+            # Find orphaned orders (orders for symbols without positions)
+            orphaned_symbols = set()
+            for order in open_orders:
+                symbol = order['symbol']
+                if symbol not in position_symbols:
+                    orphaned_symbols.add(symbol)
+
+            # Cancel orphaned orders
+            for symbol in orphaned_symbols:
+                try:
+                    await self.order_executor.cancel_all_orders(symbol)
+                    logger.warning(f"🧹 Cancelled orphaned orders for {symbol} (no position)")
+                except Exception as e:
+                    logger.error(f"Error cancelling orphaned orders for {symbol}: {e}")
+
+            if orphaned_symbols:
+                logger.info(f"🧹 Cleaned up orphaned orders for {len(orphaned_symbols)} symbols")
+
+        except Exception as e:
+            logger.error(f"Error in orphaned order cleanup: {e}")
 
     async def _on_regime_change(self, old_regime: MarketRegime, new_regime: MarketRegime):
         """Handle regime changes"""
