@@ -626,15 +626,30 @@ class MoonshotDetector:
             return None
     
     async def scan(self, symbol: str) -> Optional[MoonshotSignal]:
-        """Scan for both long and short opportunities"""
-        # Try long first
+        """Scan for both long and short opportunities - compare both directions"""
+        # Get BOTH signals first (don't short-circuit on LONG)
         long_signal = await self.scan_for_long(symbol)
-        if long_signal:
-            return long_signal
-        
-        # Then try short
         short_signal = await self.scan_for_short(symbol)
-        return short_signal
+
+        # If both triggered, pick the stronger one
+        if long_signal and short_signal:
+            # Compare by tier first (lower tier = higher priority)
+            if long_signal.tier != short_signal.tier:
+                winner = long_signal if long_signal.tier < short_signal.tier else short_signal
+                logger.info(f"⚔️ {symbol}: Both directions triggered - {winner.direction} wins (Tier {winner.tier} vs Tier {long_signal.tier if winner == short_signal else short_signal.tier})")
+                return winner
+            # Same tier - compare by confidence
+            if long_signal.confidence != short_signal.confidence:
+                winner = long_signal if long_signal.confidence > short_signal.confidence else short_signal
+                logger.info(f"⚔️ {symbol}: Both directions triggered - {winner.direction} wins (confidence {winner.confidence:.0%} vs {long_signal.confidence if winner == short_signal else short_signal.confidence:.0%})")
+                return winner
+            # Same confidence - compare by score
+            winner = long_signal if long_signal.score >= short_signal.score else short_signal
+            logger.info(f"⚔️ {symbol}: Both directions triggered - {winner.direction} wins (score {winner.score} vs {long_signal.score if winner == short_signal else short_signal.score})")
+            return winner
+
+        # Only one triggered - return it
+        return long_signal or short_signal
     
     async def _check_volume_spike(self, symbol: str) -> Tuple[bool, float]:
         """Check if volume is spiking"""
