@@ -1,0 +1,102 @@
+================================================================================
+SIMPLIFIED MOONSHOT BOT - DEPLOYMENT LOG
+================================================================================
+
+DEPLOYMENT DATE: 2025-12-05 21:00 UTC
+COMMIT: 2d770bf
+BRANCH: main
+
+================================================================================
+STRATEGY CONFIGURATION
+================================================================================
+Entry Signal:      2% velocity in 5 minutes
+Stop Loss:         3% fixed
+Trailing Stop:     3% distance (activates at 2% profit)
+Leverage:          10x
+Max Positions:     10
+Scan Interval:     5 seconds
+Entry Cooldown:    60 seconds per symbol
+
+================================================================================
+FILES DEPLOYED
+================================================================================
+- simple_bot.py          (main entry point)
+- src/simple_strategy.py (SimpleDetector, SimpleExitManager)
+- src/profit_tracker.py  (ProfitTracker with metrics)
+- Procfile               (web: python simple_bot.py)
+
+================================================================================
+PERFORMANCE METRICS TRACKED
+================================================================================
+1. Trade Statistics:
+   - Total trades, open trades, closed trades
+   - Wins, losses, win rate
+
+2. PnL Analysis:
+   - Total PnL (USD and %)
+   - Average win/loss (USD and %)
+   - Largest win/loss
+   - Profit factor (gross profit / gross loss)
+
+3. Exit Analysis:
+   - Stop loss exits count
+   - Trailing stop exits count
+   - Manual exits count
+
+4. Direction Analysis:
+   - Long trades count and win rate
+   - Short trades count and win rate
+
+5. Timing Analysis:
+   - Average trade duration
+   - Average winner duration
+   - Average loser duration
+
+6. Efficiency Analysis:
+   - Average peak profit reached
+   - Capture efficiency (actual profit / peak profit)
+
+================================================================================
+API ENDPOINTS
+================================================================================
+GET /           - Status check
+GET /health     - Bot health + position count + metrics summary
+GET /metrics    - Full performance metrics JSON
+GET /report     - Detailed profit report
+GET /positions  - List open positions
+
+================================================================================
+DATA FILES
+================================================================================
+- data/profit_tracker.json  (persistent trade history)
+- logs/simple_bot_YYYY-MM-DD.log (daily log files)
+
+================================================================================
+RAILWAY DEPLOYMENT INFO
+================================================================================
+Project: Self-Optimizer
+Project ID: ca351114-5b85-4b9e-8f1c-67b9afed5d8f
+Service ID: 339da145-f20c-4380-b3ee-17959b2d8ec3
+Environment: production
+
+================================================================================
+PREVIOUS STRATEGY ISSUES (RESOLVED)
+================================================================================
+1. Direction detection bug - LONG always won over SHORT
+   FIX: Now compares both signals, stronger one wins
+
+2. 3-tier velocity system too complex
+   FIX: Simplified to single 2% threshold
+
+3. Multiple take-profit levels causing early exits
+   FIX: Removed TP levels, using trailing stop only
+
+================================================================================
+EXPECTED PERFORMANCE (from top 30 moves analysis)
+================================================================================
+- 2% trailing captures avg 38.2% per move
+- 3% trailing captures avg 37.2% per move
+- Moonshots: avg 51% potential gain
+- Moondrops: avg 23% potential gain
+
+================================================================================
