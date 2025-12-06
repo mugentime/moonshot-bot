@@ -1,0 +1,14 @@
+{
+  "id": "adaptive-coordinator-1764646310185",
+  "name": "adaptive-brain",
+  "type": "adaptive-coordinator",
+  "status": "active",
+  "activeTasks": 0,
+  "lastActivity": 1764646310185,
+  "capabilities": [
+    "Research",
+    "Analysis",
+    "Code Generation"
+  ],
+  "createdAt": 1764646310185
+}

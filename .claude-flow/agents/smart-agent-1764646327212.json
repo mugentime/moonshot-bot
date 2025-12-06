@@ -1,0 +1,14 @@
+{
+  "id": "smart-agent-1764646327212",
+  "name": "neural-hub",
+  "type": "smart-agent",
+  "status": "active",
+  "activeTasks": 0,
+  "lastActivity": 1764646327212,
+  "capabilities": [
+    "Research",
+    "Analysis",
+    "Code Generation"
+  ],
+  "createdAt": 1764646327212
+}

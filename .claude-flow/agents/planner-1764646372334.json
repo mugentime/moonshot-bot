@@ -1,0 +1,14 @@
+{
+  "id": "planner-1764646372334",
+  "name": "worker-5",
+  "type": "planner",
+  "status": "active",
+  "activeTasks": 0,
+  "lastActivity": 1764646372334,
+  "capabilities": [
+    "Research",
+    "Analysis",
+    "Code Generation"
+  ],
+  "createdAt": 1764646372334
+}

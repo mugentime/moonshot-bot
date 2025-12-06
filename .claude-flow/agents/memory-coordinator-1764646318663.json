@@ -1,0 +1,14 @@
+{
+  "id": "memory-coordinator-1764646318663",
+  "name": "hive-memory",
+  "type": "memory-coordinator",
+  "status": "active",
+  "activeTasks": 0,
+  "lastActivity": 1764646318663,
+  "capabilities": [
+    "Research",
+    "Analysis",
+    "Code Generation"
+  ],
+  "createdAt": 1764646318663
+}

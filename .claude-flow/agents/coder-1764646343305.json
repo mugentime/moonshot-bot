@@ -1,0 +1,15 @@
+{
+  "id": "coder-1764646343305",
+  "name": "worker-1",
+  "type": "coder",
+  "status": "active",
+  "activeTasks": 0,
+  "lastActivity": 1764646343305,
+  "capabilities": [
+    "Code Generation",
+    "Implementation",
+    "Refactoring",
+    "Debugging"
+  ],
+  "createdAt": 1764646343305
+}

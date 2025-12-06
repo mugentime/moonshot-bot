@@ -1,0 +1,14 @@
+{
+  "id": "hierarchical-coordinator-1764646292467",
+  "name": "queen",
+  "type": "hierarchical-coordinator",
+  "status": "active",
+  "activeTasks": 0,
+  "lastActivity": 1764646292467,
+  "capabilities": [
+    "Research",
+    "Analysis",
+    "Code Generation"
+  ],
+  "createdAt": 1764646292467
+}

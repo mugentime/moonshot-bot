@@ -9,7 +9,10 @@
       "Bash(curl:*)",
       "Bash(cat:*)",
       "Bash(git fetch:*)",
-      "Bash(railway status:*)"
+      "Bash(railway status:*)",
+      "Bash(python:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ],
     "deny": [],
     "ask": []

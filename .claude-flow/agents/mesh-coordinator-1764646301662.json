@@ -1,0 +1,14 @@
+{
+  "id": "mesh-coordinator-1764646301662",
+  "name": "mesh-brain",
+  "type": "mesh-coordinator",
+  "status": "active",
+  "activeTasks": 0,
+  "lastActivity": 1764646301662,
+  "capabilities": [
+    "Research",
+    "Analysis",
+    "Code Generation"
+  ],
+  "createdAt": 1764646301662
+}

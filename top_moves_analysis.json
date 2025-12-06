@@ -1,0 +1,318 @@
+{
+  "moonshots": [
+    {
+      "symbol": "XNYUSDT",
+      "type": "MOONSHOT",
+      "net_change": 259.3452134272689,
+      "optimal_gain": 342.1052631578948,
+      "drawdown_after": 47.333333333333336,
+      "timestamp": 1764871200000,
+      "entry": 0.00475,
+      "peak": 0.021
+    },
+    {
+      "symbol": "AIAUSDT",
+      "type": "MOONSHOT",
+      "net_change": 53.291175625179655,
+      "optimal_gain": 55.14748409485251,
+      "drawdown_after": 5.722273998136058,
+      "timestamp": 1764836400000,
+      "entry": 0.3458,
+      "peak": 0.5365
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "type": "MOONSHOT",
+      "net_change": 37.0273367163202,
+      "optimal_gain": 40.41925974451358,
+      "drawdown_after": 4.093771868439467,
+      "timestamp": 1764978600000,
+      "entry": 0.06106,
+      "peak": 0.08574
+    },
+    {
+      "symbol": "ACEUSDT",
+      "type": "MOONSHOT",
+      "net_change": 36.21969322117763,
+      "optimal_gain": 38.480759620189914,
+      "drawdown_after": 18.440996030313965,
+      "timestamp": 1764971100000,
+      "entry": 0.2001,
+      "peak": 0.2771
+    },
+    {
+      "symbol": "LIGHTUSDT",
+      "type": "MOONSHOT",
+      "net_change": 30.18867924528302,
+      "optimal_gain": 33.081523449795405,
+      "drawdown_after": 3.5635446231472647,
+      "timestamp": 1764941400000,
+      "entry": 0.9531,
+      "peak": 1.2684
+    },
+    {
+      "symbol": "RECALLUSDT",
+      "type": "MOONSHOT",
+      "net_change": 30.135746606334852,
+      "optimal_gain": 31.938125568698812,
+      "drawdown_after": 3.1724137931034435,
+      "timestamp": 1764825000000,
+      "entry": 0.1099,
+      "peak": 0.145
+    },
+    {
+      "symbol": "SAPIENUSDT",
+      "type": "MOONSHOT",
+      "net_change": 29.14320602401465,
+      "optimal_gain": 39.128910085565984,
+      "drawdown_after": 9.603266622977257,
+      "timestamp": 1764900900000,
+      "entry": 0.14258,
+      "peak": 0.19837
+    },
+    {
+      "symbol": "SKYAIUSDT",
+      "type": "MOONSHOT",
+      "net_change": 28.342857142857135,
+      "optimal_gain": 33.99366085578448,
+      "drawdown_after": 2.6315789473684266,
+      "timestamp": 1764881400000,
+      "entry": 0.02524,
+      "peak": 0.03382
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "type": "MOONSHOT",
+      "net_change": 28.23413674372847,
+      "optimal_gain": 37.03612073231075,
+      "drawdown_after": 12.348799422278388,
+      "timestamp": 1764948900000,
+      "entry": 0.04042,
+      "peak": 0.05539
+    },
+    {
+      "symbol": "TRADOORUSDT",
+      "type": "MOONSHOT",
+      "net_change": 25.018129079042783,
+      "optimal_gain": 27.119883040935672,
+      "drawdown_after": 3.392754456584253,
+      "timestamp": 1764940200000,
+      "entry": 1.368,
+      "peak": 1.739
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "type": "MOONSHOT",
+      "net_change": 24.80729562479645,
+      "optimal_gain": 31.353424657534244,
+      "drawdown_after": 8.159519439345901,
+      "timestamp": 1764961500000,
+      "entry": 0.09125,
+      "peak": 0.11986
+    },
+    {
+      "symbol": "CVCUSDT",
+      "type": "MOONSHOT",
+      "net_change": 23.39527027027027,
+      "optimal_gain": 24.26097972972973,
+      "drawdown_after": 4.384027187765504,
+      "timestamp": 1764929400000,
+      "entry": 0.04736,
+      "peak": 0.05885
+    },
+    {
+      "symbol": "PIEVERSEUSDT",
+      "type": "MOONSHOT",
+      "net_change": 22.72149215769393,
+      "optimal_gain": 24.339863713798966,
+      "drawdown_after": 2.7744476793971558,
+      "timestamp": 1764953400000,
+      "entry": 0.4696,
+      "peak": 0.5839
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "type": "MOONSHOT",
+      "net_change": 21.849981524818336,
+      "optimal_gain": 22.645117512799946,
+      "drawdown_after": 7.086812191932397,
+      "timestamp": 1764958500000,
+      "entry": 0.16211,
+      "peak": 0.19882
+    },
+    {
+      "symbol": "ESPORTSUSDT",
+      "type": "MOONSHOT",
+      "net_change": 21.372663862414147,
+      "optimal_gain": 29.323055360896984,
+      "drawdown_after": 6.248916247615738,
+      "timestamp": 1764851100000,
+      "entry": 0.35675,
+      "peak": 0.46136
+    }
+  ],
+  "moondrops": [
+    {
+      "symbol": "XNYUSDT",
+      "type": "MOONDROP",
+      "net_change": -73.30094279599744,
+      "optimal_gain": 75.77595628415301,
+      "drawdown_after": 6.000451161741478,
+      "timestamp": 1764878700000,
+      "entry": 0.0183,
+      "peak": 0.004433
+    },
+    {
+      "symbol": "LIGHTUSDT",
+      "type": "MOONDROP",
+      "net_change": -33.31161780673181,
+      "optimal_gain": 34.312878133102856,
+      "drawdown_after": 3.1249999999999964,
+      "timestamp": 1764930300000,
+      "entry": 1.3884,
+      "peak": 0.912
+    },
+    {
+      "symbol": "SKYAIUSDT",
+      "type": "MOONDROP",
+      "net_change": -29.42926697322154,
+      "optimal_gain": 39.515935777618026,
+      "drawdown_after": 4.675118858954043,
+      "timestamp": 1764874800000,
+      "entry": 0.04173,
+      "peak": 0.02524
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "type": "MOONDROP",
+      "net_change": -25.467822911912364,
+      "optimal_gain": 28.375912408759124,
+      "drawdown_after": 5.477707006369425,
+      "timestamp": 1764938100000,
+      "entry": 0.02192,
+      "peak": 0.0157
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "type": "MOONDROP",
+      "net_change": -22.641782407407412,
+      "optimal_gain": 25.947353196413065,
+      "drawdown_after": 9.511718749999998,
+      "timestamp": 1764975900000,
+      "entry": 0.06914,
+      "peak": 0.0512
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "type": "MOONDROP",
+      "net_change": -18.992568125516097,
+      "optimal_gain": 21.222873174354323,
+      "drawdown_after": 5.603854614014882,
+      "timestamp": 1764973500000,
+      "entry": 0.12119,
+      "peak": 0.09547
+    },
+    {
+      "symbol": "RECALLUSDT",
+      "type": "MOONDROP",
+      "net_change": -17.830508474576266,
+      "optimal_gain": 19.197324414715712,
+      "drawdown_after": 3.807947019867555,
+      "timestamp": 1764871200000,
+      "entry": 0.1495,
+      "peak": 0.1208
+    },
+    {
+      "symbol": "USTCUSDT",
+      "type": "MOONDROP",
+      "net_change": -17.45917387127762,
+      "optimal_gain": 20.566037735849054,
+      "drawdown_after": 2.3010688836104607,
+      "timestamp": 1764973500000,
+      "entry": 0.00848,
+      "peak": 0.006736
+    },
+    {
+      "symbol": "BEATUSDT",
+      "type": "MOONDROP",
+      "net_change": -17.368928916050173,
+      "optimal_gain": 22.003376477208782,
+      "drawdown_after": 8.534322820037104,
+      "timestamp": 1764900300000,
+      "entry": 1.2439,
+      "peak": 0.9702
+    },
+    {
+      "symbol": "RLSUSDT",
+      "type": "MOONDROP",
+      "net_change": -17.227301722304922,
+      "optimal_gain": 19.77637130801688,
+      "drawdown_after": 15.410508599379384,
+      "timestamp": 1764881700000,
+      "entry": 0.0237,
+      "peak": 0.019013
+    },
+    {
+      "symbol": "AIAUSDT",
+      "type": "MOONDROP",
+      "net_change": -15.263453965872861,
+      "optimal_gain": 22.139117427075554,
+      "drawdown_after": 19.45244956772335,
+      "timestamp": 1764843900000,
+      "entry": 0.5348,
+      "peak": 0.4164
+    },
+    {
+      "symbol": "TRADOORUSDT",
+      "type": "MOONDROP",
+      "net_change": -14.973882762623331,
+      "optimal_gain": 16.656993615786426,
+      "drawdown_after": 3.2729805013927686,
+      "timestamp": 1764947700000,
+      "entry": 1.723,
+      "peak": 1.436
+    },
+    {
+      "symbol": "SAPIENUSDT",
+      "type": "MOONDROP",
+      "net_change": -14.6185236840746,
+      "optimal_gain": 16.107003491476682,
+      "drawdown_after": 3.4641042903482453,
+      "timestamp": 1764950700000,
+      "entry": 0.19476,
+      "peak": 0.16339
+    },
+    {
+      "symbol": "PTBUSDT",
+      "type": "MOONDROP",
+      "net_change": -14.30745814307459,
+      "optimal_gain": 18.38905775075988,
+      "drawdown_after": 7.262569832402247,
+      "timestamp": 1764866100000,
+      "entry": 0.00658,
+      "peak": 0.00537
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "type": "MOONDROP",
+      "net_change": -14.088630837179297,
+      "optimal_gain": 15.663366336633663,
+      "drawdown_after": 6.87954918995068,
+      "timestamp": 1764863100000,
+      "entry": 0.202,
+      "peak": 0.17036
+    }
+  ],
+  "trailing_results": {
+    "2": 38.200766295240825,
+    "3": 37.154898324120694,
+    "4": 36.77701018892586,
+    "5": 36.13220014585756,
+    "6": 35.93237671201229,
+    "7": 35.76570536247586,
+    "8": 35.76981417595364,
+    "10": 35.68741912780519,
+    "12": 35.354085794471864,
+    "15": 35.06068632818578
+  }
+}
