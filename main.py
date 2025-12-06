@@ -61,6 +61,49 @@ class SimpleMoonshotBot:
         self._scan_task = None
         self._monitor_task = None
 
+    async def close_all_positions(self):
+        """Close all open positions before starting fresh"""
+        logger.info("=" * 60)
+        logger.info("CLOSING ALL EXISTING POSITIONS FOR FRESH START")
+        logger.info("=" * 60)
+
+        try:
+            positions = await self.data_feed.client.futures_position_information()
+            open_positions = [p for p in positions if float(p['positionAmt']) != 0]
+
+            if not open_positions:
+                logger.info("No existing positions to close")
+                return
+
+            logger.info(f"Found {len(open_positions)} positions to close")
+
+            for pos in open_positions:
+                symbol = pos['symbol']
+                amt = float(pos['positionAmt'])
+                side = 'LONG' if amt > 0 else 'SHORT'
+                pnl = float(pos['unRealizedProfit'])
+
+                try:
+                    if amt > 0:
+                        result = await self.order_executor.close_long(symbol)
+                    else:
+                        result = await self.order_executor.close_short(symbol)
+
+                    status = "+" if pnl > 0 else ""
+                    if result.success:
+                        logger.info(f"  Closed {side} {symbol} | PnL: ${status}{pnl:.2f}")
+                    else:
+                        logger.error(f"  FAILED {symbol}: {result.error}")
+                except Exception as e:
+                    logger.error(f"  ERROR {symbol}: {e}")
+
+                await asyncio.sleep(0.1)
+
+            logger.info("All positions closed!")
+
+        except Exception as e:
+            logger.error(f"Error closing positions: {e}")
+
     async def initialize(self):
         """Initialize the bot"""
         logger.info("🚀 Initializing Simple Moonshot Bot...")
@@ -68,6 +111,9 @@ class SimpleMoonshotBot:
         # Initialize data feed
         await self.data_feed.initialize()
         logger.info("✅ Connected to Binance")
+
+        # CLOSE ALL EXISTING POSITIONS FOR FRESH START
+        await self.close_all_positions()
 
         # Initialize detector
         self.detector = SimpleDetector(self.data_feed, self.config)
