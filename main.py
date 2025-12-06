@@ -400,15 +400,30 @@ class SimpleMoonshotBot:
 
 # FastAPI app
 bot = None
+_init_task = None
+
+
+async def _initialize_bot():
+    """Initialize bot in background so server can start accepting requests"""
+    global bot
+    try:
+        await bot.initialize()
+        await bot.start()
+        logger.info("Bot initialization complete!")
+    except Exception as e:
+        logger.error(f"Bot initialization failed: {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global bot
+    global bot, _init_task
     bot = SimpleMoonshotBot()
-    await bot.initialize()
-    await bot.start()
+    # Start initialization in background - don't block server startup
+    _init_task = asyncio.create_task(_initialize_bot())
     yield
+    # Wait for init to complete before stopping
+    if _init_task and not _init_task.done():
+        _init_task.cancel()
     await bot.stop()
 
 
