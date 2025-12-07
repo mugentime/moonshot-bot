@@ -1,14 +1,14 @@
 """
-SIMPLE MOONSHOT BOT
-Clean implementation with simplified strategy
+MACRO INDEX BOT
+Trade all 61 whitelisted coins in same direction based on macro indicator.
 
 Strategy:
-- Entry: 2% move in 5 minutes
-- Stop Loss: 3%
-- Trailing: Activate at 2% profit, 3% distance
+- Calculate macro score from majority vote + leader-follower + aggregate velocity
+- Score >= +2 → LONG all 61 coins
+- Score <= -2 → SHORT all 61 coins
+- Fixed exits: 5% SL, 10% TP per position
 """
 import asyncio
-import signal
 import sys
 import os
 from datetime import datetime
@@ -17,9 +17,9 @@ from fastapi import FastAPI
 from loguru import logger
 import uvicorn
 
-from config import PORT, LOG_LEVEL
+from config import PORT, LOG_LEVEL, PairFilterConfig
 from src import DataFeed, PairFilter, PositionTracker, OrderExecutor
-from src.simple_strategy import SimpleDetector, SimpleExitManager, SimpleConfig
+from src.macro_strategy import MacroIndicator, MacroConfig, MacroExitManager, MacroDirection
 from src.profit_tracker import profit_tracker
 
 # Configure logging
@@ -32,34 +32,37 @@ logger.add(
 
 # Also log to file
 logger.add(
-    "logs/simple_bot_{time:YYYY-MM-DD}.log",
+    "logs/macro_bot_{time:YYYY-MM-DD}.log",
     rotation="1 day",
     retention="7 days",
     level="DEBUG"
 )
 
 
-class SimpleMoonshotBot:
+class MacroIndexBot:
     """
-    Simplified Moonshot Bot
-    - Scans for 2% moves
-    - Enters with 10x leverage
-    - 3% stop loss
-    - 3% trailing stop (activates at 2% profit)
+    Macro Index Trading Bot
+    - Calculates composite macro indicator across all 61 coins
+    - Opens positions on ALL coins in same direction
+    - Fixed 5% SL, 10% TP per position
     """
 
     def __init__(self):
-        self.config = SimpleConfig()
+        self.config = MacroConfig()
         self.data_feed = DataFeed()
         self.pair_filter = PairFilter(self.data_feed)
         self.position_tracker = PositionTracker(self.data_feed)
         self.order_executor = OrderExecutor(self.data_feed)
-        self.detector = None  # Initialize after data_feed
-        self.exit_manager = SimpleExitManager(self.config)
+        self.macro_indicator = None  # Initialize after data_feed
+        self.exit_manager = MacroExitManager(self.config)
 
         self._running = False
-        self._scan_task = None
+        self._macro_task = None
         self._monitor_task = None
+
+        # Trading state
+        self.current_direction: MacroDirection = MacroDirection.FLAT
+        self.whitelisted_symbols: list = []
 
     async def close_all_positions(self):
         """Close all open positions before starting fresh"""
@@ -106,112 +109,230 @@ class SimpleMoonshotBot:
 
     async def initialize(self):
         """Initialize the bot"""
-        logger.info("🚀 Initializing Simple Moonshot Bot...")
+        logger.info("=" * 60)
+        logger.info("INITIALIZING MACRO INDEX BOT")
+        logger.info("=" * 60)
 
         # Initialize data feed
         await self.data_feed.initialize()
-        logger.info("✅ Connected to Binance")
+        logger.info("Connected to Binance")
 
         # CLOSE ALL EXISTING POSITIONS FOR FRESH START
         await self.close_all_positions()
 
-        # Initialize detector
-        self.detector = SimpleDetector(self.data_feed, self.config)
+        # Initialize macro indicator
+        self.macro_indicator = MacroIndicator(self.data_feed, self.config)
 
-        # Initialize pairs
-        await self.pair_filter.initialize()
-        logger.info(f"✅ Loaded {len(self.pair_filter.pairs)} trading pairs")
+        # Get whitelisted symbols from config
+        if hasattr(PairFilterConfig, 'ALLOWED_COINS') and PairFilterConfig.ALLOWED_COINS:
+            self.whitelisted_symbols = list(PairFilterConfig.ALLOWED_COINS)
+            logger.info(f"Using {len(self.whitelisted_symbols)} whitelisted coins")
+        else:
+            # Fallback to pair filter
+            await self.pair_filter.initialize()
+            self.whitelisted_symbols = list(self.pair_filter.pairs.keys())
+            logger.info(f"Loaded {len(self.whitelisted_symbols)} trading pairs")
 
         # Initialize position tracker
         await self.position_tracker.initialize()
-        logger.info(f"✅ Position tracker ready")
+        logger.info("Position tracker ready")
 
         # Get starting balance
         balance = await self.data_feed.get_account_balance()
         profit_tracker.set_start_balance(balance)
-        logger.info(f"💰 Starting balance: ${balance:.2f}")
+        logger.info(f"Starting balance: ${balance:.2f}")
 
         logger.info("=" * 60)
-        logger.info("SIMPLE STRATEGY CONFIG:")
-        logger.info(f"  Entry: {self.config.ENTRY_VELOCITY_5M}% move in 5 min")
-        logger.info(f"  Stop Loss: {self.config.STOP_LOSS_PERCENT}%")
-        logger.info(f"  Trailing: {self.config.TRAILING_DISTANCE}% (activates at {self.config.TRAILING_ACTIVATION}% profit)")
+        logger.info("MACRO STRATEGY CONFIG:")
+        logger.info(f"  Coins: {len(self.whitelisted_symbols)}")
         logger.info(f"  Leverage: {self.config.LEVERAGE}x")
-        logger.info(f"  Max Positions: {self.config.MAX_POSITIONS}")
+        logger.info(f"  Stop Loss: {self.config.STOP_LOSS_PERCENT}%")
+        logger.info(f"  Take Profit: {self.config.TAKE_PROFIT_PERCENT}%")
+        logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")
+        logger.info(f"  Short Trigger: Score <= {self.config.SHORT_TRIGGER_SCORE}")
         logger.info("=" * 60)
 
     async def start(self):
         """Start the bot"""
         self._running = True
-        logger.info("🟢 Bot started")
+        logger.info("MACRO INDEX BOT STARTED")
 
-        # Start scan and monitor loops
-        self._scan_task = asyncio.create_task(self._scan_loop())
+        # Start macro calculation and monitor loops
+        self._macro_task = asyncio.create_task(self._macro_loop())
         self._monitor_task = asyncio.create_task(self._monitor_loop())
 
     async def stop(self):
         """Stop the bot"""
         self._running = False
-        logger.info("🔴 Stopping bot...")
+        logger.info("Stopping bot...")
 
-        if self._scan_task:
-            self._scan_task.cancel()
+        if self._macro_task:
+            self._macro_task.cancel()
         if self._monitor_task:
             self._monitor_task.cancel()
 
         # Print final report
         profit_tracker.print_report()
 
-    async def _scan_loop(self):
-        """Main scanning loop - look for entry signals"""
-        logger.info("📡 Scan loop started")
+    async def _macro_loop(self):
+        """Main loop - calculate macro indicator and trade"""
+        logger.info("Macro calculation loop started")
 
         while self._running:
             try:
-                # Get current position count
-                positions = self.position_tracker.get_all_positions()
-                if len(positions) >= self.config.MAX_POSITIONS:
-                    await asyncio.sleep(self.config.SCAN_INTERVAL)
-                    continue
+                # Calculate macro score across all whitelisted coins
+                score = await self.macro_indicator.calculate(self.whitelisted_symbols)
 
-                # Get pairs sorted by 24h change
-                pairs = await self._get_sorted_pairs()
+                # Log current state periodically
+                logger.debug(f"Macro: {score.direction.value} | Score: {score.total_score} | "
+                            f"Up: {score.coins_up} Down: {score.coins_down} | "
+                            f"Avg Vel: {score.avg_velocity:.2f}%")
 
-                for symbol in pairs[:100]:  # Top 100 movers
-                    if not self._running:
-                        break
-
-                    # Already have position?
-                    if self.position_tracker.has_position(symbol):
-                        continue
-
-                    # Scan for signal
-                    signal = await self.detector.scan(symbol)
-
-                    if signal:
-                        await self._execute_entry(signal)
-
-                        # Check if max positions reached
-                        if len(self.position_tracker.get_all_positions()) >= self.config.MAX_POSITIONS:
-                            break
+                # Check for direction change
+                if score.direction != self.current_direction:
+                    await self._handle_direction_change(score)
 
                 await asyncio.sleep(self.config.SCAN_INTERVAL)
 
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"Scan loop error: {e}")
+                logger.error(f"Macro loop error: {e}")
                 await asyncio.sleep(5)
 
+    async def _handle_direction_change(self, score):
+        """Handle when macro direction changes"""
+        old_direction = self.current_direction
+        new_direction = score.direction
+
+        logger.info(f"{'='*60}")
+        logger.info(f"MACRO DIRECTION CHANGE: {old_direction.value} -> {new_direction.value}")
+        logger.info(f"{'='*60}")
+
+        # Close existing positions if we had any
+        if old_direction != MacroDirection.FLAT:
+            await self._close_all_positions_for_direction(old_direction.value)
+
+        # Open new positions if not flat
+        if new_direction != MacroDirection.FLAT:
+            await self._open_all_positions(new_direction.value)
+
+        self.current_direction = new_direction
+
+    async def _close_all_positions_for_direction(self, direction: str):
+        """Close all positions for a given direction"""
+        logger.info(f"Closing all {direction} positions...")
+
+        positions = self.position_tracker.get_all_positions()
+        closed = 0
+
+        for symbol, position in positions.items():
+            if position.direction == direction:
+                try:
+                    if direction == "LONG":
+                        result = await self.order_executor.close_long(symbol)
+                    else:
+                        result = await self.order_executor.close_short(symbol)
+
+                    if result.success:
+                        closed += 1
+                        # Calculate PnL
+                        current_price = self.data_feed.get_current_price(symbol) or position.entry_price
+                        if direction == "LONG":
+                            pnl_pct = ((current_price - position.entry_price) / position.entry_price) * 100
+                        else:
+                            pnl_pct = ((position.entry_price - current_price) / position.entry_price) * 100
+
+                        pnl_usd = position.margin * (pnl_pct / 100) * self.config.LEVERAGE
+                        profit_tracker.record_exit(
+                            symbol=symbol,
+                            exit_price=current_price,
+                            exit_reason="macro_flip",
+                            pnl_percent=pnl_pct * self.config.LEVERAGE,
+                            pnl_usd=pnl_usd,
+                            peak_profit=0
+                        )
+
+                except Exception as e:
+                    logger.error(f"Error closing {symbol}: {e}")
+
+                await asyncio.sleep(0.05)  # Small delay between closes
+
+        logger.info(f"Closed {closed} {direction} positions")
+
+    async def _open_all_positions(self, direction: str):
+        """Open positions on all whitelisted coins"""
+        logger.info(f"Opening {direction} positions on {len(self.whitelisted_symbols)} coins...")
+
+        # Get available balance
+        balance = await self.data_feed.get_account_balance()
+
+        # Calculate margin per position (equal weight)
+        margin_per_position = balance / len(self.whitelisted_symbols)
+        margin_per_position = max(margin_per_position, 1.0)  # Minimum $1
+
+        opened = 0
+        failed = 0
+
+        for symbol in self.whitelisted_symbols:
+            try:
+                # Get current price for SL/TP calculation
+                ticker = await self.data_feed.get_ticker(symbol)
+                if not ticker:
+                    failed += 1
+                    continue
+
+                entry_price = ticker.price
+
+                # Calculate SL price
+                if direction == "LONG":
+                    sl_price = entry_price * (1 - self.config.STOP_LOSS_PERCENT / 100)
+                    result = await self.order_executor.open_long(
+                        symbol=symbol,
+                        margin=margin_per_position,
+                        leverage=self.config.LEVERAGE,
+                        stop_loss=sl_price
+                    )
+                else:  # SHORT
+                    sl_price = entry_price * (1 + self.config.STOP_LOSS_PERCENT / 100)
+                    result = await self.order_executor.open_short(
+                        symbol=symbol,
+                        margin=margin_per_position,
+                        leverage=self.config.LEVERAGE,
+                        stop_loss=sl_price
+                    )
+
+                if result.success:
+                    opened += 1
+                    profit_tracker.record_entry(
+                        symbol=symbol,
+                        direction=direction,
+                        entry_price=result.entry_price,
+                        leverage=self.config.LEVERAGE,
+                        margin=margin_per_position,
+                        velocity=0
+                    )
+                else:
+                    failed += 1
+                    logger.debug(f"Failed to open {symbol}: {result.error}")
+
+            except Exception as e:
+                failed += 1
+                logger.debug(f"Error opening {symbol}: {e}")
+
+            await asyncio.sleep(0.05)  # Small delay between orders
+
+        logger.info(f"Opened {opened}/{len(self.whitelisted_symbols)} {direction} positions (failed: {failed})")
+
     async def _monitor_loop(self):
-        """Monitor open positions for exits"""
-        logger.info("👁️ Monitor loop started")
+        """Monitor open positions for SL/TP exits"""
+        logger.info("Position monitor loop started")
 
         while self._running:
             try:
                 positions = self.position_tracker.get_all_positions()
 
-                for symbol, position in positions.items():
+                for symbol, position in list(positions.items()):
                     try:
                         # Get current price
                         current_price = self.data_feed.get_current_price(symbol)
@@ -222,24 +343,10 @@ class SimpleMoonshotBot:
                         if not current_price:
                             continue
 
-                        # Calculate current profit
-                        entry_price = position.entry_price
-                        direction = position.direction
-                        leverage = position.leverage
-
-                        if direction == "LONG":
-                            profit_pct = ((current_price - entry_price) / entry_price) * 100 * leverage
-                        else:
-                            profit_pct = ((entry_price - current_price) / entry_price) * 100 * leverage
-
-                        # Update peak profit in tracker
-                        profit_tracker.update_peak_profit(symbol, profit_pct)
-
-                        # Check exit conditions
+                        # Check for SL/TP exit
                         exit_action = self.exit_manager.check_exit(
-                            symbol=symbol,
-                            direction=direction,
-                            entry_price=entry_price,
+                            direction=position.direction,
+                            entry_price=position.entry_price,
                             current_price=current_price
                         )
 
@@ -247,7 +354,7 @@ class SimpleMoonshotBot:
                             await self._execute_exit(symbol, position, exit_action, current_price)
 
                     except Exception as e:
-                        logger.error(f"Error monitoring {symbol}: {e}")
+                        logger.debug(f"Error monitoring {symbol}: {e}")
 
                 await asyncio.sleep(2)  # Check every 2 seconds
 
@@ -257,94 +364,17 @@ class SimpleMoonshotBot:
                 logger.error(f"Monitor loop error: {e}")
                 await asyncio.sleep(5)
 
-    async def _get_sorted_pairs(self):
-        """Get pairs sorted by 24h price change"""
-        try:
-            tickers = await self.data_feed.client.futures_ticker()
-
-            # Filter and sort by absolute price change
-            valid = []
-            for t in tickers:
-                if t['symbol'].endswith('USDT'):
-                    try:
-                        change = abs(float(t['priceChangePercent']))
-                        valid.append((t['symbol'], change))
-                    except:
-                        pass
-
-            valid.sort(key=lambda x: x[1], reverse=True)
-            return [v[0] for v in valid]
-
-        except Exception as e:
-            logger.error(f"Error getting sorted pairs: {e}")
-            return list(self.pair_filter.pairs.keys())
-
-    async def _execute_entry(self, signal):
-        """Execute entry trade"""
-        try:
-            symbol = signal.symbol
-            direction = signal.direction
-
-            # Get margin
-            balance = await self.data_feed.get_account_balance()
-            margin = min(balance * 0.05, balance / self.config.MAX_POSITIONS)  # 5% max or equal split
-            margin = max(margin, 1.0)  # At least $1
-
-            if margin < 1.0:
-                logger.warning(f"Insufficient margin for {symbol}")
-                return
-
-            # Calculate stop loss price
-            if direction == "LONG":
-                sl_price = signal.entry_price * (1 - self.config.STOP_LOSS_PERCENT / 100)
-            else:
-                sl_price = signal.entry_price * (1 + self.config.STOP_LOSS_PERCENT / 100)
-
-            # Execute trade
-            if direction == "LONG":
-                result = await self.order_executor.open_long(
-                    symbol=symbol,
-                    margin=margin,
-                    leverage=self.config.LEVERAGE,
-                    stop_loss=sl_price
-                )
-            else:
-                result = await self.order_executor.open_short(
-                    symbol=symbol,
-                    margin=margin,
-                    leverage=self.config.LEVERAGE,
-                    stop_loss=sl_price
-                )
-
-            if result.success:
-                # Record in profit tracker
-                profit_tracker.record_entry(
-                    symbol=symbol,
-                    direction=direction,
-                    entry_price=result.entry_price,
-                    leverage=self.config.LEVERAGE,
-                    margin=margin,
-                    velocity=signal.velocity_5m
-                )
-
-                logger.info(f"✅ ENTRY: {direction} {symbol} @ ${result.entry_price:.6f} | SL: ${sl_price:.6f}")
-            else:
-                logger.error(f"❌ Entry failed: {symbol} - {result.error}")
-
-        except Exception as e:
-            logger.error(f"Error executing entry: {e}")
-
     async def _execute_exit(self, symbol: str, position, exit_action: dict, current_price: float):
-        """Execute exit trade"""
+        """Execute an exit trade"""
         try:
             direction = position.direction
             entry_price = position.entry_price
 
             # Calculate PnL
             if direction == "LONG":
-                pnl_pct = ((current_price - entry_price) / entry_price) * 100 * position.leverage
+                pnl_pct = ((current_price - entry_price) / entry_price) * 100 * self.config.LEVERAGE
             else:
-                pnl_pct = ((entry_price - current_price) / entry_price) * 100 * position.leverage
+                pnl_pct = ((entry_price - current_price) / entry_price) * 100 * self.config.LEVERAGE
 
             pnl_usd = position.margin * (pnl_pct / 100)
 
@@ -355,13 +385,6 @@ class SimpleMoonshotBot:
                 result = await self.order_executor.close_short(symbol)
 
             if result.success:
-                # Get peak profit from exit manager
-                peak = self.exit_manager.peak_prices.get(symbol, entry_price)
-                if direction == "LONG":
-                    peak_profit = ((peak - entry_price) / entry_price) * 100 * position.leverage
-                else:
-                    peak_profit = ((entry_price - peak) / peak) * 100 * position.leverage
-
                 # Record in profit tracker
                 profit_tracker.record_exit(
                     symbol=symbol,
@@ -369,16 +392,14 @@ class SimpleMoonshotBot:
                     exit_reason=exit_action['reason'],
                     pnl_percent=pnl_pct,
                     pnl_usd=pnl_usd,
-                    peak_profit=peak_profit
+                    peak_profit=0
                 )
 
-                # Clean up exit manager tracking
-                self.exit_manager.reset(symbol)
-
-                status = "✅" if pnl_usd > 0 else "❌"
-                logger.info(f"{status} EXIT: {symbol} | {exit_action['reason']} | PnL: ${pnl_usd:+.2f} ({pnl_pct:+.2f}%)")
+                status = "+" if pnl_usd > 0 else ""
+                reason = exit_action['reason'].upper()
+                logger.info(f"{reason}: {symbol} | PnL: ${status}{pnl_usd:.2f} ({pnl_pct:+.2f}%)")
             else:
-                logger.error(f"❌ Exit failed: {symbol} - {result.error}")
+                logger.error(f"Exit failed: {symbol} - {result.error}")
 
         except Exception as e:
             logger.error(f"Error executing exit: {e}")
@@ -390,7 +411,10 @@ class SimpleMoonshotBot:
 
         return {
             "running": self._running,
+            "strategy": "macro_index",
+            "direction": self.current_direction.value,
             "positions": len(positions),
+            "coins": len(self.whitelisted_symbols),
             "total_trades": metrics.total_trades,
             "win_rate": f"{metrics.win_rate:.1f}%",
             "total_pnl": f"${metrics.total_pnl_usd:+.2f}",
@@ -417,7 +441,7 @@ async def _initialize_bot():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global bot, _init_task
-    bot = SimpleMoonshotBot()
+    bot = MacroIndexBot()
     # Start initialization in background - don't block server startup
     _init_task = asyncio.create_task(_initialize_bot())
     yield
@@ -427,12 +451,12 @@ async def lifespan(app: FastAPI):
     await bot.stop()
 
 
-app = FastAPI(lifespan=lifespan, title="Simple Moonshot Bot")
+app = FastAPI(lifespan=lifespan, title="Macro Index Bot")
 
 
 @app.get("/")
 async def root():
-    return {"status": "running", "strategy": "simple_2pct_velocity"}
+    return {"status": "running", "strategy": "macro_index"}
 
 
 @app.get("/health")
@@ -459,13 +483,32 @@ async def positions():
     return {"positions": []}
 
 
+@app.get("/macro")
+async def macro():
+    """Get current macro indicator state"""
+    if bot and bot.macro_indicator and bot.macro_indicator.last_score:
+        score = bot.macro_indicator.last_score
+        return {
+            "direction": score.direction.value,
+            "total_score": score.total_score,
+            "majority_score": score.majority_score,
+            "leader_score": score.leader_score,
+            "velocity_score": score.velocity_score,
+            "coins_up": score.coins_up,
+            "coins_down": score.coins_down,
+            "avg_velocity": f"{score.avg_velocity:.2f}%",
+            "leader_velocity": f"{score.leader_velocity:.2f}%"
+        }
+    return {"status": "calculating..."}
+
+
 if __name__ == "__main__":
     # Create logs directory
     os.makedirs("logs", exist_ok=True)
     os.makedirs("data", exist_ok=True)
 
     logger.info("=" * 60)
-    logger.info("STARTING SIMPLE MOONSHOT BOT")
+    logger.info("STARTING MACRO INDEX BOT")
     logger.info(f"Time: {datetime.now().isoformat()}")
     logger.info("=" * 60)
 

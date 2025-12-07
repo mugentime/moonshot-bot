@@ -7,3 +7,4 @@ from .trade_manager import TradeManager
 from .exit_manager import ExitManager
 from .order_executor import OrderExecutor
 from .position_tracker import PositionTracker
+from .macro_strategy import MacroIndicator, MacroConfig, MacroExitManager, MacroDirection
