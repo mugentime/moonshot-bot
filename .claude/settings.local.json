@@ -1,22 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(railway logs:*)",
-      "mcp__memory-keeper__context_search",
-      "Bash(railway whoami:*)",
-      "Bash(railway list:*)",
-      "Bash(dir /a)",
-      "Bash(curl:*)",
-      "Bash(cat:*)",
-      "Bash(git fetch:*)",
-      "Bash(railway status:*)",
-      "Bash(python:*)",
-      "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs",
-      "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "mcp__ruv-swarm",
+      "mcp__claude-flow@alpha",
+      "mcp__flow-nexus"
     ],
-    "deny": [],
-    "ask": []
+    "deny": []
   }
 }

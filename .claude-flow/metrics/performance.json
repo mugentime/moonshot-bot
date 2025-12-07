@@ -1,12 +1,12 @@
 {
-  "startTime": 1764646261925,
-  "sessionId": "session-1764646261925",
-  "lastActivity": 1764646261925,
+  "startTime": 1765139107982,
+  "sessionId": "session-1765139107982",
+  "lastActivity": 1765139107982,
   "sessionDuration": 0,
-  "totalTasks": 14,
-  "successfulTasks": 14,
+  "totalTasks": 2,
+  "successfulTasks": 2,
   "failedTasks": 0,
-  "totalAgents": 7,
+  "totalAgents": 0,
   "activeAgents": 0,
   "neuralEvents": 0,
   "memoryMode": {

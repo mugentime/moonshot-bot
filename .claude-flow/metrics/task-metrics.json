@@ -1,114 +1,18 @@
 [
   {
-    "id": "cmd-swarm-1764646262261",
-    "type": "swarm",
+    "id": "cmd-mcp-1765139108673",
+    "type": "mcp",
     "success": true,
-    "duration": 48.36329999999998,
-    "timestamp": 1764646262310,
+    "duration": 1.6528000000000702,
+    "timestamp": 1765139108675,
     "metadata": {}
   },
   {
-    "id": "cmd-status-1764646275455",
-    "type": "status",
+    "id": "cmd-init-1765139125462",
+    "type": "init",
     "success": true,
-    "duration": 215.92830000000004,
-    "timestamp": 1764646275671,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646292467",
-    "type": "agent",
-    "success": true,
-    "duration": 13.616499999999974,
-    "timestamp": 1764646292481,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646301661",
-    "type": "agent",
-    "success": true,
-    "duration": 17.68360000000007,
-    "timestamp": 1764646301679,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646310185",
-    "type": "agent",
-    "success": true,
-    "duration": 12.97670000000005,
-    "timestamp": 1764646310198,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646318663",
-    "type": "agent",
-    "success": true,
-    "duration": 13.347700000000032,
-    "timestamp": 1764646318676,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646327212",
-    "type": "agent",
-    "success": true,
-    "duration": 11.537900000000036,
-    "timestamp": 1764646327223,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646343305",
-    "type": "agent",
-    "success": true,
-    "duration": 12.424400000000048,
-    "timestamp": 1764646343318,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646350477",
-    "type": "agent",
-    "success": true,
-    "duration": 12.966299999999933,
-    "timestamp": 1764646350490,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646357575",
-    "type": "agent",
-    "success": true,
-    "duration": 15.822099999999978,
-    "timestamp": 1764646357591,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646364796",
-    "type": "agent",
-    "success": true,
-    "duration": 18.064499999999953,
-    "timestamp": 1764646364814,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646372333",
-    "type": "agent",
-    "success": true,
-    "duration": 12.427299999999946,
-    "timestamp": 1764646372346,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764646385253",
-    "type": "agent",
-    "success": true,
-    "duration": 42.687599999999975,
-    "timestamp": 1764646385296,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-agent-1764651912174",
-    "type": "agent",
-    "success": true,
-    "duration": 37.57830000000001,
-    "timestamp": 1764651912212,
+    "duration": 38548.7014,
+    "timestamp": 1765139164011,
     "metadata": {}
   }
 ]
