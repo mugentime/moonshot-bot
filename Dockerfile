@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Cache buster - change this value to force rebuild
-ARG CACHE_BUST=20251207-1515
+ARG CACHE_BUST=20251207-1552
 
 # Copy application code
 COPY . .
