@@ -20,20 +20,29 @@ class OrderResult:
     price: float
     error: Optional[str] = None
 
+    @property
+    def entry_price(self) -> float:
+        """Alias for price for compatibility"""
+        return self.price
+
 
 class OrderExecutor:
     """
     Executes orders on Binance Futures
     Handles market orders, stop-losses, and position management
     """
-    
+
     def __init__(self, data_feed):
         self.data_feed = data_feed
-        self.client = None  # Will be set after data_feed initializes
-    
+
+    @property
+    def client(self):
+        """Get the Binance client from data_feed"""
+        return self.data_feed.client
+
     async def initialize(self):
-        """Initialize with the Binance client"""
-        self.client = self.data_feed.client
+        """Initialize with the Binance client (legacy, now automatic)"""
+        pass  # Client is now accessed via property
     
     async def set_leverage(self, symbol: str, leverage: int) -> bool:
         """Set leverage for a symbol"""
@@ -413,6 +422,14 @@ class OrderExecutor:
         except Exception as e:
             logger.error(f"Error updating stop-loss for {symbol}: {e}")
     
+    async def close_long(self, symbol: str) -> OrderResult:
+        """Close a long position (convenience wrapper)"""
+        return await self.close_position(symbol, percent=100)
+
+    async def close_short(self, symbol: str) -> OrderResult:
+        """Close a short position (convenience wrapper)"""
+        return await self.close_position(symbol, percent=100)
+
     async def get_open_positions(self) -> list:
         """Get all open positions"""
         try:

@@ -254,6 +254,28 @@ class PairFilterConfig:
         "PARTI", "RATS", "MON", "PARTIVERSE", "BANANAS31", "ARC", "BOB"
     ]
 
+    # ==========================================================================
+    # ALLOWED COINS - ONLY trade these 61 coins (10%+ movers in last 24h)
+    # Set to None to allow all coins, or a set of symbols to restrict
+    # ==========================================================================
+    ALLOWED_COINS = {
+        # MOONSHOTS (33 gainers 10%+)
+        "ALPACAUSDT", "USTCUSDT", "BNXUSDT", "MOODENGUSDT", "LUNA2USDT",
+        "ALPHAUSDT", "SWARMSUSDT", "DOODUSDT", "BEATUSDT", "PIUSDT",
+        "NOTUSDT", "SYNUSDT", "OCEANUSDT", "DGBUSDT", "AGIXUSDT",
+        "RONINUSDT", "HEMIUSDT", "POWERUSDT", "MUBARAKUSDT", "1000LUNCUSDT",
+        "BULLAUSDT", "LINAUSDT", "HMSTRUSDT", "GOATUSDT", "C98USDT",
+        "FETUSDT", "MEWUSDT", "SUIUSDT", "ZENUSDT", "SHELLUSDT",
+        "RIFUSDT", "SXPUSDT", "LPTUSDT",
+        # MOONDROPS (28 losers 10%+)
+        "PORT3USDT", "BSWUSDT", "NEIROETHUSDT", "VIDTUSDT", "TROYUSDT",
+        "BAKEUSDT", "AMBUSDT", "KDAUSDT", "FLMUSDT", "MEMEFIUSDT",
+        "PIPPINUSDT", "NULSUSDT", "PERPUSDT", "HUSDT", "SKATEUSDT",
+        "HIFIUSDT", "OBOLUSDT", "MILKUSDT", "LEVERUSDT", "1000XUSDT",
+        "MYROUSDT", "PNUTUSDT", "PUFFERUSDT", "ZEREBROUSDT", "STABLEUSDT",
+        "ARIAUSDT", "BIOUSDT", "WLDUSDT",
+    }
+
 # =============================================================================
 # MARKET REGIME
 # =============================================================================

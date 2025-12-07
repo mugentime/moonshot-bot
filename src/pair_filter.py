@@ -50,14 +50,18 @@ class PairFilter:
     async def initialize(self) -> List[str]:
         """Initialize pair list and categorize"""
         logger.info("Initializing pair filter...")
-        
+
+        # Log whitelist status
+        if hasattr(self.config, 'ALLOWED_COINS') and self.config.ALLOWED_COINS:
+            logger.info(f"🔒 WHITELIST MODE: Only {len(self.config.ALLOWED_COINS)} coins allowed")
+
         all_symbols = await self.data_feed.get_all_futures_symbols()
-        
+
         valid_pairs = []
         for symbol in all_symbols:
             if await self._passes_filters(symbol):
                 valid_pairs.append(symbol)
-        
+
         logger.info(f"Filtered to {len(valid_pairs)} valid pairs from {len(all_symbols)} total")
         
         # Categorize pairs
@@ -67,6 +71,11 @@ class PairFilter:
     
     async def _passes_filters(self, symbol: str) -> bool:
         """Check if symbol passes all inclusion/exclusion filters"""
+
+        # WHITELIST CHECK - If ALLOWED_COINS is set, ONLY allow those coins
+        if hasattr(self.config, 'ALLOWED_COINS') and self.config.ALLOWED_COINS:
+            if symbol not in self.config.ALLOWED_COINS:
+                return False
 
         # Exclusion: Stablecoins
         if symbol in self.config.STABLECOINS:
