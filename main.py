@@ -226,8 +226,9 @@ class MacroIndexBot:
         positions = self.position_tracker.get_all_positions()
         closed = 0
 
-        for symbol, position in positions.items():
+        for position in positions:
             if position.direction == direction:
+                symbol = position.symbol
                 try:
                     if direction == "LONG":
                         result = await self.order_executor.close_long(symbol)
@@ -332,7 +333,8 @@ class MacroIndexBot:
             try:
                 positions = self.position_tracker.get_all_positions()
 
-                for symbol, position in list(positions.items()):
+                for position in positions:
+                    symbol = position.symbol
                     try:
                         # Get current price
                         current_price = self.data_feed.get_current_price(symbol)
@@ -479,7 +481,7 @@ async def report():
 @app.get("/positions")
 async def positions():
     if bot:
-        return {"positions": [str(p) for p in bot.position_tracker.get_all_positions().values()]}
+        return {"positions": [str(p) for p in bot.position_tracker.get_all_positions()]}
     return {"positions": []}
 
 
