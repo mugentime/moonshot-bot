@@ -1,11 +1,13 @@
 """
-MACRO INDEX BOT
-Trade all 61 whitelisted coins in same direction based on macro indicator.
+MACRO INDEX BOT - 24H TIMEFRAME
+Trade all whitelisted coins in same direction based on 24H macro indicator.
 
 Strategy:
+- Uses 24-HOUR price changes (NOT 5-minute noise) for stable trend detection
 - Calculate macro score from majority vote + leader-follower + aggregate velocity
-- Score >= +2 → LONG all 61 coins
-- Score <= -2 → SHORT all 61 coins
+- Score >= +2 → LONG all coins
+- Score <= -2 → SHORT all coins
+- 1 HOUR COOLDOWN between direction changes to prevent whipsaws
 - NO INDIVIDUAL SL/TP - positions only close when macro direction flips
 """
 import asyncio
@@ -148,9 +150,11 @@ class MacroIndexBot:
         logger.info(f"Starting balance: ${balance:.2f}")
 
         logger.info("=" * 60)
-        logger.info("MACRO STRATEGY CONFIG:")
+        logger.info("MACRO STRATEGY CONFIG (24H TIMEFRAME):")
         logger.info(f"  Coins: {len(self.whitelisted_symbols)}")
         logger.info(f"  Leverage: {self.config.LEVERAGE}x")
+        logger.info(f"  Timeframe: 24H (stable trend detection)")
+        logger.info(f"  Direction Cooldown: {self.config.DIRECTION_CHANGE_COOLDOWN_SECONDS}s (1 hour)")
         logger.info(f"  Stop Loss: DISABLED (macro exit only)")
         logger.info(f"  Take Profit: DISABLED (macro exit only)")
         logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")

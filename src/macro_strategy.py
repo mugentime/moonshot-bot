@@ -1,20 +1,23 @@
 """
-MACRO INDEX STRATEGY
-Composite indicator across all whitelisted coins to determine market direction.
+MACRO INDEX STRATEGY - 24H TIMEFRAME
+Composite indicator using 24-hour price changes for stable trend detection.
 
 Strategy:
+- Uses 24h price change data from Binance tickers (NOT 5-minute noise)
 - Calculate macro score from 3 components:
-  1. Majority vote (60%+ coins same direction)
+  1. Majority vote (70%+ coins same direction on 24h)
   2. Leader-follower (top 10% movers direction)
-  3. Aggregate velocity (average across all)
+  3. Aggregate velocity (average 24h change across all)
 - Score >= +2 → LONG all coins
 - Score <= -2 → SHORT all coins
+- 1 HOUR COOLDOWN between direction changes to prevent whipsaws
 - NO INDIVIDUAL SL/TP - positions close ONLY when macro direction flips
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 from enum import Enum
 from loguru import logger
+import time
 
 
 class MacroDirection(Enum):
@@ -25,15 +28,18 @@ class MacroDirection(Enum):
 
 @dataclass
 class MacroConfig:
-    """Configuration for macro strategy"""
-    # MACRO INDICATOR THRESHOLDS
-    MAJORITY_THRESHOLD = 0.60  # 60% of coins must agree
+    """Configuration for macro strategy - 24H TIMEFRAME"""
+    # MACRO INDICATOR THRESHOLDS (24H based - more stable)
+    MAJORITY_THRESHOLD = 0.70  # 70% of coins must agree (was 60%)
     LEADER_PERCENT = 0.10  # Top 10% are leaders
-    AVG_VELOCITY_THRESHOLD = 0.5  # +/- 0.5% average velocity
+    AVG_VELOCITY_THRESHOLD = 2.0  # +/- 2% average 24h change (was 0.5%)
 
     # TRIGGER THRESHOLDS
     LONG_TRIGGER_SCORE = 2  # Score >= 2 to go LONG
     SHORT_TRIGGER_SCORE = -2  # Score <= -2 to go SHORT
+
+    # DIRECTION CHANGE COOLDOWN (prevent whipsaws)
+    DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
 
     # EXIT PARAMETERS - DISABLED (set to extreme values so they never trigger)
     # Positions close ONLY on macro direction flip, not individual SL/TP
@@ -44,8 +50,8 @@ class MacroConfig:
     LEVERAGE = 20  # 20x leverage (aggressive)
     MAX_POSITIONS = 61  # All coins
 
-    # SCAN INTERVAL
-    SCAN_INTERVAL = 5  # Calculate macro every 5 seconds
+    # SCAN INTERVAL (can be longer since we use 24h data)
+    SCAN_INTERVAL = 60  # Calculate macro every 60 seconds (was 5)
 
 
 @dataclass
@@ -65,12 +71,16 @@ class MacroScore:
 
 class MacroIndicator:
     """
-    Calculates composite macro indicator across all whitelisted coins.
+    Calculates composite macro indicator using 24H TIMEFRAME data.
 
-    Components:
-    1. Majority Vote: 60%+ coins moving same direction
-    2. Leader-Follower: Direction of top 10% movers
-    3. Aggregate Velocity: Average 5m velocity across all coins
+    Components (all based on 24h price changes):
+    1. Majority Vote: 70%+ coins moving same direction on 24h
+    2. Leader-Follower: Direction of top 10% movers on 24h
+    3. Aggregate Velocity: Average 24h change across all coins
+
+    Features:
+    - Uses Binance 24h ticker data (stable, no 5m noise)
+    - 1 hour cooldown between direction changes
     """
 
     def __init__(self, data_feed, config: MacroConfig = None):
@@ -78,19 +88,18 @@ class MacroIndicator:
         self.config = config or MacroConfig()
         self.last_direction = MacroDirection.FLAT
         self.last_score: Optional[MacroScore] = None
+        self.last_direction_change_time: float = 0  # Track when direction last changed
 
     async def calculate(self, symbols: List[str]) -> MacroScore:
         """
-        Calculate the macro indicator across all symbols.
+        Calculate the macro indicator using 24H price changes.
 
         Args:
-            symbols: List of symbols to analyze (the 61 whitelisted coins)
+            symbols: List of symbols to analyze (the whitelisted coins)
 
         Returns:
             MacroScore with direction and component scores
         """
-        import time
-
         if not symbols:
             return MacroScore(
                 total_score=0,
@@ -105,8 +114,8 @@ class MacroIndicator:
                 timestamp=time.time()
             )
 
-        # Get velocities for all symbols
-        velocities = await self._get_all_velocities(symbols)
+        # Get 24H price changes for all symbols (from Binance tickers)
+        velocities = await self._get_24h_changes(symbols)
 
         if not velocities:
             return MacroScore(
@@ -122,25 +131,49 @@ class MacroIndicator:
                 timestamp=time.time()
             )
 
-        # Component 1: Majority Vote
+        # Component 1: Majority Vote (24h)
         majority_score, coins_up, coins_down = self._calculate_majority(velocities)
 
-        # Component 2: Leader-Follower
+        # Component 2: Leader-Follower (24h)
         leader_score, leader_velocity = self._calculate_leaders(velocities)
 
-        # Component 3: Aggregate Velocity
+        # Component 3: Aggregate Velocity (24h average)
         velocity_score, avg_velocity = self._calculate_aggregate(velocities)
 
         # Calculate total score
         total_score = majority_score + leader_score + velocity_score
 
-        # Determine direction
+        # Determine raw direction from score
         if total_score >= self.config.LONG_TRIGGER_SCORE:
-            direction = MacroDirection.LONG
+            raw_direction = MacroDirection.LONG
         elif total_score <= self.config.SHORT_TRIGGER_SCORE:
-            direction = MacroDirection.SHORT
+            raw_direction = MacroDirection.SHORT
         else:
-            direction = MacroDirection.FLAT
+            raw_direction = MacroDirection.FLAT
+
+        # Apply cooldown - only allow direction change if cooldown has passed
+        current_time = time.time()
+        time_since_last_change = current_time - self.last_direction_change_time
+        cooldown = self.config.DIRECTION_CHANGE_COOLDOWN_SECONDS
+
+        if raw_direction != self.last_direction:
+            if time_since_last_change >= cooldown:
+                # Cooldown passed, allow direction change
+                direction = raw_direction
+                self.last_direction_change_time = current_time
+                logger.info(f"{'='*60}")
+                logger.info(f"24H MACRO DIRECTION CHANGE: {self.last_direction.value} -> {direction.value}")
+                logger.info(f"Score: {total_score} (Majority: {majority_score}, Leaders: {leader_score}, Velocity: {velocity_score})")
+                logger.info(f"Up: {coins_up} (24h), Down: {coins_down} (24h), Avg 24h: {avg_velocity:.2f}%")
+                logger.info(f"{'='*60}")
+                self.last_direction = direction
+            else:
+                # Cooldown not passed, keep old direction
+                remaining = int(cooldown - time_since_last_change)
+                logger.debug(f"Direction change blocked by cooldown. {remaining}s remaining. Raw: {raw_direction.value}, Keeping: {self.last_direction.value}")
+                direction = self.last_direction
+        else:
+            direction = self.last_direction
 
         score = MacroScore(
             total_score=total_score,
@@ -155,33 +188,36 @@ class MacroIndicator:
             timestamp=time.time()
         )
 
-        # Log if direction changed
-        if direction != self.last_direction:
-            logger.info(f"{'='*60}")
-            logger.info(f"MACRO DIRECTION CHANGE: {self.last_direction.value} -> {direction.value}")
-            logger.info(f"Score: {total_score} (Majority: {majority_score}, Leaders: {leader_score}, Velocity: {velocity_score})")
-            logger.info(f"Up: {coins_up}, Down: {coins_down}, Avg Vel: {avg_velocity:.2f}%")
-            logger.info(f"{'='*60}")
-            self.last_direction = direction
-
         self.last_score = score
         return score
 
-    async def _get_all_velocities(self, symbols: List[str]) -> Dict[str, float]:
-        """Get 5-minute velocity for all symbols"""
+    async def _get_24h_changes(self, symbols: List[str]) -> Dict[str, float]:
+        """Get 24-hour price change percent for all symbols from Binance tickers"""
         velocities = {}
 
-        for symbol in symbols:
-            try:
-                # Get klines to calculate velocity
-                await self.data_feed.get_klines(symbol, '1m', 10)
-                velocity = self.data_feed.get_price_change_percent(symbol, 5)
+        try:
+            # Get all futures tickers at once (much faster than individual calls)
+            tickers = await self.data_feed.client.futures_ticker()
 
-                if velocity is not None:
-                    velocities[symbol] = velocity
-            except Exception as e:
-                logger.debug(f"Error getting velocity for {symbol}: {e}")
-                continue
+            # Create lookup dict
+            ticker_map = {t['symbol']: float(t['priceChangePercent']) for t in tickers}
+
+            # Get 24h change for each whitelisted symbol
+            for symbol in symbols:
+                if symbol in ticker_map:
+                    velocities[symbol] = ticker_map[symbol]
+
+        except Exception as e:
+            logger.error(f"Error getting 24h tickers: {e}")
+            # Fallback to individual calls
+            for symbol in symbols:
+                try:
+                    ticker = await self.data_feed.client.futures_ticker(symbol=symbol)
+                    if ticker:
+                        velocities[symbol] = float(ticker['priceChangePercent'])
+                except Exception as e2:
+                    logger.debug(f"Error getting 24h ticker for {symbol}: {e2}")
+                    continue
 
         return velocities
 
