@@ -259,24 +259,22 @@ class PairFilterConfig:
     ]
 
     # ==========================================================================
-    # ALLOWED COINS - ONLY trade these 61 coins (10%+ movers in last 24h)
+    # ALLOWED COINS - ONLY trade valid Binance Futures perpetual contracts
     # Set to None to allow all coins, or a set of symbols to restrict
+    # Updated: 2025-12-07 - Removed 27 invalid/delisted symbols
     # ==========================================================================
     ALLOWED_COINS = {
-        # MOONSHOTS (33 gainers 10%+)
-        "ALPACAUSDT", "USTCUSDT", "BNXUSDT", "MOODENGUSDT", "LUNA2USDT",
-        "ALPHAUSDT", "SWARMSUSDT", "DOODUSDT", "BEATUSDT",
-        "NOTUSDT", "SYNUSDT", "OCEANUSDT", "DGBUSDT", "AGIXUSDT",
+        # VALID MOONSHOTS (verified active on Binance Futures)
+        "USTCUSDT", "MOODENGUSDT", "LUNA2USDT",
+        "SWARMSUSDT", "DOODUSDT", "BEATUSDT",
+        "NOTUSDT", "SYNUSDT",
         "RONINUSDT", "HEMIUSDT", "POWERUSDT", "MUBARAKUSDT", "1000LUNCUSDT",
-        "BULLAUSDT", "LINAUSDT", "HMSTRUSDT", "GOATUSDT", "C98USDT",
+        "BULLAUSDT", "HMSTRUSDT", "GOATUSDT", "C98USDT",
         "FETUSDT", "MEWUSDT", "SUIUSDT", "ZENUSDT", "SHELLUSDT",
-        "RIFUSDT", "SXPUSDT", "LPTUSDT",
-        # MOONDROPS (28 losers 10%+)
-        "PORT3USDT", "BSWUSDT", "NEIROETHUSDT", "VIDTUSDT", "TROYUSDT",
-        "BAKEUSDT", "AMBUSDT", "KDAUSDT", "FLMUSDT", "MEMEFIUSDT",
-        "PIPPINUSDT", "NULSUSDT", "PERPUSDT", "HUSDT", "SKATEUSDT",
-        "HIFIUSDT", "OBOLUSDT", "MILKUSDT", "LEVERUSDT", "1000XUSDT",
-        "MYROUSDT", "PNUTUSDT", "PUFFERUSDT", "ZEREBROUSDT", "STABLEUSDT",
+        "RIFUSDT", "LPTUSDT",
+        # VALID MOONDROPS (verified active on Binance Futures)
+        "PIPPINUSDT", "HUSDT", "SKATEUSDT",
+        "PNUTUSDT", "PUFFERUSDT", "ZEREBROUSDT", "STABLEUSDT",
         "ARIAUSDT", "BIOUSDT", "WLDUSDT",
     }
 
