@@ -4,6 +4,10 @@ All parameters defined in the planning phase
 """
 import os
 from typing import List, Dict
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # =============================================================================
 # ACCOUNT CONFIGURATION
@@ -261,7 +265,7 @@ class PairFilterConfig:
     ALLOWED_COINS = {
         # MOONSHOTS (33 gainers 10%+)
         "ALPACAUSDT", "USTCUSDT", "BNXUSDT", "MOODENGUSDT", "LUNA2USDT",
-        "ALPHAUSDT", "SWARMSUSDT", "DOODUSDT", "BEATUSDT", "PIUSDT",
+        "ALPHAUSDT", "SWARMSUSDT", "DOODUSDT", "BEATUSDT",
         "NOTUSDT", "SYNUSDT", "OCEANUSDT", "DGBUSDT", "AGIXUSDT",
         "RONINUSDT", "HEMIUSDT", "POWERUSDT", "MUBARAKUSDT", "1000LUNCUSDT",
         "BULLAUSDT", "LINAUSDT", "HMSTRUSDT", "GOATUSDT", "C98USDT",
