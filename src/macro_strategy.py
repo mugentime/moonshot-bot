@@ -50,8 +50,8 @@ class MacroConfig:
     LEVERAGE = 20  # 20x leverage (aggressive)
     MAX_POSITIONS = 61  # All coins
 
-    # SCAN INTERVAL (can be longer since we use 24h data)
-    SCAN_INTERVAL = 60  # Calculate macro every 60 seconds (was 5)
+    # SCAN INTERVAL
+    SCAN_INTERVAL = 30  # Calculate macro every 30 seconds
 
 
 @dataclass

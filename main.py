@@ -185,17 +185,18 @@ class MacroIndexBot:
 
     async def _macro_loop(self):
         """Main loop - calculate macro indicator and trade"""
-        logger.info("Macro calculation loop started")
+        logger.info("Macro calculation loop started (24H timeframe)")
 
         while self._running:
             try:
                 # Calculate macro score across all whitelisted coins
+                logger.info("Calculating 24H macro score...")
                 score = await self.macro_indicator.calculate(self.whitelisted_symbols)
 
-                # Log current state periodically
-                logger.debug(f"Macro: {score.direction.value} | Score: {score.total_score} | "
+                # Log current state - INFO level so we can see it
+                logger.info(f"24H MACRO: {score.direction.value} | Score: {score.total_score} | "
                             f"Up: {score.coins_up} Down: {score.coins_down} | "
-                            f"Avg Vel: {score.avg_velocity:.2f}%")
+                            f"Avg 24h: {score.avg_velocity:.2f}%")
 
                 # Check for direction change
                 if score.direction != self.current_direction:
@@ -207,6 +208,8 @@ class MacroIndexBot:
                 break
             except Exception as e:
                 logger.error(f"Macro loop error: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
                 await asyncio.sleep(5)
 
     async def _handle_direction_change(self, score):
