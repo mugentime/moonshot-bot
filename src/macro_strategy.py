@@ -277,31 +277,14 @@ class MacroExitManager:
         """
         Check if position should be exited based on SL/TP.
 
+        DISABLED: SL/TP exits completely disabled.
+        Positions only close when macro direction changes.
+
         Returns:
-            Dict with exit info or None if no exit
+            None - No automatic SL/TP exits
         """
-        # Calculate profit percentage
-        if direction == "LONG":
-            profit_pct = ((current_price - entry_price) / entry_price) * 100
-        else:  # SHORT
-            profit_pct = ((entry_price - current_price) / entry_price) * 100
-
-        # Check stop loss
-        if profit_pct <= -self.config.STOP_LOSS_PERCENT:
-            return {
-                "action": "close",
-                "reason": "stop_loss",
-                "profit_pct": profit_pct
-            }
-
-        # Check take profit
-        if profit_pct >= self.config.TAKE_PROFIT_PERCENT:
-            return {
-                "action": "close",
-                "reason": "take_profit",
-                "profit_pct": profit_pct
-            }
-
+        # SL/TP DISABLED - Positions ONLY close on macro direction flip
+        # This prevents the account from bleeding due to stops getting hit
         return None
 
     def should_close_all(self, current_direction: MacroDirection, position_direction: str) -> bool:

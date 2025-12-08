@@ -161,51 +161,48 @@ class MoonshotDetectionConfig:
     MEGA_SIGNAL_MIN_SIGNALS = 1  # Only need 1/6 signals
 
 # =============================================================================
-# STOP-LOSS - HARD 2% STOP (ACCOUNT PROTECTION)
+# STOP-LOSS - DISABLED (NO STOP LOSS)
 # =============================================================================
 
 class StopLossConfig:
-    INITIAL_PERCENT = 2.0  # -2% HARD STOP (was 3.5% - killing account)
+    INITIAL_PERCENT = 100.0  # DISABLED - Set to 100% to effectively disable SL
     BUFFER_BEFORE_LIQUIDATION = 1.0  # %
-    MOVE_TO_BREAKEVEN_AT = 5.0  # When profit reaches +5%, move SL to breakeven
+    MOVE_TO_BREAKEVEN_AT = 999.0  # DISABLED - Never move to breakeven
 
 # =============================================================================
-# TAKE-PROFIT - 10% TARGET WITH 5% TRAILING
+# TAKE-PROFIT - DISABLED (NO TAKE PROFIT)
 # =============================================================================
 
 class TakeProfitConfig:
-    LEVELS: List[Dict] = [
-        {"profit": 5.0, "close": 30, "action": "move_sl_breakeven"},  # At +5%: Lock 30%, SL to breakeven
-        {"profit": 10.0, "close": 50, "action": "activate_trailing"}, # At +10%: Take 50%, activate 5% trailing
-    ]
+    LEVELS: List[Dict] = []  # DISABLED - Empty list means no TP levels
 
 # =============================================================================
-# TRAILING STOP - 5% TRAILING AFTER 10% PROFIT
+# TRAILING STOP - DISABLED (NO TRAILING STOP)
 # =============================================================================
 
 class TrailingStopConfig:
     # ==========================================================================
-    # SIMPLIFIED TRAILING: 5% DISTANCE AFTER 10% PROFIT
+    # DISABLED - All trailing stop functionality turned off
     # ==========================================================================
 
-    # ACTIVATION - Only after TP hit
-    ACTIVATION_PROFIT = 10.0  # Activate trailing at +10% profit (after TP1)
+    # ACTIVATION - Set to impossible value to never activate
+    ACTIVATION_PROFIT = 9999.0  # DISABLED - Never activate trailing
 
-    # SINGLE 5% TRAILING DISTANCE (simplified)
-    TIER1_DISTANCE = 5.0      # 5% trailing stop distance
-    TIER2_DISTANCE = 5.0      # 5% trailing (same)
-    TIER3_DISTANCE = 5.0      # 5% trailing (same)
-    TIER4_DISTANCE = 5.0      # 5% trailing (same)
+    # All distances set to 100% (effectively disabled)
+    TIER1_DISTANCE = 100.0  # DISABLED
+    TIER2_DISTANCE = 100.0  # DISABLED
+    TIER3_DISTANCE = 100.0  # DISABLED
+    TIER4_DISTANCE = 100.0  # DISABLED
 
-    # PROFIT THRESHOLDS (all use same 5% distance)
-    TIER2_PROFIT = 15.0
-    TIER3_PROFIT = 20.0
-    TIER4_PROFIT = 30.0
+    # PROFIT THRESHOLDS (impossible to reach)
+    TIER2_PROFIT = 9999.0
+    TIER3_PROFIT = 9999.0
+    TIER4_PROFIT = 9999.0
 
-    # LEGACY (backwards compat)
-    INITIAL_DISTANCE = 5.0    # 5% behind highest
-    TIGHT_DISTANCE = 5.0      # 5% always
-    TIGHTEN_AT_PROFIT = 30.0
+    # LEGACY (backwards compat) - DISABLED
+    INITIAL_DISTANCE = 100.0
+    TIGHT_DISTANCE = 100.0
+    TIGHTEN_AT_PROFIT = 9999.0
 
 
 class VelocityExitConfig:
