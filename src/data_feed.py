@@ -388,6 +388,12 @@ class DataFeed:
             logger.error(f"Error getting account balance: {e}")
             return 0.0
     
+    def get_current_price(self, symbol: str) -> Optional[float]:
+        """Get current price from ticker cache"""
+        if symbol in self.tickers:
+            return self.tickers[symbol].price
+        return None
+
     def get_volume_average(self, symbol: str, periods: int = 12) -> float:
         """Get average volume over last N periods (5min each = 1 hour for 12)"""
         if symbol not in self.klines or '5m' not in self.klines[symbol]:

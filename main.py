@@ -11,6 +11,11 @@ Strategy:
 import asyncio
 import sys
 import os
+
+# Fix Windows console encoding for emoji support
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 from datetime import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
