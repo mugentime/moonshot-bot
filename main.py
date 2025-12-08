@@ -6,7 +6,7 @@ Strategy:
 - Calculate macro score from majority vote + leader-follower + aggregate velocity
 - Score >= +2 → LONG all 61 coins
 - Score <= -2 → SHORT all 61 coins
-- Fixed exits: 5% SL, 10% TP per position
+- NO INDIVIDUAL SL/TP - positions only close when macro direction flips
 """
 import asyncio
 import sys
@@ -151,8 +151,8 @@ class MacroIndexBot:
         logger.info("MACRO STRATEGY CONFIG:")
         logger.info(f"  Coins: {len(self.whitelisted_symbols)}")
         logger.info(f"  Leverage: {self.config.LEVERAGE}x")
-        logger.info(f"  Stop Loss: {self.config.STOP_LOSS_PERCENT}%")
-        logger.info(f"  Take Profit: {self.config.TAKE_PROFIT_PERCENT}%")
+        logger.info(f"  Stop Loss: DISABLED (macro exit only)")
+        logger.info(f"  Take Profit: DISABLED (macro exit only)")
         logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")
         logger.info(f"  Short Trigger: Score <= {self.config.SHORT_TRIGGER_SCORE}")
         logger.info("=" * 60)
@@ -290,22 +290,20 @@ class MacroIndexBot:
 
                 entry_price = ticker.price
 
-                # Calculate SL price
+                # NO STOP LOSS - Let positions ride on macro direction only
                 if direction == "LONG":
-                    sl_price = entry_price * (1 - self.config.STOP_LOSS_PERCENT / 100)
                     result = await self.order_executor.open_long(
                         symbol=symbol,
                         margin=margin_per_position,
-                        leverage=self.config.LEVERAGE,
-                        stop_loss=sl_price
+                        leverage=self.config.LEVERAGE
+                        # NO stop_loss - disabled to prevent account bleeding
                     )
                 else:  # SHORT
-                    sl_price = entry_price * (1 + self.config.STOP_LOSS_PERCENT / 100)
                     result = await self.order_executor.open_short(
                         symbol=symbol,
                         margin=margin_per_position,
-                        leverage=self.config.LEVERAGE,
-                        stop_loss=sl_price
+                        leverage=self.config.LEVERAGE
+                        # NO stop_loss - disabled to prevent account bleeding
                     )
 
                 if result.success:
@@ -331,39 +329,21 @@ class MacroIndexBot:
         logger.info(f"Opened {opened}/{len(self.whitelisted_symbols)} {direction} positions (failed: {failed})")
 
     async def _monitor_loop(self):
-        """Monitor open positions for SL/TP exits"""
-        logger.info("Position monitor loop started")
+        """Monitor open positions - SL/TP DISABLED, only macro direction closes positions"""
+        logger.info("Position monitor loop started (SL/TP DISABLED - macro exit only)")
 
         while self._running:
             try:
+                # SL/TP EXIT CHECKING DISABLED
+                # Positions will ONLY close when macro direction flips
+                # This prevents the account from bleeding due to tight stops
+
+                # Just log position count periodically
                 positions = self.position_tracker.get_all_positions()
+                if positions:
+                    logger.debug(f"Monitoring {len(positions)} positions (no SL/TP - macro exit only)")
 
-                for position in positions:
-                    symbol = position.symbol
-                    try:
-                        # Get current price
-                        current_price = self.data_feed.get_current_price(symbol)
-                        if not current_price:
-                            await self.data_feed.get_klines(symbol, '1m', 5)
-                            current_price = self.data_feed.get_current_price(symbol)
-
-                        if not current_price:
-                            continue
-
-                        # Check for SL/TP exit
-                        exit_action = self.exit_manager.check_exit(
-                            direction=position.direction,
-                            entry_price=position.entry_price,
-                            current_price=current_price
-                        )
-
-                        if exit_action:
-                            await self._execute_exit(symbol, position, exit_action, current_price)
-
-                    except Exception as e:
-                        logger.debug(f"Error monitoring {symbol}: {e}")
-
-                await asyncio.sleep(2)  # Check every 2 seconds
+                await asyncio.sleep(10)  # Check every 10 seconds (just for logging)
 
             except asyncio.CancelledError:
                 break

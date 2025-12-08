@@ -9,7 +9,7 @@ Strategy:
   3. Aggregate velocity (average across all)
 - Score >= +2 → LONG all coins
 - Score <= -2 → SHORT all coins
-- Fixed exits: 5% SL, 10% TP per position
+- NO INDIVIDUAL SL/TP - positions close ONLY when macro direction flips
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -35,9 +35,10 @@ class MacroConfig:
     LONG_TRIGGER_SCORE = 2  # Score >= 2 to go LONG
     SHORT_TRIGGER_SCORE = -2  # Score <= -2 to go SHORT
 
-    # EXIT PARAMETERS
-    STOP_LOSS_PERCENT = 5.0  # 5% stop loss
-    TAKE_PROFIT_PERCENT = 10.0  # 10% take profit
+    # EXIT PARAMETERS - DISABLED (set to extreme values so they never trigger)
+    # Positions close ONLY on macro direction flip, not individual SL/TP
+    STOP_LOSS_PERCENT = 999.0  # DISABLED - was 5%, killing the account
+    TAKE_PROFIT_PERCENT = 999.0  # DISABLED - was 10%, let macro direction decide
 
     # POSITION SIZING
     LEVERAGE = 20  # 20x leverage (aggressive)
