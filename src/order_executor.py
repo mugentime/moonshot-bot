@@ -135,7 +135,7 @@ class OrderExecutor:
         try:
             # Set leverage
             await self.set_leverage(symbol, leverage)
-            await self.set_margin_type(symbol, "ISOLATED")
+            await self.set_margin_type(symbol, "CROSSED")
             
             # Get current price
             ticker = await self.data_feed.get_ticker(symbol)
@@ -214,7 +214,7 @@ class OrderExecutor:
         try:
             # Set leverage
             await self.set_leverage(symbol, leverage)
-            await self.set_margin_type(symbol, "ISOLATED")
+            await self.set_margin_type(symbol, "CROSSED")
             
             # Get current price
             ticker = await self.data_feed.get_ticker(symbol)
