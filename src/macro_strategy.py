@@ -29,14 +29,14 @@ class MacroDirection(Enum):
 @dataclass
 class MacroConfig:
     """Configuration for macro strategy - 24H TIMEFRAME"""
-    # MACRO INDICATOR THRESHOLDS (24H based - more stable)
-    MAJORITY_THRESHOLD = 0.70  # 70% of coins must agree (was 60%)
+    # MACRO INDICATOR THRESHOLDS (24H based - relaxed for action)
+    MAJORITY_THRESHOLD = 0.55  # 55% of coins must agree (lowered from 70%)
     LEADER_PERCENT = 0.10  # Top 10% are leaders
-    AVG_VELOCITY_THRESHOLD = 2.0  # +/- 2% average 24h change (was 0.5%)
+    AVG_VELOCITY_THRESHOLD = 1.0  # +/- 1% average 24h change (lowered from 2%)
 
-    # TRIGGER THRESHOLDS
-    LONG_TRIGGER_SCORE = 2  # Score >= 2 to go LONG
-    SHORT_TRIGGER_SCORE = -2  # Score <= -2 to go SHORT
+    # TRIGGER THRESHOLDS (lowered to allow more trading)
+    LONG_TRIGGER_SCORE = 1  # Score >= 1 to go LONG (was 2)
+    SHORT_TRIGGER_SCORE = -1  # Score <= -1 to go SHORT (was -2)
 
     # DIRECTION CHANGE COOLDOWN (prevent whipsaws)
     DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
