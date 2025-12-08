@@ -21,8 +21,11 @@ CURRENCY = "USDT"
 # =============================================================================
 
 class PositionSizingConfig:
-    MIN_MARGIN_USD = float(os.getenv("MIN_MARGIN_USD", "0.30"))  # $0.30 min = ~$6 notional with 20x
-    MAX_MARGIN_PERCENT = float(os.getenv("MAX_MARGIN_PERCENT", "3.0"))  # 3% max per trade
+    # MINIMUM $10 NOTIONAL per trade (Binance requirement)
+    # With CROSSED margin, we can open more positions with shared margin
+    MIN_NOTIONAL_USD = 10.0  # $10 minimum notional per trade (Binance min)
+    MIN_MARGIN_USD = float(os.getenv("MIN_MARGIN_USD", "0.50"))  # Margin calculated from notional/leverage
+    MAX_MARGIN_PERCENT = float(os.getenv("MAX_MARGIN_PERCENT", "15.0"))  # 15% max per trade (more aggressive)
     MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", "34"))  # All coins
     RECALC_EQUITY_CHANGE_PERCENT = 10.0  # Recalculate when equity changes ±10%
     RECALC_MAX_HOURS = 24  # Force recalculate every 24 hours

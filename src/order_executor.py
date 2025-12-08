@@ -102,24 +102,32 @@ class OrderExecutor:
             return 3, 2, 0.001
     
     async def calculate_quantity(self, symbol: str, margin: float, leverage: int, price: float) -> float:
-        """Calculate order quantity from margin amount"""
+        """Calculate order quantity from margin amount - ensures $10 minimum notional"""
         try:
+            from config import PositionSizingConfig
+
             qty_precision, _, min_qty = await self.get_symbol_precision(symbol)
-            
+
             # Notional value = margin * leverage
             notional = margin * leverage
-            
+
+            # CRITICAL: Ensure minimum $10 notional (Binance requirement)
+            min_notional = getattr(PositionSizingConfig, 'MIN_NOTIONAL_USD', 10.0)
+            if notional < min_notional:
+                notional = min_notional
+                logger.debug(f"Boosted notional to ${min_notional} for {symbol}")
+
             # Quantity = notional / price
             quantity = notional / price
-            
+
             # Round to precision
             quantity = round(quantity, qty_precision)
-            
+
             # Ensure minimum
             quantity = max(quantity, min_qty)
-            
+
             return quantity
-            
+
         except Exception as e:
             logger.error(f"Error calculating quantity for {symbol}: {e}")
             return 0.0
