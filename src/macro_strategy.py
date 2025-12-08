@@ -327,20 +327,23 @@ class MacroExitManager:
         """
         Check if all positions should be closed due to macro flip.
 
+        IMPORTANT: NEVER close on FLAT - only close on OPPOSITE direction.
+        This prevents positions from being closed on restart or during consolidation.
+
         Args:
             current_direction: Current macro indicator direction
             position_direction: Direction of existing positions ("LONG" or "SHORT")
 
         Returns:
-            True if positions should be closed
+            True if positions should be closed (ONLY on opposite direction flip)
         """
-        if current_direction == MacroDirection.FLAT:
-            return True  # Close all when market is flat
+        # NEVER close on FLAT - keep positions during consolidation/restart
+        # Positions ONLY close when direction actively FLIPS to opposite
 
         if position_direction == "LONG" and current_direction == MacroDirection.SHORT:
-            return True  # Close longs when macro flips short
+            return True  # Close longs ONLY when macro flips to SHORT
 
         if position_direction == "SHORT" and current_direction == MacroDirection.LONG:
-            return True  # Close shorts when macro flips long
+            return True  # Close shorts ONLY when macro flips to LONG
 
         return False
