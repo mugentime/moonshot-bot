@@ -3,7 +3,9 @@
     "allow": [
       "mcp__ruv-swarm",
       "mcp__claude-flow@alpha",
-      "mcp__flow-nexus"
+      "mcp__flow-nexus",
+      "Bash(dir /b \"C:\\Users\\je2al\\Desktop\\moonshot-bot\\*.py\")",
+      "Bash(python:*)"
     ],
     "deny": []
   }
