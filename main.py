@@ -201,6 +201,11 @@ class MacroIndexBot:
                 # Check for direction change
                 if score.direction != self.current_direction:
                     await self._handle_direction_change(score)
+                else:
+                    # RECOVERY: If direction is LONG/SHORT but we have no positions, re-open them
+                    # This handles the case where positions were manually closed
+                    if score.direction != MacroDirection.FLAT:
+                        await self._ensure_positions_open(score.direction.value)
 
                 await asyncio.sleep(self.config.SCAN_INTERVAL)
 
@@ -334,6 +339,31 @@ class MacroIndexBot:
             await asyncio.sleep(0.05)  # Small delay between orders
 
         logger.info(f"Opened {opened}/{len(self.whitelisted_symbols)} {direction} positions (failed: {failed})")
+
+    async def _ensure_positions_open(self, direction: str):
+        """
+        RECOVERY: Check if positions are actually open on Binance.
+        If not, re-open them. This handles manual closes or crashes.
+        """
+        try:
+            # Get actual positions from Binance
+            binance_positions = await self.data_feed.client.futures_position_information()
+            open_positions = [p for p in binance_positions if float(p['positionAmt']) != 0]
+
+            # If we think we should have positions but Binance shows none, re-open
+            if not open_positions:
+                logger.warning(f"RECOVERY: No positions on Binance but direction is {direction}. Re-opening...")
+                await self._open_all_positions(direction)
+            else:
+                # Check if positions match expected direction
+                expected_side = 1 if direction == "LONG" else -1
+                wrong_direction = [p for p in open_positions
+                                   if (float(p['positionAmt']) > 0) != (expected_side > 0)]
+                if wrong_direction:
+                    logger.warning(f"RECOVERY: Found {len(wrong_direction)} positions in wrong direction")
+
+        except Exception as e:
+            logger.error(f"Error in position recovery check: {e}")
 
     async def _monitor_loop(self):
         """Monitor open positions - SL/TP DISABLED, only macro direction closes positions"""
