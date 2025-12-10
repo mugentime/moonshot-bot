@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Cache buster - change this value to force rebuild
-ARG CACHE_BUST=20251210-switch-to-momentum-hunter
+ARG CACHE_BUST=20251210-restore-macro-bot
 
 # Copy application code
 COPY . .
@@ -20,5 +20,5 @@ COPY . .
 # Expose port for health checks
 EXPOSE 8050
 
-# Run the momentum hunter bot
-CMD ["python", "main_momentum.py"]
+# Run the macro index bot
+CMD ["python", "main.py"]
