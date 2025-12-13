@@ -125,8 +125,7 @@ class MacroIndexBot:
         await self.data_feed.initialize()
         logger.info("Connected to Binance")
 
-        # CLOSE ALL EXISTING POSITIONS FOR FRESH START
-        await self.close_all_positions()
+        # NOTE: Positions persist across restarts - no longer closing on startup
 
         # Initialize macro indicator
         self.macro_indicator = MacroIndicator(self.data_feed, self.config)
