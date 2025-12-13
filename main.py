@@ -157,7 +157,7 @@ class MacroIndexBot:
         logger.info(f"  Timeframe: 24H (stable trend detection)")
         logger.info(f"  Direction Cooldown: {self.config.DIRECTION_CHANGE_COOLDOWN_SECONDS}s (1 hour)")
         logger.info(f"  Stop Loss: {self.config.STOP_LOSS_PERCENT}% ({self.config.STOP_LOSS_PERCENT * self.config.LEVERAGE}% on margin)")
-        logger.info(f"  Take Profit: DISABLED (macro exit only)")
+        logger.info(f"  Trailing Stop: {self.config.TRAILING_DISTANCE_PERCENT}% distance, activates at +{self.config.TRAILING_ACTIVATION_PERCENT}%")
         logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")
         logger.info(f"  Short Trigger: Score <= {self.config.SHORT_TRIGGER_SCORE}")
         logger.info("=" * 60)
@@ -367,8 +367,8 @@ class MacroIndexBot:
             logger.error(f"Error in position recovery check: {e}")
 
     async def _monitor_loop(self):
-        """Monitor open positions - Check SL to prevent catastrophic losses"""
-        logger.info("Position monitor loop started (SL: 2.5% enabled)")
+        """Monitor open positions - Check SL and Trailing Stop"""
+        logger.info(f"Position monitor loop started (SL: {self.config.STOP_LOSS_PERCENT}%, Trailing: {self.config.TRAILING_DISTANCE_PERCENT}% @ {self.config.TRAILING_ACTIVATION_PERCENT}%)")
 
         while self._running:
             try:
@@ -378,25 +378,41 @@ class MacroIndexBot:
                     await asyncio.sleep(5)
                     continue
 
-                # Check each position for SL exit
+                # Check each position for SL/Trailing exit
                 for position in positions:
                     symbol = position.symbol
                     current_price = self.data_feed.get_current_price(symbol)
 
-                    if not current_price:
+                    if not current_price or position.entry_price <= 0:
                         continue
 
-                    # Check if SL should trigger
+                    # Calculate current PnL %
+                    if position.direction == "LONG":
+                        current_pnl_pct = ((current_price - position.entry_price) / position.entry_price) * 100
+                    else:  # SHORT
+                        current_pnl_pct = ((position.entry_price - current_price) / position.entry_price) * 100
+
+                    # Update peak profit if current is higher
+                    if current_pnl_pct > position.peak_profit_pct:
+                        position.peak_profit_pct = current_pnl_pct
+                        # Log when trailing activates
+                        if current_pnl_pct >= self.config.TRAILING_ACTIVATION_PERCENT:
+                            logger.info(f"TRAILING ACTIVE: {symbol} peak={current_pnl_pct:.1f}% (exit at {current_pnl_pct - self.config.TRAILING_DISTANCE_PERCENT:.1f}%)")
+
+                    # Check if SL or Trailing should trigger
                     exit_action = self.exit_manager.check_exit(
                         direction=position.direction,
                         entry_price=position.entry_price,
-                        current_price=current_price
+                        current_price=current_price,
+                        peak_profit_pct=position.peak_profit_pct
                     )
 
                     if exit_action and exit_action.get('action') == 'close':
                         await self._execute_exit(symbol, position, exit_action, current_price)
                         await asyncio.sleep(0.1)  # Small delay between exits
 
+                # Save updated peak profits to Redis periodically
+                await self.position_tracker._save_to_redis()
                 await asyncio.sleep(5)  # Check every 5 seconds
 
             except asyncio.CancelledError:

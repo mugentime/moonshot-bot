@@ -24,7 +24,8 @@ class TrackedPosition:
     order_id: str
     unrealized_pnl: float = 0.0
     current_price: float = 0.0
-    
+    peak_profit_pct: float = 0.0  # Track highest profit % for trailing stop
+
     def to_dict(self) -> dict:
         return {
             'symbol': self.symbol,
@@ -36,11 +37,15 @@ class TrackedPosition:
             'entry_time': self.entry_time,
             'order_id': self.order_id,
             'unrealized_pnl': self.unrealized_pnl,
-            'current_price': self.current_price
+            'current_price': self.current_price,
+            'peak_profit_pct': self.peak_profit_pct
         }
     
     @classmethod
     def from_dict(cls, data: dict) -> 'TrackedPosition':
+        # Handle missing peak_profit_pct for backwards compatibility
+        if 'peak_profit_pct' not in data:
+            data['peak_profit_pct'] = 0.0
         return cls(**data)
 
 

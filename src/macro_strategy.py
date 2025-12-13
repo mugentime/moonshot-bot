@@ -12,6 +12,7 @@ Strategy:
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
 - PER-POSITION 2.5% STOP LOSS to prevent catastrophic losses
+- TRAILING STOP: 10% distance, activates at +15% profit
 - Positions also close when macro direction flips
 """
 from dataclasses import dataclass
@@ -46,6 +47,10 @@ class MacroConfig:
     # With 20x leverage: 2.5% price move = 50% margin loss
     STOP_LOSS_PERCENT = 2.5  # 2.5% SL = 50% loss on margin (prevents -33% disasters like BEATUSDT)
     TAKE_PROFIT_PERCENT = 999.0  # DISABLED - let macro direction decide exits for profits
+
+    # TRAILING STOP - Lock in profits after big moves
+    TRAILING_ACTIVATION_PERCENT = 15.0  # Activate trailing after +15% profit
+    TRAILING_DISTANCE_PERCENT = 10.0  # Trail by 10% (if peak is +20%, exit at +10%)
 
     # POSITION SIZING
     LEVERAGE = 20  # 20x leverage (aggressive)
@@ -310,15 +315,16 @@ class MacroExitManager:
     def __init__(self, config: MacroConfig = None):
         self.config = config or MacroConfig()
 
-    def check_exit(self, direction: str, entry_price: float, current_price: float) -> Optional[Dict]:
+    def check_exit(self, direction: str, entry_price: float, current_price: float, peak_profit_pct: float = 0.0) -> Optional[Dict]:
         """
-        Check if position should be exited based on SL.
+        Check if position should be exited based on SL or Trailing Stop.
 
-        Stop Loss ENABLED to prevent catastrophic losses (e.g., BEATUSDT -33%).
-        Take Profit disabled - let macro direction handle profit exits.
+        Exit conditions:
+        1. Stop Loss: -2.5% to prevent catastrophic losses
+        2. Trailing Stop: If profit reached +15%, exit when it drops 10% from peak
 
         Returns:
-            Dict with 'action': 'close' and 'reason' if SL hit, None otherwise
+            Dict with 'action': 'close' and 'reason' if exit triggered, None otherwise
         """
         if entry_price <= 0:
             return None
@@ -337,9 +343,20 @@ class MacroExitManager:
                 'pnl_pct': pnl_pct
             }
 
-        # Take Profit disabled - macro direction handles exits
-        # if pnl_pct >= self.config.TAKE_PROFIT_PERCENT:
-        #     return {'action': 'close', 'reason': 'take_profit', 'pnl_pct': pnl_pct}
+        # Check TRAILING STOP - Lock in profits after big moves
+        # Only active if we've reached the activation threshold
+        if peak_profit_pct >= self.config.TRAILING_ACTIVATION_PERCENT:
+            # Calculate trailing stop level (peak - distance)
+            trailing_stop_level = peak_profit_pct - self.config.TRAILING_DISTANCE_PERCENT
+
+            if pnl_pct <= trailing_stop_level:
+                return {
+                    'action': 'close',
+                    'reason': 'trailing_stop',
+                    'pnl_pct': pnl_pct,
+                    'peak_pct': peak_profit_pct,
+                    'trail_level': trailing_stop_level
+                }
 
         return None
 
