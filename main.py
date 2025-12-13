@@ -218,19 +218,19 @@ class MacroIndexBot:
                 await asyncio.sleep(5)
 
     async def _handle_direction_change(self, score):
-        """Handle when macro direction changes"""
+        """Handle when macro direction changes - NO LONGER CLOSES POSITIONS"""
         old_direction = self.current_direction
         new_direction = score.direction
 
         logger.info(f"{'='*60}")
         logger.info(f"MACRO DIRECTION CHANGE: {old_direction.value} -> {new_direction.value}")
+        logger.info(f"NOTE: Positions NOT closed - only SL/trailing stop can close")
         logger.info(f"{'='*60}")
 
-        # Close existing positions if we had any
-        if old_direction != MacroDirection.FLAT:
-            await self._close_all_positions_for_direction(old_direction.value)
+        # REMOVED: No longer closing positions on macro flip
+        # Positions only close via individual SL or trailing stop
 
-        # Open new positions if not flat
+        # Open new positions if not flat (additive, not replacing)
         if new_direction != MacroDirection.FLAT:
             await self._open_all_positions(new_direction.value)
 

@@ -13,7 +13,7 @@ Strategy:
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
 - PER-POSITION 2.5% STOP LOSS to prevent catastrophic losses
 - TRAILING STOP: 10% distance, activates at +15% profit
-- Positions also close when macro direction flips
+- MACRO FLIP DOES NOT CLOSE POSITIONS - only SL/trailing stop can close
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -307,9 +307,9 @@ class MacroExitManager:
     """
     Manages exits for positions.
 
-    Exit conditions:
-    1. Per-position: 5% SL or 10% TP
-    2. Macro exit: Close all when direction flips
+    Exit conditions (ONLY these - macro flip does NOT close positions):
+    1. Stop Loss: 2.5% price movement against position
+    2. Trailing Stop: 10% distance, activates at +15% profit
     """
 
     def __init__(self, config: MacroConfig = None):
@@ -359,28 +359,3 @@ class MacroExitManager:
                 }
 
         return None
-
-    def should_close_all(self, current_direction: MacroDirection, position_direction: str) -> bool:
-        """
-        Check if all positions should be closed due to macro flip.
-
-        IMPORTANT: NEVER close on FLAT - only close on OPPOSITE direction.
-        This prevents positions from being closed on restart or during consolidation.
-
-        Args:
-            current_direction: Current macro indicator direction
-            position_direction: Direction of existing positions ("LONG" or "SHORT")
-
-        Returns:
-            True if positions should be closed (ONLY on opposite direction flip)
-        """
-        # NEVER close on FLAT - keep positions during consolidation/restart
-        # Positions ONLY close when direction actively FLIPS to opposite
-
-        if position_direction == "LONG" and current_direction == MacroDirection.SHORT:
-            return True  # Close longs ONLY when macro flips to SHORT
-
-        if position_direction == "SHORT" and current_direction == MacroDirection.LONG:
-            return True  # Close shorts ONLY when macro flips to LONG
-
-        return False
