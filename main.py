@@ -49,9 +49,10 @@ logger.add(
 class MacroIndexBot:
     """
     Macro Index Trading Bot
-    - Calculates composite macro indicator across all 61 coins
+    - Calculates composite macro indicator across all whitelisted coins
     - Opens positions on ALL coins in same direction
-    - Fixed 5% SL, 10% TP per position
+    - Per-position 2.5% SL to prevent catastrophic losses
+    - Positions also close when macro direction flips
     """
 
     def __init__(self):
@@ -155,7 +156,7 @@ class MacroIndexBot:
         logger.info(f"  Leverage: {self.config.LEVERAGE}x")
         logger.info(f"  Timeframe: 24H (stable trend detection)")
         logger.info(f"  Direction Cooldown: {self.config.DIRECTION_CHANGE_COOLDOWN_SECONDS}s (1 hour)")
-        logger.info(f"  Stop Loss: DISABLED (macro exit only)")
+        logger.info(f"  Stop Loss: {self.config.STOP_LOSS_PERCENT}% ({self.config.STOP_LOSS_PERCENT * self.config.LEVERAGE}% on margin)")
         logger.info(f"  Take Profit: DISABLED (macro exit only)")
         logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")
         logger.info(f"  Short Trigger: Score <= {self.config.SHORT_TRIGGER_SCORE}")
@@ -366,21 +367,37 @@ class MacroIndexBot:
             logger.error(f"Error in position recovery check: {e}")
 
     async def _monitor_loop(self):
-        """Monitor open positions - SL/TP DISABLED, only macro direction closes positions"""
-        logger.info("Position monitor loop started (SL/TP DISABLED - macro exit only)")
+        """Monitor open positions - Check SL to prevent catastrophic losses"""
+        logger.info("Position monitor loop started (SL: 2.5% enabled)")
 
         while self._running:
             try:
-                # SL/TP EXIT CHECKING DISABLED
-                # Positions will ONLY close when macro direction flips
-                # This prevents the account from bleeding due to tight stops
-
-                # Just log position count periodically
                 positions = self.position_tracker.get_all_positions()
-                if positions:
-                    logger.debug(f"Monitoring {len(positions)} positions (no SL/TP - macro exit only)")
 
-                await asyncio.sleep(10)  # Check every 10 seconds (just for logging)
+                if not positions:
+                    await asyncio.sleep(5)
+                    continue
+
+                # Check each position for SL exit
+                for position in positions:
+                    symbol = position.symbol
+                    current_price = self.data_feed.get_current_price(symbol)
+
+                    if not current_price:
+                        continue
+
+                    # Check if SL should trigger
+                    exit_action = self.exit_manager.check_exit(
+                        direction=position.direction,
+                        entry_price=position.entry_price,
+                        current_price=current_price
+                    )
+
+                    if exit_action and exit_action.get('action') == 'close':
+                        await self._execute_exit(symbol, position, exit_action, current_price)
+                        await asyncio.sleep(0.1)  # Small delay between exits
+
+                await asyncio.sleep(5)  # Check every 5 seconds
 
             except asyncio.CancelledError:
                 break

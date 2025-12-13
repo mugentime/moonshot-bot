@@ -5,13 +5,14 @@ Composite indicator using 24-hour price changes for stable trend detection.
 Strategy:
 - Uses 24h price change data from Binance tickers (NOT 5-minute noise)
 - Calculate macro score from 3 components:
-  1. Majority vote (70%+ coins same direction on 24h)
+  1. Majority vote (55%+ coins same direction on 24h)
   2. Leader-follower (top 10% movers direction)
   3. Aggregate velocity (average 24h change across all)
-- Score >= +2 → LONG all coins
-- Score <= -2 → SHORT all coins
+- Score >= +1 → LONG all coins
+- Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
-- NO INDIVIDUAL SL/TP - positions close ONLY when macro direction flips
+- PER-POSITION 2.5% STOP LOSS to prevent catastrophic losses
+- Positions also close when macro direction flips
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -41,10 +42,10 @@ class MacroConfig:
     # DIRECTION CHANGE COOLDOWN (prevent whipsaws)
     DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
 
-    # EXIT PARAMETERS - DISABLED (set to extreme values so they never trigger)
-    # Positions close ONLY on macro direction flip, not individual SL/TP
-    STOP_LOSS_PERCENT = 999.0  # DISABLED - was 5%, killing the account
-    TAKE_PROFIT_PERCENT = 999.0  # DISABLED - was 10%, let macro direction decide
+    # EXIT PARAMETERS - Per-position stop loss to prevent catastrophic losses
+    # With 20x leverage: 2.5% price move = 50% margin loss
+    STOP_LOSS_PERCENT = 2.5  # 2.5% SL = 50% loss on margin (prevents -33% disasters like BEATUSDT)
+    TAKE_PROFIT_PERCENT = 999.0  # DISABLED - let macro direction decide exits for profits
 
     # POSITION SIZING
     LEVERAGE = 20  # 20x leverage (aggressive)
@@ -311,16 +312,35 @@ class MacroExitManager:
 
     def check_exit(self, direction: str, entry_price: float, current_price: float) -> Optional[Dict]:
         """
-        Check if position should be exited based on SL/TP.
+        Check if position should be exited based on SL.
 
-        DISABLED: SL/TP exits completely disabled.
-        Positions only close when macro direction changes.
+        Stop Loss ENABLED to prevent catastrophic losses (e.g., BEATUSDT -33%).
+        Take Profit disabled - let macro direction handle profit exits.
 
         Returns:
-            None - No automatic SL/TP exits
+            Dict with 'action': 'close' and 'reason' if SL hit, None otherwise
         """
-        # SL/TP DISABLED - Positions ONLY close on macro direction flip
-        # This prevents the account from bleeding due to stops getting hit
+        if entry_price <= 0:
+            return None
+
+        # Calculate PnL percentage based on direction
+        if direction == "LONG":
+            pnl_pct = ((current_price - entry_price) / entry_price) * 100
+        else:  # SHORT
+            pnl_pct = ((entry_price - current_price) / entry_price) * 100
+
+        # Check STOP LOSS - Protect against catastrophic losses
+        if pnl_pct <= -self.config.STOP_LOSS_PERCENT:
+            return {
+                'action': 'close',
+                'reason': 'stop_loss',
+                'pnl_pct': pnl_pct
+            }
+
+        # Take Profit disabled - macro direction handles exits
+        # if pnl_pct >= self.config.TAKE_PROFIT_PERCENT:
+        #     return {'action': 'close', 'reason': 'take_profit', 'pnl_pct': pnl_pct}
+
         return None
 
     def should_close_all(self, current_direction: MacroDirection, position_direction: str) -> bool:
