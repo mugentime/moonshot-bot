@@ -166,6 +166,10 @@ class MacroIndexBot:
         self._running = True
         logger.info("MACRO INDEX BOT STARTED")
 
+        # Start WebSocket ticker stream for real-time prices (REQUIRED for SL monitoring!)
+        await self.data_feed.start_ticker_stream()
+        logger.info("Ticker stream started - SL monitoring active")
+
         # Start macro calculation and monitor loops
         self._macro_task = asyncio.create_task(self._macro_loop())
         self._monitor_task = asyncio.create_task(self._monitor_loop())
