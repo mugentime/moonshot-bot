@@ -458,8 +458,15 @@ class MacroIndexBot:
                 status = "+" if pnl_usd > 0 else ""
                 reason = exit_action['reason'].upper()
                 logger.info(f"{reason}: {symbol} | PnL: ${status}{pnl_usd:.2f} ({pnl_pct:+.2f}%)")
+
+                # Remove from tracker after successful exit
+                await self.position_tracker.remove_position(symbol)
             else:
                 logger.error(f"Exit failed: {symbol} - {result.error}")
+                # If position doesn't exist on Binance, remove from tracker to stop retry loop
+                if "No position found" in str(result.error) or "position" in str(result.error).lower():
+                    logger.warning(f"Removing stale position from tracker: {symbol}")
+                    await self.position_tracker.remove_position(symbol)
 
         except Exception as e:
             logger.error(f"Error executing exit: {e}")
