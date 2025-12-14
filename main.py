@@ -51,7 +51,7 @@ class MacroIndexBot:
     Macro Index Trading Bot
     - Calculates composite macro indicator across all whitelisted coins
     - Opens positions on ALL coins in same direction
-    - Per-position 2.5% SL to prevent catastrophic losses
+    - Per-position 3% hard SL with exchange order
     - Positions also close when macro direction flips
     """
 
@@ -306,20 +306,22 @@ class MacroIndexBot:
 
                 entry_price = ticker.price
 
-                # NO STOP LOSS - Let positions ride on macro direction only
+                # Calculate 3% hard stop loss price
                 if direction == "LONG":
+                    sl_price = entry_price * (1 - self.config.STOP_LOSS_PERCENT / 100)
                     result = await self.order_executor.open_long(
                         symbol=symbol,
                         margin=margin_per_position,
-                        leverage=self.config.LEVERAGE
-                        # NO stop_loss - disabled to prevent account bleeding
+                        leverage=self.config.LEVERAGE,
+                        stop_loss=sl_price
                     )
                 else:  # SHORT
+                    sl_price = entry_price * (1 + self.config.STOP_LOSS_PERCENT / 100)
                     result = await self.order_executor.open_short(
                         symbol=symbol,
                         margin=margin_per_position,
-                        leverage=self.config.LEVERAGE
-                        # NO stop_loss - disabled to prevent account bleeding
+                        leverage=self.config.LEVERAGE,
+                        stop_loss=sl_price
                     )
 
                 if result.success:

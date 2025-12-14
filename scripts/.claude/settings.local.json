@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(railway logs:*)",
+      "Bash(timeout 30 railway logs:*)",
+      "Bash(timeout 15 railway logs:*)"
+    ]
+  }
+}

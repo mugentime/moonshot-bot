@@ -164,68 +164,6 @@ class MoonshotDetectionConfig:
     MEGA_SIGNAL_MIN_SIGNALS = 1  # Only need 1/6 signals
 
 # =============================================================================
-# STOP-LOSS - DISABLED (NO STOP LOSS)
-# =============================================================================
-
-class StopLossConfig:
-    INITIAL_PERCENT = 100.0  # DISABLED - Set to 100% to effectively disable SL
-    BUFFER_BEFORE_LIQUIDATION = 1.0  # %
-    MOVE_TO_BREAKEVEN_AT = 999.0  # DISABLED - Never move to breakeven
-
-# =============================================================================
-# TAKE-PROFIT - DISABLED (NO TAKE PROFIT)
-# =============================================================================
-
-class TakeProfitConfig:
-    LEVELS: List[Dict] = []  # DISABLED - Empty list means no TP levels
-
-# =============================================================================
-# TRAILING STOP - DISABLED (NO TRAILING STOP)
-# =============================================================================
-
-class TrailingStopConfig:
-    # ==========================================================================
-    # DISABLED - All trailing stop functionality turned off
-    # ==========================================================================
-
-    # ACTIVATION - Set to impossible value to never activate
-    ACTIVATION_PROFIT = 9999.0  # DISABLED - Never activate trailing
-
-    # All distances set to 100% (effectively disabled)
-    TIER1_DISTANCE = 100.0  # DISABLED
-    TIER2_DISTANCE = 100.0  # DISABLED
-    TIER3_DISTANCE = 100.0  # DISABLED
-    TIER4_DISTANCE = 100.0  # DISABLED
-
-    # PROFIT THRESHOLDS (impossible to reach)
-    TIER2_PROFIT = 9999.0
-    TIER3_PROFIT = 9999.0
-    TIER4_PROFIT = 9999.0
-
-    # LEGACY (backwards compat) - DISABLED
-    INITIAL_DISTANCE = 100.0
-    TIGHT_DISTANCE = 100.0
-    TIGHTEN_AT_PROFIT = 9999.0
-
-
-class VelocityExitConfig:
-    """
-    Velocity Reversal Exit - Catches pump-and-dump reversals fast.
-    Based on 183 moonshot analysis: 11% are pump-and-dumps that reverse fast.
-    """
-    # PARTIAL CLOSE ON VELOCITY REVERSAL
-    PARTIAL_CLOSE_VELOCITY = -2.0  # Close 50% if 1m velocity drops -2% from peak
-    PARTIAL_CLOSE_PERCENT = 50     # Close 50% of position
-
-    # FULL CLOSE ON SEVERE REVERSAL
-    FULL_CLOSE_VELOCITY = -3.0     # Close remaining if 1m velocity drops -3%
-
-    # TIME-BASED EXIT (for instant pumps - 29% of moonshots are 0h duration)
-    INSTANT_PUMP_PROFIT = 5.0       # If +5% profit within 10 min
-    INSTANT_PUMP_WINDOW_SECONDS = 600  # 10 minutes
-    INSTANT_PUMP_CLOSE_PERCENT = 50  # Close 50% to lock in profits
-
-# =============================================================================
 # PAIR FILTERS
 # =============================================================================
 

@@ -11,7 +11,7 @@ Strategy:
 - Score >= +1 → LONG all coins
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
-- PER-POSITION 2.5% STOP LOSS to prevent catastrophic losses
+- PER-POSITION 3% HARD STOP LOSS with exchange order
 - TRAILING STOP: 10% distance, activates at +15% profit
 - MACRO FLIP DOES NOT CLOSE POSITIONS - only SL/trailing stop can close
 """
@@ -43,9 +43,9 @@ class MacroConfig:
     # DIRECTION CHANGE COOLDOWN (prevent whipsaws)
     DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
 
-    # EXIT PARAMETERS - Per-position stop loss to prevent catastrophic losses
-    # With 20x leverage: 2.5% price move = 50% margin loss
-    STOP_LOSS_PERCENT = 2.5  # 2.5% SL = 50% loss on margin (prevents -33% disasters like BEATUSDT)
+    # EXIT PARAMETERS - Per-position stop loss with exchange order
+    # With 20x leverage: 3% price move = 60% margin loss
+    STOP_LOSS_PERCENT = 3.0  # 3% hard SL with exchange order
     TAKE_PROFIT_PERCENT = 999.0  # DISABLED - let macro direction decide exits for profits
 
     # TRAILING STOP - Lock in profits after big moves
