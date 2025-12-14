@@ -298,30 +298,18 @@ class MacroIndexBot:
 
         for symbol in self.whitelisted_symbols:
             try:
-                # Get current price for SL/TP calculation
-                ticker = await self.data_feed.get_ticker(symbol)
-                if not ticker:
-                    failed += 1
-                    continue
-
-                entry_price = ticker.price
-
-                # Calculate 3% hard stop loss price
+                # Open position (SL handled by software monitoring in check_exit)
                 if direction == "LONG":
-                    sl_price = entry_price * (1 - self.config.STOP_LOSS_PERCENT / 100)
                     result = await self.order_executor.open_long(
                         symbol=symbol,
                         margin=margin_per_position,
-                        leverage=self.config.LEVERAGE,
-                        stop_loss=sl_price
+                        leverage=self.config.LEVERAGE
                     )
                 else:  # SHORT
-                    sl_price = entry_price * (1 + self.config.STOP_LOSS_PERCENT / 100)
                     result = await self.order_executor.open_short(
                         symbol=symbol,
                         margin=margin_per_position,
-                        leverage=self.config.LEVERAGE,
-                        stop_loss=sl_price
+                        leverage=self.config.LEVERAGE
                     )
 
                 if result.success:

@@ -43,9 +43,9 @@ class MacroConfig:
     # DIRECTION CHANGE COOLDOWN (prevent whipsaws)
     DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
 
-    # EXIT PARAMETERS - Per-position stop loss with exchange order
+    # EXIT PARAMETERS - Per-position stop loss (software monitoring)
     # With 20x leverage: 3% price move = 60% margin loss
-    STOP_LOSS_PERCENT = 3.0  # 3% hard SL with exchange order
+    STOP_LOSS_PERCENT = 3.0  # 3% hard SL (software monitoring - exchange orders not supported)
     TAKE_PROFIT_PERCENT = 999.0  # DISABLED - let macro direction decide exits for profits
 
     # TRAILING STOP - Lock in profits after big moves
@@ -308,7 +308,7 @@ class MacroExitManager:
     Manages exits for positions.
 
     Exit conditions:
-    1. Stop Loss: 3% - handled by EXCHANGE ORDER (not software)
+    1. Stop Loss: 3% - software monitoring (exchange orders not supported)
     2. Trailing Stop: 10% distance, activates at +15% profit (software-based)
     """
 
@@ -317,11 +317,10 @@ class MacroExitManager:
 
     def check_exit(self, direction: str, entry_price: float, current_price: float, peak_profit_pct: float = 0.0) -> Optional[Dict]:
         """
-        Check if position should be exited based on Trailing Stop.
+        Check if position should be exited based on Stop Loss or Trailing Stop.
 
-        NOTE: Stop Loss is handled by EXCHANGE ORDER (STOP_MARKET), not here.
-
-        Exit conditions checked here:
+        Exit conditions:
+        - Stop Loss: 3% loss triggers immediate exit
         - Trailing Stop: If profit reached +15%, exit when it drops 10% from peak
 
         Returns:
@@ -336,7 +335,14 @@ class MacroExitManager:
         else:  # SHORT
             pnl_pct = ((entry_price - current_price) / entry_price) * 100
 
-        # STOP LOSS is handled by exchange order - NOT checked here
+        # Check STOP LOSS - 3% hard stop (software monitoring)
+        if pnl_pct <= -self.config.STOP_LOSS_PERCENT:
+            return {
+                'action': 'close',
+                'reason': 'stop_loss',
+                'pnl_pct': pnl_pct,
+                'sl_threshold': -self.config.STOP_LOSS_PERCENT
+            }
 
         # Check TRAILING STOP - Lock in profits after big moves
         # Only active if we've reached the activation threshold

@@ -315,13 +315,9 @@ class OrderExecutor:
                 return False
 
         except Exception as e:
-            logger.critical(f"🚨 STOP-LOSS FAILED for {symbol}: {e} - POSITION AT RISK")
-            # Try to close position if SL cannot be set
-            try:
-                await self.close_position(symbol, percent=100)
-                logger.warning(f"⚠️ Position {symbol} closed due to SL failure")
-            except Exception as close_error:
-                logger.critical(f"🚨 CRITICAL: Could not close {symbol} after SL failure: {close_error}")
+            logger.warning(f"⚠️ Exchange SL order failed for {symbol}: {e}")
+            logger.warning(f"⚠️ Position {symbol} will use software-based trailing stop monitoring")
+            # DO NOT auto-close - trailing stop monitoring will protect the position
             return False
     
     async def close_position(self, symbol: str, percent: float = 100) -> OrderResult:
