@@ -263,39 +263,3 @@ PORT = int(os.getenv("PORT", "8050"))
 
 class TimeLimitsConfig:
     MAX_HOLD_HOURS = 168  # 7 days maximum
-
-
-# =============================================================================
-# MOMENTUM HUNTER STRATEGY
-# =============================================================================
-
-class MomentumConfig:
-    """
-    Momentum Hunter Strategy Configuration
-    Detects coins moving +1% in 60 seconds and rides the momentum.
-    """
-    # Hot coins refresh
-    HOT_COINS_REFRESH_HOURS = 4  # Refresh every 4 hours
-    HOT_COINS_COUNT = 50  # Top 50 by volume * volatility
-
-    # Scanning
-    SCAN_INTERVAL_SECONDS = 5  # Scan every 5 seconds
-    PRICE_BUFFER_WINDOW = 60  # 60-second rolling window
-
-    # Entry thresholds
-    LONG_VELOCITY_TRIGGER = 1.0   # +1% in 60 sec = LONG
-    SHORT_VELOCITY_TRIGGER = -1.0  # -1% in 60 sec = SHORT
-
-    # Position sizing
-    MAX_POSITIONS = 5  # Max concurrent trades
-    POSITION_SIZE_USD = 10.0  # $10 per trade (minimum notional)
-    LEVERAGE = 20  # 20x leverage
-
-    # Exit thresholds
-    STOP_LOSS_PERCENT = -3.0  # -3% = close
-    TAKE_PROFIT_PERCENT = 10.0  # +10% = close
-    TRAILING_ACTIVATE_PERCENT = 5.0  # Activate trailing after +5%
-    TRAILING_DISTANCE_PERCENT = 2.0  # Trail by 2%
-
-    # Cooldowns
-    ENTRY_COOLDOWN_SECONDS = 60  # 60 sec after exit before re-entry
