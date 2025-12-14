@@ -362,10 +362,19 @@ class MacroIndexBot:
     async def _monitor_loop(self):
         """Monitor open positions - Check SL and Trailing Stop"""
         logger.info(f"Position monitor loop started (SL: {self.config.STOP_LOSS_PERCENT}%, Trailing: {self.config.TRAILING_DISTANCE_PERCENT}% @ {self.config.TRAILING_ACTIVATION_PERCENT}%)")
+        check_count = 0
 
         while self._running:
             try:
                 positions = self.position_tracker.get_all_positions()
+                check_count += 1
+
+                # Log status every 60 checks (~5 minutes at 5s interval)
+                if check_count % 60 == 0:
+                    if positions:
+                        worst_pnl = min((p.unrealized_pnl for p in positions), default=0)
+                        best_pnl = max((p.unrealized_pnl for p in positions), default=0)
+                        logger.info(f"SL MONITOR: {len(positions)} positions | Best: ${best_pnl:+.2f} | Worst: ${worst_pnl:+.2f}")
 
                 if not positions:
                     await asyncio.sleep(5)
@@ -374,9 +383,20 @@ class MacroIndexBot:
                 # Check each position for SL/Trailing exit
                 for position in positions:
                     symbol = position.symbol
-                    current_price = self.data_feed.get_current_price(symbol)
 
-                    if not current_price or position.entry_price <= 0:
+                    # Try WebSocket cache first, then REST API fallback
+                    current_price = self.data_feed.get_current_price(symbol)
+                    if not current_price:
+                        # Fallback to REST API if WebSocket cache is empty
+                        ticker = await self.data_feed.get_ticker(symbol)
+                        if ticker:
+                            current_price = ticker.price
+                        else:
+                            logger.warning(f"SL MONITOR: No price for {symbol} - SKIPPING SL CHECK!")
+                            continue
+
+                    if position.entry_price <= 0:
+                        logger.warning(f"SL MONITOR: {symbol} has invalid entry_price={position.entry_price} - SKIPPING!")
                         continue
 
                     # Calculate current PnL %
@@ -401,8 +421,12 @@ class MacroIndexBot:
                     )
 
                     if exit_action and exit_action.get('action') == 'close':
+                        logger.warning(f"🚨 EXIT TRIGGERED: {symbol} | Reason: {exit_action.get('reason')} | PnL: {current_pnl_pct:.2f}%")
                         await self._execute_exit(symbol, position, exit_action, current_price)
                         await asyncio.sleep(0.1)  # Small delay between exits
+                    elif current_pnl_pct <= -2.0:
+                        # Log warning for positions approaching SL
+                        logger.warning(f"⚠️ SL WARNING: {symbol} at {current_pnl_pct:.2f}% (SL triggers at -{self.config.STOP_LOSS_PERCENT}%)")
 
                 # Save updated peak profits to Redis periodically
                 await self.position_tracker._save_to_redis()
