@@ -307,9 +307,9 @@ class MacroExitManager:
     """
     Manages exits for positions.
 
-    Exit conditions (ONLY these - macro flip does NOT close positions):
-    1. Stop Loss: 2.5% price movement against position
-    2. Trailing Stop: 10% distance, activates at +15% profit
+    Exit conditions:
+    1. Stop Loss: 3% - handled by EXCHANGE ORDER (not software)
+    2. Trailing Stop: 10% distance, activates at +15% profit (software-based)
     """
 
     def __init__(self, config: MacroConfig = None):
@@ -317,11 +317,12 @@ class MacroExitManager:
 
     def check_exit(self, direction: str, entry_price: float, current_price: float, peak_profit_pct: float = 0.0) -> Optional[Dict]:
         """
-        Check if position should be exited based on SL or Trailing Stop.
+        Check if position should be exited based on Trailing Stop.
 
-        Exit conditions:
-        1. Stop Loss: -2.5% to prevent catastrophic losses
-        2. Trailing Stop: If profit reached +15%, exit when it drops 10% from peak
+        NOTE: Stop Loss is handled by EXCHANGE ORDER (STOP_MARKET), not here.
+
+        Exit conditions checked here:
+        - Trailing Stop: If profit reached +15%, exit when it drops 10% from peak
 
         Returns:
             Dict with 'action': 'close' and 'reason' if exit triggered, None otherwise
@@ -335,13 +336,7 @@ class MacroExitManager:
         else:  # SHORT
             pnl_pct = ((entry_price - current_price) / entry_price) * 100
 
-        # Check STOP LOSS - Protect against catastrophic losses
-        if pnl_pct <= -self.config.STOP_LOSS_PERCENT:
-            return {
-                'action': 'close',
-                'reason': 'stop_loss',
-                'pnl_pct': pnl_pct
-            }
+        # STOP LOSS is handled by exchange order - NOT checked here
 
         # Check TRAILING STOP - Lock in profits after big moves
         # Only active if we've reached the activation threshold
