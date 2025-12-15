@@ -12,7 +12,7 @@ Strategy:
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
 - PER-POSITION 3% HARD STOP LOSS with exchange order
-- TRAILING STOP: 3% distance, activates at +5% profit
+- TRAILING STOP: 10% distance, activates at +5% profit
 - MACRO FLIP DOES NOT CLOSE POSITIONS - only SL/trailing stop can close
 """
 from dataclasses import dataclass
@@ -49,11 +49,9 @@ class MacroConfig:
     TAKE_PROFIT_PERCENT = 999.0  # DISABLED - let macro direction decide exits for profits
 
     # TRAILING STOP - Lock in profits after moves
-    # Changed from 15%/10% to 5%/3% based on portfolio analysis:
-    # - Most positions peak at 5-11%, not 15%+
-    # - Tighter trail (3%) locks in more profit
+    # 5% activation, 10% trail distance (more room for volatility)
     TRAILING_ACTIVATION_PERCENT = 5.0  # Activate trailing after +5% profit
-    TRAILING_DISTANCE_PERCENT = 3.0  # Trail by 3% (if peak is +8%, exit at +5%)
+    TRAILING_DISTANCE_PERCENT = 10.0  # Trail by 10% (if peak is +15%, exit at +5%)
 
     # POSITION SIZING
     LEVERAGE = 20  # 20x leverage (aggressive)
