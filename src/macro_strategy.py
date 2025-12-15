@@ -310,7 +310,7 @@ class MacroExitManager:
 
     Exit conditions:
     1. Stop Loss: 3% - software monitoring (exchange orders not supported)
-    2. Trailing Stop: 10% distance, activates at +15% profit (software-based)
+    2. Trailing Stop: 10% distance, activates at +5% profit (software-based)
     """
 
     def __init__(self, config: MacroConfig = None):
@@ -322,7 +322,7 @@ class MacroExitManager:
 
         Exit conditions:
         - Stop Loss: 3% loss triggers immediate exit
-        - Trailing Stop: If profit reached +15%, exit when it drops 10% from peak
+        - Trailing Stop: If profit reached +5%, exit when it drops 10% from peak
 
         Returns:
             Dict with 'action': 'close' and 'reason' if exit triggered, None otherwise
