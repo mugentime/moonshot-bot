@@ -366,15 +366,33 @@ class MacroIndexBot:
 
         while self._running:
             try:
+                # CRITICAL: Sync with exchange every 12 checks (~1 minute) to catch all positions
+                if check_count % 12 == 0:
+                    await self.position_tracker.sync_with_exchange()
+
                 positions = self.position_tracker.get_all_positions()
                 check_count += 1
 
-                # Log status every 60 checks (~5 minutes at 5s interval)
-                if check_count % 60 == 0:
+                # Log status every 12 checks (~1 minute) - more frequent for debugging
+                if check_count % 12 == 0:
                     if positions:
-                        worst_pnl = min((p.unrealized_pnl for p in positions), default=0)
-                        best_pnl = max((p.unrealized_pnl for p in positions), default=0)
-                        logger.info(f"SL MONITOR: {len(positions)} positions | Best: ${best_pnl:+.2f} | Worst: ${worst_pnl:+.2f}")
+                        # Calculate PnL for each position to find worst
+                        pnl_list = []
+                        for p in positions:
+                            price = self.data_feed.get_current_price(p.symbol) or p.entry_price
+                            if p.direction == "LONG":
+                                pnl = ((price - p.entry_price) / p.entry_price) * 100
+                            else:
+                                pnl = ((p.entry_price - price) / p.entry_price) * 100
+                            pnl_list.append((p.symbol, pnl))
+
+                        worst = min(pnl_list, key=lambda x: x[1]) if pnl_list else ('', 0)
+                        best = max(pnl_list, key=lambda x: x[1]) if pnl_list else ('', 0)
+                        below_sl = [x for x in pnl_list if x[1] <= -self.config.STOP_LOSS_PERCENT]
+
+                        logger.info(f"SL MONITOR: {len(positions)} pos | Best: {best[0]} {best[1]:+.1f}% | Worst: {worst[0]} {worst[1]:+.1f}%")
+                        if below_sl:
+                            logger.warning(f"🚨 {len(below_sl)} POSITIONS BELOW SL: {[f'{s}:{p:.1f}%' for s,p in below_sl]}")
 
                 if not positions:
                     await asyncio.sleep(5)
@@ -424,6 +442,11 @@ class MacroIndexBot:
                         logger.warning(f"🚨 EXIT TRIGGERED: {symbol} | Reason: {exit_action.get('reason')} | PnL: {current_pnl_pct:.2f}%")
                         await self._execute_exit(symbol, position, exit_action, current_price)
                         await asyncio.sleep(0.1)  # Small delay between exits
+                    elif current_pnl_pct <= -self.config.STOP_LOSS_PERCENT:
+                        # CRITICAL: Position is past SL but check_exit didn't trigger - force close!
+                        logger.error(f"🚨🚨 FORCE SL: {symbol} at {current_pnl_pct:.2f}% - check_exit failed, forcing close!")
+                        await self._execute_exit(symbol, position, {'action': 'close', 'reason': 'force_stop_loss'}, current_price)
+                        await asyncio.sleep(0.1)
                     elif current_pnl_pct <= -2.0:
                         # Log warning for positions approaching SL
                         logger.warning(f"⚠️ SL WARNING: {symbol} at {current_pnl_pct:.2f}% (SL triggers at -{self.config.STOP_LOSS_PERCENT}%)")
