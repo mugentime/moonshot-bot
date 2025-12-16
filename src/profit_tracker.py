@@ -23,7 +23,7 @@ class Trade:
     entry_price: float
     exit_time: Optional[str] = None
     exit_price: Optional[float] = None
-    exit_reason: Optional[str] = None  # stop_loss, trailing_stop, manual
+    exit_reason: Optional[str] = None  # stop_loss, trailing_stop, global_tp, manual
     pnl_percent: Optional[float] = None
     pnl_usd: Optional[float] = None
     leverage: int = 10
@@ -63,6 +63,7 @@ class PerformanceMetrics:
     # Exit Analysis
     stop_loss_exits: int = 0
     trailing_stop_exits: int = 0
+    global_tp_exits: int = 0
     manual_exits: int = 0
 
     # Direction Analysis
@@ -229,6 +230,7 @@ class ProfitTracker:
         # Exit Analysis
         metrics.stop_loss_exits = len([t for t in closed_trades if t.exit_reason == 'stop_loss'])
         metrics.trailing_stop_exits = len([t for t in closed_trades if t.exit_reason == 'trailing_stop'])
+        metrics.global_tp_exits = len([t for t in closed_trades if t.exit_reason == 'global_tp'])
         metrics.manual_exits = len([t for t in closed_trades if t.exit_reason == 'manual'])
 
         # Direction Analysis
@@ -304,6 +306,7 @@ EXIT ANALYSIS
 -------------
 Stop Loss: {m.stop_loss_exits} ({m.stop_loss_exits/m.closed_trades*100 if m.closed_trades else 0:.1f}%)
 Trailing Stop: {m.trailing_stop_exits} ({m.trailing_stop_exits/m.closed_trades*100 if m.closed_trades else 0:.1f}%)
+Global TP: {m.global_tp_exits} ({m.global_tp_exits/m.closed_trades*100 if m.closed_trades else 0:.1f}%)
 Manual: {m.manual_exits} ({m.manual_exits/m.closed_trades*100 if m.closed_trades else 0:.1f}%)
 
 DIRECTION

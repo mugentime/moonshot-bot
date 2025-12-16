@@ -13,7 +13,8 @@ Strategy:
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
 - PER-POSITION 3% HARD STOP LOSS with exchange order
 - TRAILING STOP: 10% distance, activates at +5% profit
-- MACRO FLIP DOES NOT CLOSE POSITIONS - only SL/trailing stop can close
+- GLOBAL TP: 2% portfolio profit closes ALL positions (5 min cooldown)
+- MACRO FLIP DOES NOT CLOSE POSITIONS - only SL/trailing/global TP can close
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -52,6 +53,10 @@ class MacroConfig:
     # 5% activation, 10% trail distance (more room for volatility)
     TRAILING_ACTIVATION_PERCENT = 5.0  # Activate trailing after +5% profit
     TRAILING_DISTANCE_PERCENT = 10.0  # Trail by 10% (if peak is +15%, exit at +5%)
+
+    # GLOBAL TAKE PROFIT - Portfolio level (closes ALL positions)
+    GLOBAL_TP_PERCENT = 2.0  # Close all when total PnL reaches +2% of margin
+    GLOBAL_TP_COOLDOWN_SECONDS = 300  # 5 minutes cooldown after Global TP
 
     # POSITION SIZING
     LEVERAGE = 20  # 20x leverage (aggressive)

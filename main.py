@@ -13,6 +13,7 @@ Strategy:
 import asyncio
 import sys
 import os
+import time
 
 # Fix Windows console encoding for emoji support
 if sys.platform == "win32":
@@ -71,6 +72,7 @@ class MacroIndexBot:
         # Trading state
         self.current_direction: MacroDirection = MacroDirection.FLAT
         self.whitelisted_symbols: list = []
+        self.last_global_tp_time: float = 0  # Track last Global TP for cooldown
 
     async def close_all_positions(self):
         """Close all open positions before starting fresh"""
@@ -282,8 +284,65 @@ class MacroIndexBot:
 
         logger.info(f"Closed {closed} {direction} positions")
 
+    async def _close_all_positions_global_tp(self):
+        """Close ALL positions due to Global TP trigger"""
+        logger.info("Closing ALL positions for Global TP...")
+
+        positions = self.position_tracker.get_all_positions()
+        closed = 0
+        total_pnl = 0
+
+        for position in positions:
+            symbol = position.symbol
+            try:
+                current_price = self.data_feed.get_current_price(symbol) or position.entry_price
+
+                if position.direction == "LONG":
+                    result = await self.order_executor.close_long(symbol)
+                    pnl_pct = ((current_price - position.entry_price) / position.entry_price) * 100
+                else:
+                    result = await self.order_executor.close_short(symbol)
+                    pnl_pct = ((position.entry_price - current_price) / position.entry_price) * 100
+
+                if result.success:
+                    closed += 1
+                    pnl_usd = position.margin * (pnl_pct / 100) * self.config.LEVERAGE
+                    total_pnl += pnl_usd
+
+                    profit_tracker.record_exit(
+                        symbol=symbol,
+                        exit_price=current_price,
+                        exit_reason="global_tp",
+                        pnl_percent=pnl_pct * self.config.LEVERAGE,
+                        pnl_usd=pnl_usd,
+                        peak_profit=position.peak_profit_pct
+                    )
+
+                    await self.position_tracker.remove_position(symbol)
+                else:
+                    logger.error(f"Failed to close {symbol}: {result.error}")
+
+            except Exception as e:
+                logger.error(f"Error closing {symbol}: {e}")
+
+            await asyncio.sleep(0.05)  # Small delay between closes
+
+        logger.info(f"{'='*60}")
+        logger.info(f"GLOBAL TP COMPLETE: Closed {closed}/{len(positions)} positions")
+        logger.info(f"Total PnL: ${total_pnl:+.2f}")
+        logger.info(f"Cooldown: {self.config.GLOBAL_TP_COOLDOWN_SECONDS}s before reopening")
+        logger.info(f"{'='*60}")
+
     async def _open_all_positions(self, direction: str):
         """Open positions on all whitelisted coins"""
+        # Check Global TP cooldown
+        if self.last_global_tp_time > 0:
+            time_since_tp = time.time() - self.last_global_tp_time
+            if time_since_tp < self.config.GLOBAL_TP_COOLDOWN_SECONDS:
+                remaining = int(self.config.GLOBAL_TP_COOLDOWN_SECONDS - time_since_tp)
+                logger.info(f"Global TP cooldown active. {remaining}s remaining. Skipping position opening.")
+                return
+
         logger.info(f"Opening {direction} positions on {len(self.whitelisted_symbols)} coins...")
 
         # Get available balance
@@ -397,6 +456,37 @@ class MacroIndexBot:
                 if not positions:
                     await asyncio.sleep(5)
                     continue
+
+                # === GLOBAL TP CHECK ===
+                total_pnl = 0
+                total_margin = 0
+
+                for p in positions:
+                    price = self.data_feed.get_current_price(p.symbol) or p.entry_price
+                    if p.direction == "LONG":
+                        pnl = ((price - p.entry_price) / p.entry_price) * p.margin * self.config.LEVERAGE
+                    else:
+                        pnl = ((p.entry_price - price) / p.entry_price) * p.margin * self.config.LEVERAGE
+                    total_pnl += pnl
+                    total_margin += p.margin
+
+                if total_margin > 0:
+                    global_pnl_pct = (total_pnl / total_margin) * 100
+
+                    # Log Global PnL every minute
+                    if check_count % 12 == 0:
+                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% (${total_pnl:+.2f} / ${total_margin:.2f} margin) | Target: {self.config.GLOBAL_TP_PERCENT}%")
+
+                    # Check if Global TP triggered
+                    if global_pnl_pct >= self.config.GLOBAL_TP_PERCENT:
+                        logger.info(f"{'='*60}")
+                        logger.info(f"GLOBAL TP TRIGGERED: +{global_pnl_pct:.2f}% (threshold: {self.config.GLOBAL_TP_PERCENT}%)")
+                        logger.info(f"Total PnL: ${total_pnl:.2f} | Margin: ${total_margin:.2f}")
+                        logger.info(f"{'='*60}")
+                        await self._close_all_positions_global_tp()
+                        self.last_global_tp_time = time.time()
+                        await asyncio.sleep(5)
+                        continue  # Skip individual position checks this cycle
 
                 # Check each position for SL/Trailing exit
                 for position in positions:
