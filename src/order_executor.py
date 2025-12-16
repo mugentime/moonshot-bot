@@ -2,6 +2,7 @@
 Order Executor Module
 Executes orders on Binance Futures
 """
+import asyncio
 from typing import Optional, Dict
 from dataclasses import dataclass
 from loguru import logger
@@ -374,6 +375,28 @@ class OrderExecutor:
             )
 
             logger.info(f"📤 Position closed: {symbol} {direction} | {percent}% | Qty: {close_qty}")
+
+            # VERIFY: Check if position is fully closed, retry if not
+            if percent >= 100:
+                await asyncio.sleep(0.5)  # Wait for order to settle
+                verify_positions = await self.client.futures_position_information(symbol=symbol)
+                for vp in verify_positions:
+                    if vp['symbol'] == symbol:
+                        remaining = abs(float(vp['positionAmt']))
+                        if remaining > 0:
+                            logger.warning(f"⚠️ Partial close detected for {symbol}, remaining: {remaining}. Closing remainder...")
+                            try:
+                                remainder_order = await self.client.futures_create_order(
+                                    symbol=symbol,
+                                    side=side,
+                                    type=ORDER_TYPE_MARKET,
+                                    quantity=remaining,
+                                    reduceOnly=True
+                                )
+                                logger.info(f"✅ Remainder closed: {symbol} | Qty: {remaining}")
+                            except Exception as re:
+                                logger.error(f"Failed to close remainder for {symbol}: {re}")
+                        break
 
             return OrderResult(
                 success=True,
