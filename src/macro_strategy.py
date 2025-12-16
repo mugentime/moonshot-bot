@@ -11,16 +11,15 @@ Strategy:
 - Score >= +1 → LONG all coins
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
-- PER-POSITION 3% HARD STOP LOSS with exchange order
-- TRAILING STOP: 10% distance, activates at +5% profit
-- GLOBAL TP: 2% portfolio profit closes ALL positions (5 min cooldown)
-- MACRO FLIP DOES NOT CLOSE POSITIONS - only SL/trailing/global TP can close
+- GLOBAL TP: Portfolio profit closes ALL positions (configurable via env)
+- NO INDIVIDUAL SL/TP - Only Global TP can close positions
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 from enum import Enum
 from loguru import logger
 import time
+import os
 
 
 class MacroDirection(Enum):
@@ -44,19 +43,10 @@ class MacroConfig:
     # DIRECTION CHANGE COOLDOWN (prevent whipsaws)
     DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
 
-    # EXIT PARAMETERS - Per-position stop loss (software monitoring)
-    # With 20x leverage: 3% price move = 60% margin loss
-    STOP_LOSS_PERCENT = 3.0  # 3% hard SL (software monitoring - exchange orders not supported)
-    TAKE_PROFIT_PERCENT = 999.0  # DISABLED - let macro direction decide exits for profits
-
-    # TRAILING STOP - Lock in profits after moves
-    # 5% activation, 10% trail distance (more room for volatility)
-    TRAILING_ACTIVATION_PERCENT = 5.0  # Activate trailing after +5% profit
-    TRAILING_DISTANCE_PERCENT = 10.0  # Trail by 10% (if peak is +15%, exit at +5%)
-
     # GLOBAL TAKE PROFIT - Portfolio level (closes ALL positions)
-    GLOBAL_TP_PERCENT = 2.0  # Close all when total PnL reaches +2% of margin
-    GLOBAL_TP_COOLDOWN_SECONDS = 300  # 5 minutes cooldown after Global TP
+    # Configurable via GLOBAL_TP_PERCENT env var (default 2.0%)
+    GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "2.0"))
+    GLOBAL_TP_COOLDOWN_SECONDS: int = int(os.getenv("GLOBAL_TP_COOLDOWN", "300"))
 
     # POSITION SIZING
     LEVERAGE = 20  # 20x leverage (aggressive)
@@ -309,60 +299,4 @@ class MacroIndicator:
             return 0, avg_velocity
 
 
-class MacroExitManager:
-    """
-    Manages exits for positions.
-
-    Exit conditions:
-    1. Stop Loss: 3% - software monitoring (exchange orders not supported)
-    2. Trailing Stop: 10% distance, activates at +5% profit (software-based)
-    """
-
-    def __init__(self, config: MacroConfig = None):
-        self.config = config or MacroConfig()
-
-    def check_exit(self, direction: str, entry_price: float, current_price: float, peak_profit_pct: float = 0.0) -> Optional[Dict]:
-        """
-        Check if position should be exited based on Stop Loss or Trailing Stop.
-
-        Exit conditions:
-        - Stop Loss: 3% loss triggers immediate exit
-        - Trailing Stop: If profit reached +5%, exit when it drops 10% from peak
-
-        Returns:
-            Dict with 'action': 'close' and 'reason' if exit triggered, None otherwise
-        """
-        if entry_price <= 0:
-            return None
-
-        # Calculate PnL percentage based on direction
-        if direction == "LONG":
-            pnl_pct = ((current_price - entry_price) / entry_price) * 100
-        else:  # SHORT
-            pnl_pct = ((entry_price - current_price) / entry_price) * 100
-
-        # Check STOP LOSS - 3% hard stop (software monitoring)
-        if pnl_pct <= -self.config.STOP_LOSS_PERCENT:
-            return {
-                'action': 'close',
-                'reason': 'stop_loss',
-                'pnl_pct': pnl_pct,
-                'sl_threshold': -self.config.STOP_LOSS_PERCENT
-            }
-
-        # Check TRAILING STOP - Lock in profits after big moves
-        # Only active if we've reached the activation threshold
-        if peak_profit_pct >= self.config.TRAILING_ACTIVATION_PERCENT:
-            # Calculate trailing stop level (peak - distance)
-            trailing_stop_level = peak_profit_pct - self.config.TRAILING_DISTANCE_PERCENT
-
-            if pnl_pct <= trailing_stop_level:
-                return {
-                    'action': 'close',
-                    'reason': 'trailing_stop',
-                    'pnl_pct': pnl_pct,
-                    'peak_pct': peak_profit_pct,
-                    'trail_level': trailing_stop_level
-                }
-
-        return None
+# MacroExitManager removed - all exits handled by Global TP only

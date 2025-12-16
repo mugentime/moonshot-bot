@@ -27,7 +27,7 @@ import uvicorn
 
 from config import PORT, LOG_LEVEL, PairFilterConfig
 from src import DataFeed, PairFilter, PositionTracker, OrderExecutor
-from src.macro_strategy import MacroIndicator, MacroConfig, MacroExitManager, MacroDirection
+from src.macro_strategy import MacroIndicator, MacroConfig, MacroDirection
 from src.profit_tracker import profit_tracker
 
 # Configure logging
@@ -52,8 +52,8 @@ class MacroIndexBot:
     Macro Index Trading Bot
     - Calculates composite macro indicator across all whitelisted coins
     - Opens positions on ALL coins in same direction
-    - Per-position 3% hard SL with exchange order
-    - Positions also close when macro direction flips
+    - GLOBAL TP: Close all positions when portfolio profit reaches threshold
+    - NO individual SL/TP - only Global TP closes positions
     """
 
     def __init__(self):
@@ -63,7 +63,6 @@ class MacroIndexBot:
         self.position_tracker = PositionTracker(self.data_feed)
         self.order_executor = OrderExecutor(self.data_feed)
         self.macro_indicator = None  # Initialize after data_feed
-        self.exit_manager = MacroExitManager(self.config)
 
         self._running = False
         self._macro_task = None
@@ -157,8 +156,8 @@ class MacroIndexBot:
         logger.info(f"  Leverage: {self.config.LEVERAGE}x")
         logger.info(f"  Timeframe: 24H (stable trend detection)")
         logger.info(f"  Direction Cooldown: {self.config.DIRECTION_CHANGE_COOLDOWN_SECONDS}s (1 hour)")
-        logger.info(f"  Stop Loss: {self.config.STOP_LOSS_PERCENT}% ({self.config.STOP_LOSS_PERCENT * self.config.LEVERAGE}% on margin)")
-        logger.info(f"  Trailing Stop: {self.config.TRAILING_DISTANCE_PERCENT}% distance, activates at +{self.config.TRAILING_ACTIVATION_PERCENT}%")
+        logger.info(f"  Global TP: {self.config.GLOBAL_TP_PERCENT}% (env: GLOBAL_TP_PERCENT)")
+        logger.info(f"  Global TP Cooldown: {self.config.GLOBAL_TP_COOLDOWN_SECONDS}s (env: GLOBAL_TP_COOLDOWN)")
         logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")
         logger.info(f"  Short Trigger: Score <= {self.config.SHORT_TRIGGER_SCORE}")
         logger.info("=" * 60)
@@ -168,9 +167,9 @@ class MacroIndexBot:
         self._running = True
         logger.info("MACRO INDEX BOT STARTED")
 
-        # Start WebSocket ticker stream for real-time prices (REQUIRED for SL monitoring!)
+        # Start WebSocket ticker stream for real-time prices
         await self.data_feed.start_ticker_stream()
-        logger.info("Ticker stream started - SL monitoring active")
+        logger.info("Ticker stream started - Global TP monitoring active")
 
         # Start macro calculation and monitor loops
         self._macro_task = asyncio.create_task(self._macro_loop())
@@ -230,11 +229,11 @@ class MacroIndexBot:
 
         logger.info(f"{'='*60}")
         logger.info(f"MACRO DIRECTION CHANGE: {old_direction.value} -> {new_direction.value}")
-        logger.info(f"NOTE: Positions NOT closed - only SL/trailing stop can close")
+        logger.info(f"NOTE: Positions NOT closed - only Global TP can close")
         logger.info(f"{'='*60}")
 
         # REMOVED: No longer closing positions on macro flip
-        # Positions only close via individual SL or trailing stop
+        # Positions only close via Global TP
 
         # Open new positions if not flat (additive, not replacing)
         if new_direction != MacroDirection.FLAT:
@@ -357,7 +356,7 @@ class MacroIndexBot:
 
         for symbol in self.whitelisted_symbols:
             try:
-                # Open position (SL handled by software monitoring in check_exit)
+                # Open position (exits handled by Global TP only)
                 if direction == "LONG":
                     result = await self.order_executor.open_long(
                         symbol=symbol,
@@ -419,8 +418,8 @@ class MacroIndexBot:
             logger.error(f"Error in position recovery check: {e}")
 
     async def _monitor_loop(self):
-        """Monitor open positions - Check SL and Trailing Stop"""
-        logger.info(f"Position monitor loop started (SL: {self.config.STOP_LOSS_PERCENT}%, Trailing: {self.config.TRAILING_DISTANCE_PERCENT}% @ {self.config.TRAILING_ACTIVATION_PERCENT}%)")
+        """Monitor open positions - Check Global TP only"""
+        logger.info(f"Position monitor loop started (Global TP: {self.config.GLOBAL_TP_PERCENT}%)")
         check_count = 0
 
         while self._running:
@@ -432,32 +431,12 @@ class MacroIndexBot:
                 positions = self.position_tracker.get_all_positions()
                 check_count += 1
 
-                # Log status every 12 checks (~1 minute) - more frequent for debugging
-                if check_count % 12 == 0:
-                    if positions:
-                        # Calculate PnL for each position to find worst
-                        pnl_list = []
-                        for p in positions:
-                            price = self.data_feed.get_current_price(p.symbol) or p.entry_price
-                            if p.direction == "LONG":
-                                pnl = ((price - p.entry_price) / p.entry_price) * 100
-                            else:
-                                pnl = ((p.entry_price - price) / p.entry_price) * 100
-                            pnl_list.append((p.symbol, pnl))
-
-                        worst = min(pnl_list, key=lambda x: x[1]) if pnl_list else ('', 0)
-                        best = max(pnl_list, key=lambda x: x[1]) if pnl_list else ('', 0)
-                        below_sl = [x for x in pnl_list if x[1] <= -self.config.STOP_LOSS_PERCENT]
-
-                        logger.info(f"SL MONITOR: {len(positions)} pos | Best: {best[0]} {best[1]:+.1f}% | Worst: {worst[0]} {worst[1]:+.1f}%")
-                        if below_sl:
-                            logger.warning(f"🚨 {len(below_sl)} POSITIONS BELOW SL: {[f'{s}:{p:.1f}%' for s,p in below_sl]}")
 
                 if not positions:
                     await asyncio.sleep(5)
                     continue
 
-                # === GLOBAL TP CHECK ===
+                # === GLOBAL TP CHECK (ONLY EXIT MECHANISM) ===
                 total_pnl = 0
                 total_margin = 0
 
@@ -485,64 +464,7 @@ class MacroIndexBot:
                         logger.info(f"{'='*60}")
                         await self._close_all_positions_global_tp()
                         self.last_global_tp_time = time.time()
-                        await asyncio.sleep(5)
-                        continue  # Skip individual position checks this cycle
 
-                # Check each position for SL/Trailing exit
-                for position in positions:
-                    symbol = position.symbol
-
-                    # Try WebSocket cache first, then REST API fallback
-                    current_price = self.data_feed.get_current_price(symbol)
-                    if not current_price:
-                        # Fallback to REST API if WebSocket cache is empty
-                        ticker = await self.data_feed.get_ticker(symbol)
-                        if ticker:
-                            current_price = ticker.price
-                        else:
-                            logger.warning(f"SL MONITOR: No price for {symbol} - SKIPPING SL CHECK!")
-                            continue
-
-                    if position.entry_price <= 0:
-                        logger.warning(f"SL MONITOR: {symbol} has invalid entry_price={position.entry_price} - SKIPPING!")
-                        continue
-
-                    # Calculate current PnL %
-                    if position.direction == "LONG":
-                        current_pnl_pct = ((current_price - position.entry_price) / position.entry_price) * 100
-                    else:  # SHORT
-                        current_pnl_pct = ((position.entry_price - current_price) / position.entry_price) * 100
-
-                    # Update peak profit if current is higher
-                    if current_pnl_pct > position.peak_profit_pct:
-                        position.peak_profit_pct = current_pnl_pct
-                        # Log when trailing activates
-                        if current_pnl_pct >= self.config.TRAILING_ACTIVATION_PERCENT:
-                            logger.info(f"TRAILING ACTIVE: {symbol} peak={current_pnl_pct:.1f}% (exit at {current_pnl_pct - self.config.TRAILING_DISTANCE_PERCENT:.1f}%)")
-
-                    # Check if SL or Trailing should trigger
-                    exit_action = self.exit_manager.check_exit(
-                        direction=position.direction,
-                        entry_price=position.entry_price,
-                        current_price=current_price,
-                        peak_profit_pct=position.peak_profit_pct
-                    )
-
-                    if exit_action and exit_action.get('action') == 'close':
-                        logger.warning(f"🚨 EXIT TRIGGERED: {symbol} | Reason: {exit_action.get('reason')} | PnL: {current_pnl_pct:.2f}%")
-                        await self._execute_exit(symbol, position, exit_action, current_price)
-                        await asyncio.sleep(0.1)  # Small delay between exits
-                    elif current_pnl_pct <= -self.config.STOP_LOSS_PERCENT:
-                        # CRITICAL: Position is past SL but check_exit didn't trigger - force close!
-                        logger.error(f"🚨🚨 FORCE SL: {symbol} at {current_pnl_pct:.2f}% - check_exit failed, forcing close!")
-                        await self._execute_exit(symbol, position, {'action': 'close', 'reason': 'force_stop_loss'}, current_price)
-                        await asyncio.sleep(0.1)
-                    elif current_pnl_pct <= -2.0:
-                        # Log warning for positions approaching SL
-                        logger.warning(f"⚠️ SL WARNING: {symbol} at {current_pnl_pct:.2f}% (SL triggers at -{self.config.STOP_LOSS_PERCENT}%)")
-
-                # Save updated peak profits to Redis periodically
-                await self.position_tracker._save_to_redis()
                 await asyncio.sleep(5)  # Check every 5 seconds
 
             except asyncio.CancelledError:
