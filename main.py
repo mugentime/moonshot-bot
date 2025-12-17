@@ -348,55 +348,26 @@ class MacroIndexBot:
 
         logger.info("Closing ALL positions for Global TP...")
 
-        # Get balance BEFORE closing - with sanity check
+        # Get balance BEFORE closing
         balance_before = await self._get_wallet_balance()
-        if balance_before > 1000:  # Sanity check - account has ~$18
-            logger.error(f"SANITY CHECK FAILED: balance_before={balance_before} is impossible, using 0")
-            balance_before = 0
+
+        # Track symbols we're closing for later PnL lookup
+        symbols_to_close = [p.symbol for p in positions]
+        symbol_directions = {p.symbol: p.direction for p in positions}
+        close_start_time = int(time.time() * 1000)  # Timestamp for Binance query
+
         closed = 0
-        total_pnl = 0
-        position_details = []  # For TP tracker
 
         for position in positions:
             symbol = position.symbol
             try:
-                current_price = await self.data_feed.get_current_price_safe(symbol)
-                if current_price is None:
-                    logger.warning(f"No price for {symbol} in Global TP, using entry price")
-                    current_price = position.entry_price
-
                 if position.direction == "LONG":
                     result = await self.order_executor.close_long(symbol)
-                    pnl_pct = ((current_price - position.entry_price) / position.entry_price) * 100
                 else:
                     result = await self.order_executor.close_short(symbol)
-                    pnl_pct = ((position.entry_price - current_price) / position.entry_price) * 100
 
                 if result.success:
                     closed += 1
-                    pnl_usd = position.margin * (pnl_pct / 100) * self.config.LEVERAGE
-                    total_pnl += pnl_usd
-
-                    # Collect position details for TP tracker
-                    position_details.append({
-                        'symbol': symbol,
-                        'direction': position.direction,
-                        'entry_price': position.entry_price,
-                        'exit_price': current_price,
-                        'pnl_usd': pnl_usd,
-                        'pnl_percent': pnl_pct * self.config.LEVERAGE,
-                        'margin': position.margin
-                    })
-
-                    profit_tracker.record_exit(
-                        symbol=symbol,
-                        exit_price=current_price,
-                        exit_reason="global_tp",
-                        pnl_percent=pnl_pct * self.config.LEVERAGE,
-                        pnl_usd=pnl_usd,
-                        peak_profit=position.peak_profit_pct
-                    )
-
                     await self.position_tracker.remove_position(symbol)
                 else:
                     logger.error(f"Failed to close {symbol}: {result.error}")
@@ -406,16 +377,70 @@ class MacroIndexBot:
 
             await asyncio.sleep(0.05)  # Small delay between closes
 
-        # Get balance AFTER closing - with sanity check
+        # Wait a moment for Binance to process all trades
+        await asyncio.sleep(1.0)
+
+        # Get balance AFTER closing
         balance_after = await self._get_wallet_balance()
-        if balance_after > 1000:  # Sanity check - account has ~$18
-            logger.error(f"SANITY CHECK FAILED: balance_after={balance_after} is impossible, using 0")
-            balance_after = 0
 
         # Only record if we actually closed positions
         if closed == 0:
             logger.warning("No positions were actually closed - skipping TP record")
             return
+
+        # Fetch ACTUAL realized PnL from Binance (source of truth)
+        position_details = []
+        try:
+            income = await self.data_feed.client.futures_income_history(
+                incomeType='REALIZED_PNL',
+                startTime=close_start_time,
+                limit=200
+            )
+
+            # Group PnL by symbol
+            pnl_by_symbol = {}
+            for item in income:
+                sym = item.get('symbol', '')
+                if sym in symbols_to_close:
+                    pnl = float(item.get('income', 0))
+                    if sym not in pnl_by_symbol:
+                        pnl_by_symbol[sym] = 0
+                    pnl_by_symbol[sym] += pnl
+
+            # Build position details with REAL PnL from Binance
+            for symbol in symbols_to_close:
+                real_pnl = pnl_by_symbol.get(symbol, 0)
+                direction = symbol_directions.get(symbol, 'LONG')
+
+                position_details.append({
+                    'symbol': symbol,
+                    'direction': direction,
+                    'entry_price': 0,  # Not needed - we have real PnL
+                    'exit_price': 0,   # Not needed - we have real PnL
+                    'pnl_usd': real_pnl,
+                    'pnl_percent': 0,  # Would need margin to calculate
+                    'margin': 0
+                })
+
+                # Record to profit tracker
+                profit_tracker.record_exit(
+                    symbol=symbol,
+                    exit_price=0,
+                    exit_reason="global_tp",
+                    pnl_percent=0,
+                    pnl_usd=real_pnl,
+                    peak_profit=0
+                )
+
+            logger.info(f"Fetched real PnL for {len(pnl_by_symbol)} symbols from Binance")
+
+        except Exception as e:
+            logger.error(f"Error fetching real PnL from Binance: {e}")
+            # Fallback: use balance difference as total profit
+            position_details = [{'symbol': 'ALL', 'direction': 'MIXED', 'pnl_usd': balance_after - balance_before}]
+
+        # Calculate actual profit from balance change (most accurate)
+        actual_profit = balance_after - balance_before
 
         # Record to TP tracker
         tp_tracker.record_tp(
@@ -440,7 +465,7 @@ class MacroIndexBot:
         logger.info(f"{'='*60}")
         logger.info(f"GLOBAL TP COMPLETE: Closed {closed}/{len(positions)} positions")
         logger.info(f"Balance: ${balance_before:.2f} -> ${balance_after:.2f}")
-        logger.info(f"PROFIT: ${balance_after - balance_before:+.2f}")
+        logger.info(f"REAL PROFIT: ${actual_profit:+.2f}")
         logger.info(f"Cooldown: {self.config.GLOBAL_TP_COOLDOWN_SECONDS}s before reopening")
         logger.info(f"{'='*60}")
 
