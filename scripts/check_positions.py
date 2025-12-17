@@ -40,12 +40,18 @@ async def check_positions():
     else:
         print('NO OPEN POSITIONS!')
 
-    # Check balance
-    account = await client.futures_account_balance()
-    for a in account:
-        if a['asset'] == 'USDT':
-            print(f'USDT Balance: ${float(a["balance"]):.2f}')
-            break
+    # Check balance - use futures_account() for accurate figures
+    account = await client.futures_account()
+    wallet_balance = float(account['totalWalletBalance'])
+    margin_balance = float(account['totalMarginBalance'])
+    available_balance = float(account['availableBalance'])
+    unrealized_pnl = float(account['totalUnrealizedProfit'])
+
+    print()
+    print(f'Wallet Balance: ${wallet_balance:.2f}')
+    print(f'Margin Balance: ${margin_balance:.2f}')
+    print(f'Unrealized PnL: ${unrealized_pnl:+.2f}')
+    print(f'Available Balance: ${available_balance:.2f}')
 
     await client.close_connection()
 
