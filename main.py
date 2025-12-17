@@ -926,7 +926,7 @@ async def positions():
             pos_margin = notional / leverage
             side = 'LONG' if amt > 0 else 'SHORT'
             roi = ((mark - entry) / entry * 100) if side == 'LONG' else ((entry - mark) / entry * 100)
-            sl_dist = 10.0 + roi
+            sl_dist = (bot.config.STOP_LOSS_PERCENT if bot else 20.0) + roi
 
             position_list.append({'symbol': p['symbol'], 'side': side, 'roi': roi, 'pnl': pnl, 'sl_dist': sl_dist, 'margin': pos_margin, 'liq': liq})
             total_pnl += pnl
