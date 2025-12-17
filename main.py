@@ -782,12 +782,11 @@ class MacroIndexBot:
             logger.error(f"Error in capital reallocation: {e}")
 
     async def _get_wallet_balance(self) -> float:
-        """Get current USDT wallet balance from Binance"""
+        """Get current account equity (totalMarginBalance) from Binance"""
         try:
-            account = await self.data_feed.client.futures_account_balance()
-            for asset in account:
-                if asset['asset'] == 'USDT':
-                    return float(asset['balance'])
+            account = await self.data_feed.client.futures_account()
+            # Use totalMarginBalance (Account Equity) - works correctly with multi-asset accounts
+            return float(account.get('totalMarginBalance', 0))
         except Exception as e:
             logger.error(f"Error getting wallet balance: {e}")
         return 0.0
