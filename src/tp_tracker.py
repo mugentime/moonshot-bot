@@ -178,15 +178,25 @@ Win Rate:            {stats.get('win_rate', 0):.1f}%
 Avg Trigger %:       {stats['avg_trigger_percent']:.2f}%
 Avg Positions:       {stats['avg_positions']:.1f}
 
-RECENT EVENTS
--------------"""
+ALL EVENTS
+----------"""
         print(report)
 
-        for event in self.events[-5:]:  # Last 5 events
-            print(f"\n{event.timestamp[:16]} | {event.positions_closed} pos | "
-                  f"Trigger: {event.trigger_percent:.1f}% | "
-                  f"Profit: ${event.profit_usd:+.2f} | "
-                  f"Balance: ${event.balance_before:.2f} -> ${event.balance_after:.2f}")
+        for event in self.events:
+            print(f"""
+{event.timestamp[:19]}
+  Trigger:        {event.trigger_percent:.2f}% (threshold: {event.threshold_percent:.2f}%)
+  Positions:      {event.positions_closed}
+  Balance BEFORE: ${event.balance_before:.2f}
+  Balance AFTER:  ${event.balance_after:.2f}
+  PROFIT:         ${event.profit_usd:+.2f}""")
+
+            # Show individual positions
+            if event.positions:
+                print("  Positions:")
+                for p in event.positions:
+                    status = "WIN" if p.get('pnl_usd', 0) > 0 else "LOSS"
+                    print(f"    {p.get('symbol', 'N/A'):15} {p.get('direction', ''):5} ${p.get('pnl_usd', 0):+.4f} {status}")
 
         print("\n" + "=" * 80)
 
