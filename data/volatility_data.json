@@ -1,5 +1,5 @@
 {
-  "last_updated": "2025-12-17T08:39:56.241314",
+  "last_updated": "2025-12-17T08:51:48.480063",
   "records": [
     {
       "symbol": "HMSTRUSDT",
@@ -3060,6 +3060,3066 @@
       "velocity_15m": -0.34059945504086986,
       "price": 0.02926,
       "direction": "SHORT"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:40:57.093237",
+      "velocity_1m": 0.10178117048346302,
+      "velocity_5m": -0.35460992907800903,
+      "velocity_15m": -0.8568548387096709,
+      "price": 0.0001967,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:40:57.410083",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:40:57.697884",
+      "velocity_1m": -0.176488643339464,
+      "velocity_5m": -0.23262948003477218,
+      "velocity_15m": -0.7300198402604628,
+      "price": 0.39027,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:40:58.007861",
+      "velocity_1m": 0.1735357917570428,
+      "velocity_5m": -0.021649707728952288,
+      "velocity_15m": -0.49558284852402723,
+      "price": 0.04618,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:40:58.327901",
+      "velocity_1m": 0.18359853121175726,
+      "velocity_5m": 0.0,
+      "velocity_15m": -0.21334958854008282,
+      "price": 3.274,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:40:58.648813",
+      "velocity_1m": 0.20129724893759743,
+      "velocity_5m": -0.06691947356681295,
+      "velocity_15m": -0.5107705973795271,
+      "price": 0.0448,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:40:58.957478",
+      "velocity_1m": 0.11432926829269148,
+      "velocity_5m": -0.09507510933636526,
+      "velocity_15m": -0.8117802529733807,
+      "price": 0.05254,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:40:59.251884",
+      "velocity_1m": 0.0341880341880328,
+      "velocity_5m": -0.20463847203273383,
+      "velocity_15m": -0.44232732221843546,
+      "price": 0.02926,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:40:59.549240",
+      "velocity_1m": 0.12853470437018366,
+      "velocity_5m": -0.5743458838545066,
+      "velocity_15m": -0.8905852417302876,
+      "price": 0.1558,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:40:59.845452",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.3382187147688799,
+      "velocity_15m": -0.8968609865470828,
+      "price": 0.000884,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:41:00.131803",
+      "velocity_1m": -0.5737413271659906,
+      "velocity_5m": -1.6324914195194988,
+      "velocity_15m": -3.471652489313011,
+      "price": 2.2355,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:41:00.435615",
+      "velocity_1m": 1.2876523338698507,
+      "velocity_5m": -0.8775877587758808,
+      "velocity_15m": 0.8701625830089269,
+      "price": 0.0881,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:41:00.730227",
+      "velocity_1m": 0.2490421455938636,
+      "velocity_5m": -0.1145256728383365,
+      "velocity_15m": -0.32380952380953043,
+      "price": 0.5233,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:41:01.037324",
+      "velocity_1m": 0.3762227238525184,
+      "velocity_5m": -0.14970059880240208,
+      "velocity_15m": -1.3313609467455718,
+      "price": 0.01334,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:41:01.357971",
+      "velocity_1m": 0.13736263736263177,
+      "velocity_5m": -0.06854009595614342,
+      "velocity_15m": -1.4864864864864962,
+      "price": 0.01458,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:41:01.664793",
+      "velocity_1m": 0.4201680672268882,
+      "velocity_5m": 0.0,
+      "velocity_15m": -0.41666666666666413,
+      "price": 0.0239,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:41:01.969605",
+      "velocity_1m": 0.24503130955622052,
+      "velocity_5m": -0.4864864864864854,
+      "velocity_15m": -0.7279590186033955,
+      "price": 0.07364,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:41:02.285412",
+      "velocity_1m": 0.3715498938428908,
+      "velocity_5m": 0.02644802962178292,
+      "velocity_15m": -0.434381992891927,
+      "price": 0.07564,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:41:02.595247",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.15738117721121003,
+      "velocity_15m": -0.3142677561282302,
+      "price": 0.03172,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:41:02.910965",
+      "velocity_1m": 0.17554125219425848,
+      "velocity_5m": -0.11668611435238732,
+      "velocity_15m": -0.3202328966521077,
+      "price": 0.03424,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:41:03.223251",
+      "velocity_1m": 0.28555111364934815,
+      "velocity_5m": -0.09482268158543138,
+      "velocity_15m": -0.7535795026375302,
+      "price": 0.005268,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:41:03.529460",
+      "velocity_1m": 0.4462072384729787,
+      "velocity_5m": 0.09881422924900782,
+      "velocity_15m": -2.030947775628628,
+      "price": 0.04052,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:41:03.830070",
+      "velocity_1m": 0.052903055151430546,
+      "velocity_5m": 0.8397760597174045,
+      "velocity_15m": -1.0723159408918592,
+      "price": 0.007565,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:41:04.125408",
+      "velocity_1m": 0.3263403263403292,
+      "velocity_5m": 0.09302325581395615,
+      "velocity_15m": -0.4625346901017581,
+      "price": 0.2152,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:41:04.433639",
+      "velocity_1m": 0.03791469194312889,
+      "velocity_5m": 0.05688282138793195,
+      "velocity_15m": -0.6214689265536772,
+      "price": 0.0005277,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:41:04.739154",
+      "velocity_1m": 0.17921146953404182,
+      "velocity_5m": -0.39455262822961157,
+      "velocity_15m": -1.6216216216216273,
+      "price": 7.826,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:41:05.042011",
+      "velocity_1m": 0.7367387033398805,
+      "velocity_5m": 1.4175045327179818,
+      "velocity_15m": -0.9975864843121409,
+      "price": 0.06153,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:41:05.352657",
+      "velocity_1m": 0.0607738537375853,
+      "velocity_5m": 0.22319918836659322,
+      "velocity_15m": -0.60370270995438,
+      "price": 1.4818,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:41:05.655962",
+      "velocity_1m": 0.19260197351062025,
+      "velocity_5m": -0.3359315539458844,
+      "velocity_15m": 0.10544352181361695,
+      "price": 0.37975,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:41:05.963582",
+      "velocity_1m": 0.01673360107094398,
+      "velocity_5m": 0.13402579996648809,
+      "velocity_15m": -0.5821689953426532,
+      "price": 0.05977,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:41:06.270240",
+      "velocity_1m": 0.06506180871827971,
+      "velocity_5m": 0.19543973941367282,
+      "velocity_15m": -0.7101355713363506,
+      "price": 0.01538,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:41:06.578417",
+      "velocity_1m": -0.11580775911985632,
+      "velocity_5m": 0.290697674418613,
+      "velocity_15m": -0.5763688760806881,
+      "price": 0.01725,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:41:06.888972",
+      "velocity_1m": 0.09066930431915513,
+      "velocity_5m": 0.06592501030078017,
+      "velocity_15m": -2.0883728430898314,
+      "price": 0.12143,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:41:07.219307",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.37568306010928615,
+      "velocity_15m": 0.37568306010928615,
+      "price": 0.02939,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:42:08.167366",
+      "velocity_1m": -0.05099439061703336,
+      "velocity_5m": -0.305188199389631,
+      "velocity_15m": -0.9100101112234663,
+      "price": 0.000196,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:42:08.475030",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:42:08.784716",
+      "velocity_1m": 0.03566061285311113,
+      "velocity_5m": 0.6561242535305141,
+      "velocity_15m": 0.25527786996145324,
+      "price": 0.39273,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:42:09.097237",
+      "velocity_1m": -0.02175805047868377,
+      "velocity_5m": -0.5841627001298126,
+      "velocity_15m": -0.8416055243849837,
+      "price": 0.04595,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:42:09.392197",
+      "velocity_1m": -0.03059039461610076,
+      "velocity_5m": 0.0,
+      "velocity_15m": -0.30506406345333226,
+      "price": 3.268,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:42:09.697690",
+      "velocity_1m": -0.02238137869291881,
+      "velocity_5m": -0.13413816230717093,
+      "velocity_15m": -0.6671114076050737,
+      "price": 0.04467,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:42:10.004274",
+      "velocity_1m": -0.019029495718356083,
+      "velocity_5m": 0.1334095673718327,
+      "velocity_15m": -0.5301022340022634,
+      "price": 0.05254,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:42:10.308941",
+      "velocity_1m": 0.06839945280438665,
+      "velocity_5m": -0.13651877133105245,
+      "velocity_15m": -0.30664395229982894,
+      "price": 0.02926,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:42:10.611370",
+      "velocity_1m": 0.12828736369466193,
+      "velocity_5m": 0.19255455712451525,
+      "velocity_15m": -0.6365372374283902,
+      "price": 0.1561,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:42:10.912688",
+      "velocity_1m": -0.11325028312571057,
+      "velocity_5m": -0.2262443438914082,
+      "velocity_15m": -0.8988764044943796,
+      "price": 0.000882,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:42:11.233529",
+      "velocity_1m": -0.9592219148746353,
+      "velocity_5m": -1.508496384045424,
+      "velocity_15m": -2.635964912280694,
+      "price": 2.2199,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:42:11.538931",
+      "velocity_1m": 0.022601423889711973,
+      "velocity_5m": 0.24917884245102714,
+      "velocity_15m": 1.537226109900204,
+      "price": 0.08851,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:42:11.839669",
+      "velocity_1m": 0.03832151753209005,
+      "velocity_5m": -0.09567546880978664,
+      "velocity_15m": -0.51448170731708,
+      "price": 0.5221,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:42:12.136533",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.150375939849631,
+      "velocity_15m": -1.5521064301552114,
+      "price": 0.01332,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:42:12.437094",
+      "velocity_1m": 0.06896551724137649,
+      "velocity_5m": -0.3434065934065913,
+      "velocity_15m": -1.4935505770536301,
+      "price": 0.01451,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:42:12.736184",
+      "velocity_1m": 0.4219409282700543,
+      "velocity_5m": 0.0,
+      "velocity_15m": -0.4184100418410016,
+      "price": 0.0238,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:42:13.048566",
+      "velocity_1m": -0.05443658138268695,
+      "velocity_5m": -0.10881392818280296,
+      "velocity_15m": -0.9307972480776961,
+      "price": 0.07344,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:42:13.352268",
+      "velocity_1m": -0.02651113467655388,
+      "velocity_5m": -0.02651113467655388,
+      "velocity_15m": -0.5275652862041647,
+      "price": 0.07542,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:42:13.661035",
+      "velocity_1m": -0.06303183107469014,
+      "velocity_5m": -0.18885741265343897,
+      "velocity_15m": -0.22026431718061867,
+      "price": 0.03171,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:42:13.959343",
+      "velocity_1m": -0.08782201405152881,
+      "velocity_5m": -0.08782201405152881,
+      "velocity_15m": -0.4085205719288043,
+      "price": 0.03413,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:42:14.257223",
+      "velocity_1m": -0.038008361839609754,
+      "velocity_5m": 0.0761035007610286,
+      "velocity_15m": -0.6985085897677876,
+      "price": 0.00526,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:42:14.556294",
+      "velocity_1m": 0.02456398919183523,
+      "velocity_5m": 1.017117340610272,
+      "velocity_15m": -0.4400977995110015,
+      "price": 0.04072,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:42:14.866647",
+      "velocity_1m": 0.18370292612518202,
+      "velocity_5m": 1.895102095288945,
+      "velocity_15m": 0.8053868497491457,
+      "price": 0.007635,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:42:15.176722",
+      "velocity_1m": -0.04662004662004149,
+      "velocity_5m": -0.04662004662004149,
+      "velocity_15m": -0.6947660954145444,
+      "price": 0.2144,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:42:15.496093",
+      "velocity_1m": -0.0759734093067239,
+      "velocity_5m": -0.26540284360188166,
+      "velocity_15m": -0.8107088989441822,
+      "price": 0.0005261,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:42:15.812950",
+      "velocity_1m": -0.10238034297414904,
+      "velocity_5m": -0.33197139938712716,
+      "velocity_15m": -1.7000377786173,
+      "price": 7.806,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:42:16.116786",
+      "velocity_1m": 0.04886789379378115,
+      "velocity_5m": 1.0197368421052673,
+      "velocity_15m": -0.4538087520259247,
+      "price": 0.06142,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:42:16.417634",
+      "velocity_1m": 0.006769105801122926,
+      "velocity_5m": -0.11493475762288112,
+      "velocity_15m": -0.838982482045772,
+      "price": 1.4774,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:42:16.728603",
+      "velocity_1m": 0.29819237366406237,
+      "velocity_5m": -0.26764628706376825,
+      "velocity_15m": 0.3670548469724436,
+      "price": 0.38008,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:42:17.041363",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.10036801605887848,
+      "velocity_15m": -0.45007501250208265,
+      "price": 0.05972,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:42:17.344324",
+      "velocity_1m": -0.0652315720808845,
+      "velocity_5m": -0.19543973941368414,
+      "velocity_15m": -0.9055627425614456,
+      "price": 0.01532,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:42:17.645816",
+      "velocity_1m": 0.2326934264106944,
+      "velocity_5m": 0.2326934264106944,
+      "velocity_15m": -0.6916426512968418,
+      "price": 0.01723,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:42:17.952541",
+      "velocity_1m": 0.12329442709189325,
+      "velocity_5m": 0.2964182791272122,
+      "velocity_15m": -1.821552349480131,
+      "price": 0.12181,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:42:18.262924",
+      "velocity_1m": 0.13633265167006942,
+      "velocity_5m": 0.17047391749062882,
+      "velocity_15m": 0.4444444444444382,
+      "price": 0.02938,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:43:19.180445",
+      "velocity_1m": -0.10209290454312289,
+      "velocity_5m": -0.5083884087442792,
+      "velocity_15m": -1.0616784630940326,
+      "price": 0.0001957,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:43:19.485802",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:43:19.794442",
+      "velocity_1m": -0.13487377850162227,
+      "velocity_5m": 0.37343018645932347,
+      "velocity_15m": 0.1710230753522575,
+      "price": 0.39243,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:43:20.099385",
+      "velocity_1m": 0.021758050478668675,
+      "velocity_5m": -0.5624053644819452,
+      "velocity_15m": -0.7770343190157698,
+      "price": 0.04597,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:43:20.406145",
+      "velocity_1m": -0.06119951040391003,
+      "velocity_5m": -0.06119951040391003,
+      "velocity_15m": -0.45717768972874495,
+      "price": 3.266,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:43:20.715652",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.20111731843575376,
+      "velocity_15m": -0.7555555555555556,
+      "price": 0.04466,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:43:21.023560",
+      "velocity_1m": -0.190041809198029,
+      "velocity_5m": -0.05708848715509467,
+      "velocity_15m": -0.6244087038789099,
+      "price": 0.05252,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:43:21.323736",
+      "velocity_1m": 0.06839945280438665,
+      "velocity_5m": 0.0,
+      "velocity_15m": -0.4084411164057134,
+      "price": 0.02926,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:43:21.689032",
+      "velocity_1m": -0.06418485237483247,
+      "velocity_5m": -0.06418485237483247,
+      "velocity_15m": -0.9541984732824437,
+      "price": 0.1557,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:43:21.992680",
+      "velocity_1m": -0.1131221719457041,
+      "velocity_5m": -0.1131221719457041,
+      "velocity_15m": -0.674915635545561,
+      "price": 0.000883,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:43:22.297808",
+      "velocity_1m": -0.04095749522163115,
+      "velocity_5m": -2.416811053356445,
+      "velocity_15m": -4.412724661647589,
+      "price": 2.1965,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:43:22.590894",
+      "velocity_1m": 0.04480788618796725,
+      "velocity_5m": 3.260492542490465,
+      "velocity_15m": 1.9753368348938058,
+      "price": 0.08931,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:43:22.900059",
+      "velocity_1m": -0.07659900421293679,
+      "velocity_5m": -0.19127773527161454,
+      "velocity_15m": -0.5337399923751265,
+      "price": 0.5218,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:43:23.192251",
+      "velocity_1m": -0.30075187969924894,
+      "velocity_5m": -0.37565740045079965,
+      "velocity_15m": -1.9230769230769342,
+      "price": 0.01326,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:43:23.500651",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.20590253946464498,
+      "velocity_15m": -0.8861622358554868,
+      "price": 0.01454,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:43:23.842382",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": -0.4184100418410016,
+      "price": 0.0238,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:43:24.155156",
+      "velocity_1m": -0.013612850530895894,
+      "velocity_5m": -0.10879912960695873,
+      "velocity_15m": -0.9306717021850501,
+      "price": 0.07345,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:43:24.457535",
+      "velocity_1m": -0.013253810470523526,
+      "velocity_5m": -0.06623393826998061,
+      "velocity_15m": -0.47493403693933123,
+      "price": 0.07544,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:43:24.755075",
+      "velocity_1m": -0.06305170239596213,
+      "velocity_5m": -0.18891687657429962,
+      "velocity_15m": -0.15748031496063442,
+      "price": 0.0317,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:43:25.049040",
+      "velocity_1m": -0.0878477306002994,
+      "velocity_5m": -0.2047382275519176,
+      "velocity_15m": -0.5247813411078707,
+      "price": 0.03412,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:43:25.349842",
+      "velocity_1m": -0.038008361839609754,
+      "velocity_5m": 0.038037276531005436,
+      "velocity_15m": -0.679758308157108,
+      "price": 0.00526,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:43:25.652564",
+      "velocity_1m": -0.024467824810364875,
+      "velocity_5m": 1.0885700148441437,
+      "velocity_15m": -0.09779951100244101,
+      "price": 0.04086,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:43:25.955831",
+      "velocity_1m": -0.47071129707113546,
+      "velocity_5m": 1.8055369800722174,
+      "velocity_15m": 0.8746355685131207,
+      "price": 0.007612,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:43:26.255224",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.18613308515589178,
+      "velocity_15m": -0.6944444444444451,
+      "price": 0.2145,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:43:26.565274",
+      "velocity_1m": -0.07603117278084198,
+      "velocity_5m": -0.39787798408488,
+      "velocity_15m": -0.8300320694208637,
+      "price": 0.0005257,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:43:26.858823",
+      "velocity_1m": -0.7956878850102591,
+      "velocity_5m": -1.3653183616179574,
+      "velocity_15m": -2.620307382212135,
+      "price": 7.73,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:43:27.160141",
+      "velocity_1m": 0.3752039151712904,
+      "velocity_5m": 0.8357915437561514,
+      "velocity_15m": 0.1627869119322853,
+      "price": 0.06153,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:43:27.464814",
+      "velocity_1m": -0.027065430678662693,
+      "velocity_5m": -0.1621731198053894,
+      "velocity_15m": -0.6989717050877051,
+      "price": 1.4775,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:43:27.759145",
+      "velocity_1m": -0.010545186122530975,
+      "velocity_5m": -0.44360448329263974,
+      "velocity_15m": -0.9040079427287502,
+      "price": 0.37928,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:43:28.074604",
+      "velocity_1m": 0.08392077878482954,
+      "velocity_5m": -0.4341292369343736,
+      "velocity_15m": -0.6166666666666589,
+      "price": 0.05963,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:43:28.409801",
+      "velocity_1m": -0.06518904823989304,
+      "velocity_5m": -0.13029315960912652,
+      "velocity_15m": -0.8408796895213448,
+      "price": 0.01533,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:43:28.703640",
+      "velocity_1m": 0.1747233546884029,
+      "velocity_5m": -0.058105752469492115,
+      "velocity_15m": -0.7501442585112617,
+      "price": 0.0172,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:43:29.001320",
+      "velocity_1m": 0.00818397577543989,
+      "velocity_5m": 0.7751937984496093,
+      "velocity_15m": -1.1726647796198892,
+      "price": 0.1222,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:43:29.311287",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.20449897750510412,
+      "velocity_15m": 0.547195622435022,
+      "price": 0.0294,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:44:30.259713",
+      "velocity_1m": 0.1023017902813324,
+      "velocity_5m": -0.40712468193383833,
+      "velocity_15m": -1.2613521695257213,
+      "price": 0.0001957,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:44:30.568517",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:44:30.873043",
+      "velocity_1m": 1.7168041818274953,
+      "velocity_5m": 1.5346838551258455,
+      "velocity_15m": 1.3842774684578791,
+      "price": 0.39696,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:44:31.180114",
+      "velocity_1m": 0.10888501742159079,
+      "velocity_5m": -0.2819956616052171,
+      "velocity_15m": -0.862626698296322,
+      "price": 0.04597,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:44:31.487445",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.2141982864136987,
+      "velocity_15m": -0.6398537477148052,
+      "price": 3.261,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:44:31.794858",
+      "velocity_1m": 0.08984725965859235,
+      "velocity_5m": -0.3354954148959905,
+      "velocity_15m": -1.0437486120364161,
+      "price": 0.04456,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:44:32.103462",
+      "velocity_1m": 0.11437285550895454,
+      "velocity_5m": 0.07621951219511884,
+      "velocity_15m": -0.6620011348590942,
+      "price": 0.05252,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:44:32.409414",
+      "velocity_1m": -0.06842285323297703,
+      "velocity_5m": -0.13675213675214304,
+      "velocity_15m": -0.4430811179277493,
+      "price": 0.02921,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:44:32.715769",
+      "velocity_1m": -0.06426735218508291,
+      "velocity_5m": -0.06426735218508291,
+      "velocity_15m": -1.2071156289707832,
+      "price": 0.1555,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:44:33.024265",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.1131221719457041,
+      "velocity_15m": -0.674915635545561,
+      "price": 0.000883,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:44:33.330584",
+      "velocity_1m": 0.1585073139803377,
+      "velocity_5m": -1.6367194449386402,
+      "velocity_15m": -3.6759581881533117,
+      "price": 2.2116,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:44:33.638023",
+      "velocity_1m": 0.2677077523703337,
+      "velocity_5m": 3.345596688893994,
+      "velocity_15m": 3.6673970706954244,
+      "price": 0.08989,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:44:33.950670",
+      "velocity_1m": 0.11522949875166773,
+      "velocity_5m": -0.13409961685824404,
+      "velocity_15m": -0.7047619047619117,
+      "price": 0.5213,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:44:34.255133",
+      "velocity_1m": -0.2259036144578352,
+      "velocity_5m": -0.30097817908201735,
+      "velocity_15m": -2.2140221402214015,
+      "price": 0.01325,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:44:34.562727",
+      "velocity_1m": -0.20661157024793741,
+      "velocity_5m": -0.48076923076923506,
+      "velocity_15m": -1.226993865030684,
+      "price": 0.01449,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:44:34.878706",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": -0.4184100418410016,
+      "price": 0.0238,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:44:35.182272",
+      "velocity_1m": 0.09540684203352953,
+      "velocity_5m": -0.02722570106179179,
+      "velocity_15m": -1.0509296685529361,
+      "price": 0.07344,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:44:35.486906",
+      "velocity_1m": 0.03980891719745521,
+      "velocity_5m": 0.03980891719745521,
+      "velocity_15m": -0.7373271889400986,
+      "price": 0.07539,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:44:35.791078",
+      "velocity_1m": -0.06305170239596213,
+      "velocity_5m": -0.06305170239596213,
+      "velocity_15m": -0.3144654088050404,
+      "price": 0.0317,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:44:36.095116",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.3510825043885373,
+      "velocity_15m": -0.7864841246722966,
+      "price": 0.03406,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:44:36.402588",
+      "velocity_1m": 0.09514747859181344,
+      "velocity_5m": 0.1332571863696947,
+      "velocity_15m": -0.7359879222494805,
+      "price": 0.00526,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:44:36.713279",
+      "velocity_1m": -0.5896805896805827,
+      "velocity_5m": 0.2974714923153249,
+      "velocity_15m": -0.9789525208027351,
+      "price": 0.04046,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:44:37.019069",
+      "velocity_1m": -0.2632271650434332,
+      "velocity_5m": 1.337255950788973,
+      "velocity_15m": -0.01319435281699608,
+      "price": 0.007578,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:44:37.323972",
+      "velocity_1m": 0.09337068160597839,
+      "velocity_5m": -0.04662004662004149,
+      "velocity_15m": -0.46425255338904403,
+      "price": 0.2144,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:44:37.630808",
+      "velocity_1m": 0.01904761904762984,
+      "velocity_5m": -0.3605313092979112,
+      "velocity_15m": -1.0365623822088148,
+      "price": 0.0005251,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:44:37.947226",
+      "velocity_1m": 0.03871966959215428,
+      "velocity_5m": -0.7808499743983608,
+      "velocity_15m": -2.441787287602265,
+      "price": 7.751,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:44:38.253092",
+      "velocity_1m": -0.12982797792924972,
+      "velocity_5m": 0.7531106745252049,
+      "velocity_15m": 2.039462775659086,
+      "price": 0.06154,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:44:38.576957",
+      "velocity_1m": 0.04063939311840667,
+      "velocity_5m": 0.020315568497337917,
+      "velocity_15m": -0.9190313275642199,
+      "price": 1.477,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:44:38.934677",
+      "velocity_1m": 0.2080863953641546,
+      "velocity_5m": 0.21336564549692527,
+      "velocity_15m": -1.399543852374045,
+      "price": 0.38044,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:44:39.258647",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.317991631799156,
+      "velocity_15m": -0.8655126498002658,
+      "price": 0.05956,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:44:39.566931",
+      "velocity_1m": 0.06535947712419168,
+      "velocity_5m": -0.06527415143602867,
+      "velocity_15m": -1.162040025823109,
+      "price": 0.01531,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:44:39.873581",
+      "velocity_1m": 0.2326934264106944,
+      "velocity_5m": 0.17441860465115566,
+      "velocity_15m": -0.6343713956170844,
+      "price": 0.01723,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:44:40.181112",
+      "velocity_1m": -0.20547382263499647,
+      "velocity_5m": 0.28908895680185276,
+      "velocity_15m": -1.300601528206799,
+      "price": 0.12142,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:44:40.499833",
+      "velocity_1m": -0.034013605442175486,
+      "velocity_5m": 0.4099760847283859,
+      "velocity_15m": 0.17041581458758676,
+      "price": 0.02939,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:45:41.433696",
+      "velocity_1m": -0.10214504596525932,
+      "velocity_5m": -0.5592272496187085,
+      "velocity_15m": -1.4112903225806386,
+      "price": 0.0001956,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:45:41.736676",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:45:42.033922",
+      "velocity_1m": -0.17930198494873187,
+      "velocity_5m": 1.2500320192627872,
+      "velocity_15m": 1.2500320192627872,
+      "price": 0.39527,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:45:42.463752",
+      "velocity_1m": -0.15220700152207134,
+      "velocity_5m": -0.5414771496642846,
+      "velocity_15m": -1.0771219302024997,
+      "price": 0.04592,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:45:42.801332",
+      "velocity_1m": -0.2450980392156865,
+      "velocity_5m": -0.5497861942577958,
+      "velocity_15m": -0.7921998781231031,
+      "price": 3.256,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:45:43.121104",
+      "velocity_1m": -0.33639829558196316,
+      "velocity_5m": -0.8257085471992909,
+      "velocity_15m": -1.3321492007104716,
+      "price": 0.04444,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:45:43.445257",
+      "velocity_1m": -0.285932138772393,
+      "velocity_5m": -0.43776170536734116,
+      "velocity_15m": -1.0592018157745375,
+      "price": 0.05231,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:45:43.790319",
+      "velocity_1m": 0.06849315068492871,
+      "velocity_5m": -0.13670539986330088,
+      "velocity_15m": -0.40899795501023195,
+      "price": 0.02922,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:45:44.105503",
+      "velocity_1m": -0.44958253050738994,
+      "velocity_5m": -0.7046764894298462,
+      "velocity_15m": -1.8366054464851258,
+      "price": 0.155,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:45:44.399545",
+      "velocity_1m": -0.2262443438914082,
+      "velocity_5m": -0.2262443438914082,
+      "velocity_15m": -0.8988764044943796,
+      "price": 0.000882,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:45:44.715335",
+      "velocity_1m": 0.7526979232792214,
+      "velocity_5m": -0.39001210382391854,
+      "velocity_15m": -2.1231609549819406,
+      "price": 2.222,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:45:45.049564",
+      "velocity_1m": 0.1664078100732165,
+      "velocity_5m": 2.149564430365425,
+      "velocity_15m": 3.4723813889525452,
+      "price": 0.09029,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:45:45.363080",
+      "velocity_1m": -0.4215366928530331,
+      "velocity_5m": -0.6499713247944864,
+      "velocity_15m": -1.0283755475147516,
+      "price": 0.5197,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:45:45.679703",
+      "velocity_1m": -0.22607385079126235,
+      "velocity_5m": -0.8239700374531889,
+      "velocity_15m": -2.0710059171597686,
+      "price": 0.01324,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:45:46.002075",
+      "velocity_1m": -0.2756719503790497,
+      "velocity_5m": -0.7544581618655624,
+      "velocity_15m": -1.2960436562073616,
+      "price": 0.01447,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:45:46.355889",
+      "velocity_1m": -0.4201680672269028,
+      "velocity_5m": -0.8368200836820179,
+      "velocity_15m": -1.2500000000000069,
+      "price": 0.0237,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:45:46.689249",
+      "velocity_1m": -0.3671970624234904,
+      "velocity_5m": -0.4889975550122238,
+      "velocity_15m": -1.5454911974196992,
+      "price": 0.07326,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:45:47.012887",
+      "velocity_1m": -0.4242343895002,
+      "velocity_5m": -0.7006874669487079,
+      "velocity_15m": -1.105990783410148,
+      "price": 0.07511,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:45:47.400360",
+      "velocity_1m": -0.2206809583858784,
+      "velocity_5m": -0.2206809583858784,
+      "velocity_15m": -0.5655042412818084,
+      "price": 0.03165,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:45:47.710447",
+      "velocity_1m": -0.38123167155424686,
+      "velocity_5m": -0.7885514018691573,
+      "velocity_15m": -1.1638056444573686,
+      "price": 0.03397,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:45:48.027432",
+      "velocity_1m": -0.32282567413596003,
+      "velocity_5m": -0.36066818526955047,
+      "velocity_15m": -0.7938007938007844,
+      "price": 0.005249,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:45:48.343126",
+      "velocity_1m": -0.12297097884899516,
+      "velocity_5m": 0.2221125370187557,
+      "velocity_15m": -0.538819495469013,
+      "price": 0.04061,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:45:48.645736",
+      "velocity_1m": 0.039354584809135486,
+      "velocity_5m": 0.859674646210818,
+      "velocity_15m": 0.4478398314014776,
+      "price": 0.007626,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:45:48.965297",
+      "velocity_1m": -0.5591798695247002,
+      "velocity_5m": -0.8364312267657974,
+      "velocity_15m": -1.0204081632653095,
+      "price": 0.2134,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:45:49.297195",
+      "velocity_1m": -0.24738344433874135,
+      "velocity_5m": -0.6255924170616163,
+      "velocity_15m": -1.1875589066918186,
+      "price": 0.0005242,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:45:49.621714",
+      "velocity_1m": -0.28346862517717103,
+      "velocity_5m": -1.1116790186557595,
+      "velocity_15m": -2.5682991313105847,
+      "price": 7.739,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:45:49.928444",
+      "velocity_1m": -0.38891589693729395,
+      "velocity_5m": -0.11374715632109299,
+      "velocity_15m": 1.2018439249259045,
+      "price": 0.06147,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:45:50.220468",
+      "velocity_1m": -0.28414856910899,
+      "velocity_5m": -0.4726855290701679,
+      "velocity_15m": -1.0539742212674574,
+      "price": 1.4739,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:45:50.532341",
+      "velocity_1m": -0.44591029023747353,
+      "velocity_5m": -0.4511635269906719,
+      "velocity_15m": -2.274081172783551,
+      "price": 0.37731,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:45:50.851632",
+      "velocity_1m": -0.3352329869259115,
+      "velocity_5m": -0.5020080321285169,
+      "velocity_15m": -1.1964107676969067,
+      "price": 0.05946,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:45:51.166549",
+      "velocity_1m": -0.3265839320705515,
+      "velocity_5m": -0.7156798959011107,
+      "velocity_15m": -1.5483870967741975,
+      "price": 0.01526,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:45:51.478439",
+      "velocity_1m": -0.5229517722254492,
+      "velocity_5m": -0.8685581933989625,
+      "velocity_15m": -1.2117714945181872,
+      "price": 0.01712,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:45:51.793480",
+      "velocity_1m": 0.5173688100517301,
+      "velocity_5m": 0.8902077151335293,
+      "velocity_15m": -0.7218752534674361,
+      "price": 0.1224,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:45:52.101861",
+      "velocity_1m": -0.13605442176870194,
+      "velocity_5m": -0.10207553589655931,
+      "velocity_15m": -0.03404834865508884,
+      "price": 0.02936,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:46:53.010963",
+      "velocity_1m": -0.7696254489481694,
+      "velocity_5m": -1.3768485466598595,
+      "velocity_15m": -2.3725391216557186,
+      "price": 0.0001934,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:46:53.329855",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:46:53.636676",
+      "velocity_1m": -0.08569412239137186,
+      "velocity_5m": 0.9755724801956239,
+      "velocity_15m": 1.6956979041071303,
+      "price": 0.39642,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:46:53.954276",
+      "velocity_1m": -0.21819768710452295,
+      "velocity_5m": -0.5004351610095757,
+      "velocity_15m": -1.2737478411053544,
+      "price": 0.04573,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:46:54.266023",
+      "velocity_1m": -0.36889025514909346,
+      "velocity_5m": -0.856531049250536,
+      "velocity_15m": -1.1890243902438935,
+      "price": 3.241,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:46:54.569272",
+      "velocity_1m": -0.33745781777278805,
+      "velocity_5m": -0.8504923903312409,
+      "velocity_15m": -1.5774272383914736,
+      "price": 0.0443,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:46:54.888994",
+      "velocity_1m": -0.3248614561437101,
+      "velocity_5m": -0.7421503330161778,
+      "velocity_15m": -1.3055818353831656,
+      "price": 0.05216,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:46:55.204252",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.23939808481531172,
+      "velocity_15m": -0.5455165359699863,
+      "price": 0.02917,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:46:55.526121",
+      "velocity_1m": -0.51546391752577,
+      "velocity_5m": -0.9621552277100714,
+      "velocity_15m": -2.0925808497146465,
+      "price": 0.1544,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:46:55.856114",
+      "velocity_1m": -0.5675368898978326,
+      "velocity_5m": -0.7927519818799494,
+      "velocity_15m": -1.4623172103487052,
+      "price": 0.000876,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:46:56.187195",
+      "velocity_1m": -0.31044722397192054,
+      "velocity_5m": -1.146604800571074,
+      "velocity_15m": -2.627993847506046,
+      "price": 2.2157,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:46:56.506147",
+      "velocity_1m": -0.8828788556101912,
+      "velocity_5m": 0.226014238897057,
+      "velocity_15m": 0.6011796733212371,
+      "price": 0.08869,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:46:56.821430",
+      "velocity_1m": -0.5967276227141467,
+      "velocity_5m": -1.053841732132604,
+      "velocity_15m": -1.600609756097575,
+      "price": 0.5164,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:46:57.134297",
+      "velocity_1m": -0.07564296520424604,
+      "velocity_5m": -0.8258258258258312,
+      "velocity_15m": -1.7113095238095317,
+      "price": 0.01321,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:46:57.446727",
+      "velocity_1m": -0.27586206896551796,
+      "velocity_5m": -0.27586206896551796,
+      "velocity_15m": -1.2295081967213086,
+      "price": 0.01446,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:46:57.760751",
+      "velocity_1m": -0.42194092827003965,
+      "velocity_5m": -0.42194092827003965,
+      "velocity_15m": -1.2552301255230194,
+      "price": 0.0236,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:46:58.076506",
+      "velocity_1m": -0.4639104925637783,
+      "velocity_5m": -0.7212847033206351,
+      "velocity_15m": -1.6581288757077313,
+      "price": 0.07295,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:46:58.378838",
+      "velocity_1m": -0.5457933972311069,
+      "velocity_5m": -0.9676564156945846,
+      "velocity_15m": -1.5548820661483733,
+      "price": 0.07471,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:46:58.673526",
+      "velocity_1m": -0.22102936532994535,
+      "velocity_5m": -0.4097069019854969,
+      "velocity_15m": -0.628930817610059,
+      "price": 0.0316,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:46:58.989543",
+      "velocity_1m": -0.47086521483225546,
+      "velocity_5m": -0.9953161592505856,
+      "velocity_15m": -1.514269073966219,
+      "price": 0.03382,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:46:59.292546",
+      "velocity_1m": -0.2285714285714424,
+      "velocity_5m": -0.45610034207526756,
+      "velocity_15m": -0.982986767485838,
+      "price": 0.005238,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:46:59.600977",
+      "velocity_1m": -0.6159152500615921,
+      "velocity_5m": -0.9088676000982615,
+      "velocity_15m": -0.9332023575638467,
+      "price": 0.04034,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:46:59.921829",
+      "velocity_1m": -0.7978027726916073,
+      "velocity_5m": -0.4723789528933269,
+      "velocity_15m": 0.01318565400844057,
+      "price": 0.007585,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:47:00.240372",
+      "velocity_1m": -0.6100422336931127,
+      "velocity_5m": -1.2587412587412625,
+      "velocity_15m": -1.6713091922005663,
+      "price": 0.2118,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:47:00.534286",
+      "velocity_1m": -0.6104540251812227,
+      "velocity_5m": -1.0446343779677059,
+      "velocity_15m": -1.6795621815436974,
+      "price": 0.000521,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:47:00.838583",
+      "velocity_1m": -0.5945456895437542,
+      "velocity_5m": -1.5740977732275432,
+      "velocity_15m": -3.013871374527111,
+      "price": 7.691,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:47:01.164122",
+      "velocity_1m": -0.2114508783344147,
+      "velocity_5m": -0.06515719172503401,
+      "velocity_15m": 0.7058437294812867,
+      "price": 0.06135,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:47:01.473286",
+      "velocity_1m": -0.4075533215595711,
+      "velocity_5m": -0.7513707439247349,
+      "velocity_15m": -1.4385587523527887,
+      "price": 1.4662,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:47:01.809514",
+      "velocity_1m": -0.20095187731358619,
+      "velocity_5m": -0.3984694550732316,
+      "velocity_15m": -1.9126819126819068,
+      "price": 0.37744,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:47:02.127014",
+      "velocity_1m": -0.2689527651706176,
+      "velocity_5m": -0.6530475552578725,
+      "velocity_15m": -1.5106241699867216,
+      "price": 0.05933,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:47:02.434815",
+      "velocity_1m": -0.6557377049180289,
+      "velocity_5m": -1.1741682974559662,
+      "velocity_15m": -2.0685197155785335,
+      "price": 0.01515,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:47:02.721339",
+      "velocity_1m": -0.3508771929824621,
+      "velocity_5m": -0.8726003490401445,
+      "velocity_15m": -1.331789229878408,
+      "price": 0.01704,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:47:03.046681",
+      "velocity_1m": -0.14816034241501325,
+      "velocity_5m": -0.7201898682379834,
+      "velocity_15m": -1.1006032936572672,
+      "price": 0.12131,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:47:03.353542",
+      "velocity_1m": -0.5453306066803013,
+      "velocity_5m": -0.5453306066803013,
+      "velocity_15m": -0.4095563139931692,
+      "price": 0.02918,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:48:04.325565",
+      "velocity_1m": 0.0,
+      "velocity_5m": -1.0741687979539625,
+      "velocity_15m": -2.075949367088603,
+      "price": 0.0001934,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:48:04.656944",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:48:04.955012",
+      "velocity_1m": -0.35903919089760616,
+      "velocity_5m": 0.28501628664495365,
+      "velocity_15m": 0.9607255399277471,
+      "price": 0.39408,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:48:05.259446",
+      "velocity_1m": 0.15317286652078912,
+      "velocity_5m": -0.4134029590948709,
+      "velocity_15m": -1.080613788631944,
+      "price": 0.04577,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:48:05.562494",
+      "velocity_1m": 0.06174745291757407,
+      "velocity_5m": -0.6133088009812946,
+      "velocity_15m": -0.8868501529051961,
+      "price": 3.241,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:48:05.849364",
+      "velocity_1m": 0.04516711833784821,
+      "velocity_5m": -0.4941599281221878,
+      "velocity_15m": -1.138138808301726,
+      "price": 0.0443,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:48:06.130446",
+      "velocity_1m": 0.07662835249041833,
+      "velocity_5m": -0.41936713686617993,
+      "velocity_15m": -0.6277344493056819,
+      "price": 0.05224,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:48:06.437617",
+      "velocity_1m": -0.03445899379737971,
+      "velocity_5m": -0.752651385562771,
+      "velocity_15m": -1.0572987721691602,
+      "price": 0.02901,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:48:06.743402",
+      "velocity_1m": 0.12953367875646243,
+      "velocity_5m": -0.7702182284980787,
+      "velocity_15m": -1.7164653528289942,
+      "price": 0.1546,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:48:07.053502",
+      "velocity_1m": 0.11428571428571707,
+      "velocity_5m": -0.7927519818799494,
+      "velocity_15m": -1.1286681715575528,
+      "price": 0.000876,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:48:07.362071",
+      "velocity_1m": 0.2196521427290715,
+      "velocity_5m": 1.24994339024501,
+      "velocity_15m": -1.254361556468353,
+      "price": 2.2357,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:48:07.661581",
+      "velocity_1m": 0.05688929343498506,
+      "velocity_5m": -1.9074177356385829,
+      "velocity_15m": -0.33998186763372024,
+      "price": 0.08794,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:48:07.971946",
+      "velocity_1m": 0.07741436036383896,
+      "velocity_5m": -0.6913769925100917,
+      "velocity_15m": -1.1847888400535034,
+      "price": 0.5171,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:48:08.281573",
+      "velocity_1m": -0.07558578987150108,
+      "velocity_5m": -0.45180722891565733,
+      "velocity_15m": -1.1219147344801728,
+      "price": 0.01322,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:48:08.584022",
+      "velocity_1m": -0.06906077348066017,
+      "velocity_5m": -0.34435261707988774,
+      "velocity_15m": -0.8224811514736141,
+      "price": 0.01447,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:48:08.893581",
+      "velocity_1m": 0.4255319148936144,
+      "velocity_5m": -0.840336134453791,
+      "velocity_15m": -1.2552301255230194,
+      "price": 0.0236,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:48:09.200177",
+      "velocity_1m": 0.04105090311985272,
+      "velocity_5m": -0.3543682704102633,
+      "velocity_15m": -1.2694125590817154,
+      "price": 0.07311,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:48:09.487194",
+      "velocity_1m": 0.06691648822270928,
+      "velocity_5m": -0.7829087048832183,
+      "velocity_15m": -1.1763150938408695,
+      "price": 0.07477,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:48:09.783451",
+      "velocity_1m": -0.06339144215530644,
+      "velocity_5m": -0.5989911727616511,
+      "velocity_15m": -0.6929133858267653,
+      "price": 0.03153,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:48:10.078620",
+      "velocity_1m": 0.0887573964497108,
+      "velocity_5m": -0.6752789195537318,
+      "velocity_15m": -1.197429906542058,
+      "price": 0.03383,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:48:10.371071",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.4186489058040022,
+      "velocity_15m": -0.7585814526834839,
+      "price": 0.005233,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:48:10.674383",
+      "velocity_1m": 0.2237692690203874,
+      "velocity_5m": -0.9582309582309618,
+      "velocity_15m": -0.49370525796099435,
+      "price": 0.04031,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:48:10.973355",
+      "velocity_1m": 0.1835102896840904,
+      "velocity_5m": 0.5922611213477218,
+      "velocity_15m": 1.825206501465494,
+      "price": 0.007643,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:48:11.274086",
+      "velocity_1m": 0.0,
+      "velocity_5m": -1.3071895424836586,
+      "velocity_15m": -1.5828677839850962,
+      "price": 0.2114,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:48:11.586682",
+      "velocity_1m": 0.019168104274477328,
+      "velocity_5m": -0.6095238095238037,
+      "velocity_15m": -1.2677388836329235,
+      "price": 0.0005218,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:48:11.893165",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.30975735673722277,
+      "velocity_15m": -1.6677275620623835,
+      "price": 7.724,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:48:12.194280",
+      "velocity_1m": 0.01620220349968092,
+      "velocity_5m": 0.17851346965270853,
+      "velocity_15m": 1.948802642444262,
+      "price": 0.06173,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:48:12.520524",
+      "velocity_1m": 0.02728140772063538,
+      "velocity_5m": -0.6637767542671383,
+      "velocity_15m": -1.085856882713968,
+      "price": 1.4666,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:48:12.831424",
+      "velocity_1m": 0.19594344119049367,
+      "velocity_5m": -0.3292506255761816,
+      "velocity_15m": -1.0201412503269578,
+      "price": 0.3784,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:48:13.133052",
+      "velocity_1m": 0.0839489590329104,
+      "velocity_5m": 0.0839489590329104,
+      "velocity_15m": -0.3510531594784268,
+      "price": 0.05961,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:48:13.436992",
+      "velocity_1m": 0.1978891820580509,
+      "velocity_5m": -0.7189542483660064,
+      "velocity_15m": -1.2995451591942742,
+      "price": 0.01519,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:48:13.739335",
+      "velocity_1m": 0.2962085308056957,
+      "velocity_5m": -1.5125072716695742,
+      "velocity_15m": -2.082128397917867,
+      "price": 0.01693,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:48:14.043682",
+      "velocity_1m": 0.14044943820225006,
+      "velocity_5m": -0.3780718336483949,
+      "velocity_15m": -0.9074558534990189,
+      "price": 0.12121,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:48:14.341466",
+      "velocity_1m": 0.10263427984947741,
+      "velocity_5m": -0.4761904761904686,
+      "velocity_15m": -0.03416467372736451,
+      "price": 0.02926,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:49:15.279931",
+      "velocity_1m": 0.20650490449148673,
+      "velocity_5m": -0.8682328907047944,
+      "velocity_15m": -1.6717325227963522,
+      "price": 0.0001941,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:49:15.581192",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:49:15.910412",
+      "velocity_1m": -0.005061497190860072,
+      "velocity_5m": -0.21718268599423504,
+      "velocity_15m": 1.007208957513165,
+      "price": 0.39512,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:49:16.254928",
+      "velocity_1m": 0.2617230098146022,
+      "velocity_5m": -0.043487714720604746,
+      "velocity_15m": -0.4762935700368151,
+      "price": 0.04597,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:49:16.588815",
+      "velocity_1m": -0.06163328197227192,
+      "velocity_5m": -0.6433823529411736,
+      "velocity_15m": -0.9468540012217512,
+      "price": 3.243,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:49:16.905202",
+      "velocity_1m": 0.20288548241660675,
+      "velocity_5m": -0.31397174254315835,
+      "velocity_15m": -0.8476466651795637,
+      "price": 0.04445,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:49:17.217382",
+      "velocity_1m": 0.09569377990430897,
+      "velocity_5m": -0.30499428135722534,
+      "velocity_15m": -0.5514356341509766,
+      "price": 0.0523,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:49:17.520051",
+      "velocity_1m": -0.06882312456985268,
+      "velocity_5m": -0.5479452054794535,
+      "velocity_15m": -0.9549795361527934,
+      "price": 0.02904,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:49:17.832620",
+      "velocity_1m": 0.19392372333548463,
+      "velocity_5m": -0.44958253050738994,
+      "velocity_15m": -1.084875558391836,
+      "price": 0.155,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:49:18.140726",
+      "velocity_1m": 0.11389521640091393,
+      "velocity_5m": -0.5656108597285082,
+      "velocity_15m": -0.9019165727170212,
+      "price": 0.000879,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:49:18.446263",
+      "velocity_1m": 0.12865445188766703,
+      "velocity_5m": 2.339711616940242,
+      "velocity_15m": -0.6864384405526734,
+      "price": 2.257,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:49:18.748061",
+      "velocity_1m": -0.045439054867656904,
+      "velocity_5m": -2.3851786110494775,
+      "velocity_15m": -1.0013501350135035,
+      "price": 0.08799,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:49:19.057045",
+      "velocity_1m": 0.13544891640865378,
+      "velocity_5m": -0.8430733857060875,
+      "velocity_15m": -1.2216071769421784,
+      "price": 0.5175,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:49:19.362145",
+      "velocity_1m": 0.07530120481927405,
+      "velocity_5m": 0.1507159005274995,
+      "velocity_15m": -0.5239520958083878,
+      "price": 0.01329,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:49:19.683266",
+      "velocity_1m": 0.2752924982794226,
+      "velocity_5m": 0.4135079255685685,
+      "velocity_15m": -0.13708019191227497,
+      "price": 0.01457,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:49:19.992561",
+      "velocity_1m": 0.0,
+      "velocity_5m": -0.840336134453791,
+      "velocity_15m": -1.2552301255230194,
+      "price": 0.0236,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:49:20.299229",
+      "velocity_1m": 0.1229508196721214,
+      "velocity_5m": -0.32639738882089503,
+      "velocity_15m": -0.9594594594594626,
+      "price": 0.07329,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:49:20.607195",
+      "velocity_1m": 0.22712090848363858,
+      "velocity_5m": -0.5435503115471214,
+      "velocity_15m": -0.7934408886537996,
+      "price": 0.07502,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:49:20.918661",
+      "velocity_1m": 0.189993666877785,
+      "velocity_5m": -0.2522068095838485,
+      "velocity_15m": -0.40919106074912864,
+      "price": 0.03164,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:49:21.216846",
+      "velocity_1m": 0.26556506344054237,
+      "velocity_5m": -0.35190615835775696,
+      "velocity_15m": -0.8751458576429252,
+      "price": 0.03398,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:49:21.541550",
+      "velocity_1m": 0.4008398549341513,
+      "velocity_5m": -0.11393847322445745,
+      "velocity_15m": -0.24653897212213147,
+      "price": 0.00526,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:49:21.839772",
+      "velocity_1m": 0.17348203221809322,
+      "velocity_5m": -0.5902606984751699,
+      "velocity_15m": -0.14822134387352887,
+      "price": 0.04042,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:49:22.130135",
+      "velocity_1m": 0.4327868852459022,
+      "velocity_5m": 0.45913682277319046,
+      "velocity_15m": 2.1475256769374376,
+      "price": 0.007658,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:49:22.431327",
+      "velocity_1m": 0.23573785950023593,
+      "velocity_5m": -0.9319664492078293,
+      "velocity_15m": -1.1162790697674352,
+      "price": 0.2126,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:49:22.725279",
+      "velocity_1m": 0.17211703958693367,
+      "velocity_5m": -0.3235014272121764,
+      "velocity_15m": -0.9829867674858053,
+      "price": 0.0005238,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:49:23.047409",
+      "velocity_1m": 0.09057971014493481,
+      "velocity_5m": -0.3350083752093777,
+      "velocity_15m": -1.5527555046455375,
+      "price": 7.735,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:49:23.355219",
+      "velocity_1m": -0.1455839534131346,
+      "velocity_5m": 0.03240965807810595,
+      "velocity_15m": 1.7471567496291387,
+      "price": 0.06173,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:49:23.664320",
+      "velocity_1m": 0.10893987880438796,
+      "velocity_5m": -0.5277044854881286,
+      "velocity_15m": -0.8095527221210289,
+      "price": 1.4703,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:49:23.968395",
+      "velocity_1m": 0.6082148499210054,
+      "velocity_5m": 0.8205804749340373,
+      "velocity_15m": 0.15464457957642572,
+      "price": 0.38211,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:49:24.291544",
+      "velocity_1m": -0.1170764341863198,
+      "velocity_5m": 0.1005698960777816,
+      "velocity_15m": -0.3670337003670303,
+      "price": 0.05972,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:49:24.595443",
+      "velocity_1m": 0.26298487836949447,
+      "velocity_5m": -0.39190071848465724,
+      "velocity_15m": -0.9740259740259793,
+      "price": 0.01525,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:49:24.898399",
+      "velocity_1m": 0.11750881316098227,
+      "velocity_5m": -0.9877977919814063,
+      "velocity_15m": -1.331789229878408,
+      "price": 0.01704,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:49:25.190408",
+      "velocity_1m": 0.2641353693768063,
+      "velocity_5m": -0.24636610002464368,
+      "velocity_15m": -0.4996723460026208,
+      "price": 0.12147,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:49:25.499428",
+      "velocity_1m": 0.17047391749062882,
+      "velocity_5m": -0.06802721088435097,
+      "velocity_15m": 0.13633265167006942,
+      "price": 0.02938,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:50:26.419650",
+      "velocity_1m": 0.1027221366204442,
+      "velocity_5m": 0.0,
+      "velocity_15m": -1.0659898477157344,
+      "price": 0.0001949,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:50:26.726487",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:50:27.032506",
+      "velocity_1m": -0.1365153200525939,
+      "velocity_5m": -0.43855227341466363,
+      "velocity_15m": 1.680866946382141,
+      "price": 0.39502,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:50:27.350117",
+      "velocity_1m": 0.15207473386921708,
+      "velocity_5m": 0.5891337551821937,
+      "velocity_15m": -0.021687269572752382,
+      "price": 0.0461,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:50:27.918596",
+      "velocity_1m": 0.18433179723503001,
+      "velocity_5m": 0.2459268367660623,
+      "velocity_15m": -0.18365472910926792,
+      "price": 3.261,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:50:28.236441",
+      "velocity_1m": 0.1347103726986923,
+      "velocity_5m": 0.33745781777277245,
+      "velocity_15m": -0.26833631484794734,
+      "price": 0.0446,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:50:28.535793",
+      "velocity_1m": 0.076394194041263,
+      "velocity_5m": 0.1337664819415261,
+      "velocity_15m": -0.07627765064835693,
+      "price": 0.0524,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:50:28.855876",
+      "velocity_1m": -0.03434065934065794,
+      "velocity_5m": -0.205690778196781,
+      "velocity_15m": -0.6484641638225229,
+      "price": 0.02911,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:50:29.184871",
+      "velocity_1m": 0.32237266279819504,
+      "velocity_5m": 0.2577319587628761,
+      "velocity_15m": 0.0,
+      "price": 0.1556,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:50:29.493407",
+      "velocity_1m": 0.4545454545454532,
+      "velocity_5m": 0.34052213393871433,
+      "velocity_15m": 0.11325028312571057,
+      "price": 0.000884,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:50:29.800264",
+      "velocity_1m": -0.4546859135655311,
+      "velocity_5m": 1.4577521821290373,
+      "velocity_15m": -0.05761645171298493,
+      "price": 2.255,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:50:30.115086",
+      "velocity_1m": 0.6836048763814553,
+      "velocity_5m": -1.2405006705409027,
+      "velocity_15m": 0.34063812876122246,
+      "price": 0.08837,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:50:30.441995",
+      "velocity_1m": 0.28929604628737837,
+      "velocity_5m": 0.09624639076035726,
+      "velocity_15m": -0.459418070444096,
+      "price": 0.52,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:50:30.745085",
+      "velocity_1m": 0.07530120481927405,
+      "velocity_5m": 0.5295007564296436,
+      "velocity_15m": -0.2252252252252291,
+      "price": 0.01329,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:50:31.064065",
+      "velocity_1m": 0.3436426116838467,
+      "velocity_5m": 0.6896551724137889,
+      "velocity_15m": 0.2747252747252754,
+      "price": 0.0146,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:50:31.369523",
+      "velocity_1m": 0.4237288135593195,
+      "velocity_5m": 0.0,
+      "velocity_15m": -0.4201680672269028,
+      "price": 0.0237,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:50:31.672428",
+      "velocity_1m": 0.34036759700476543,
+      "velocity_5m": 0.5594214763269308,
+      "velocity_15m": 0.1358695652173952,
+      "price": 0.0737,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:50:31.965336",
+      "velocity_1m": 0.2663470502064081,
+      "velocity_5m": 0.22630457933970924,
+      "velocity_15m": -0.1458885941644549,
+      "price": 0.07529,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:50:32.267782",
+      "velocity_1m": 0.09475679090335518,
+      "velocity_5m": 0.06315124723715228,
+      "velocity_15m": -0.06307158625039162,
+      "price": 0.03169,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:50:32.573969",
+      "velocity_1m": 0.2944640753828118,
+      "velocity_5m": 0.23543260741611755,
+      "velocity_15m": -0.17584994138334573,
+      "price": 0.03406,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:50:32.884607",
+      "velocity_1m": 0.32300969029070214,
+      "velocity_5m": 0.5714285714285646,
+      "velocity_15m": 0.49486105824133964,
+      "price": 0.00528,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:50:33.201588",
+      "velocity_1m": 0.7387343018960888,
+      "velocity_5m": 0.7883715200788393,
+      "velocity_15m": 1.3878562577447457,
+      "price": 0.04091,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:50:33.519141",
+      "velocity_1m": 0.7176409185803806,
+      "velocity_5m": 0.9547475804342158,
+      "velocity_15m": 2.8925619834710767,
+      "price": 0.007719,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:50:33.813954",
+      "velocity_1m": 0.3292568203198393,
+      "velocity_5m": 0.09385265133738994,
+      "velocity_15m": -0.5130597014925455,
+      "price": 0.2133,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:50:34.115043",
+      "velocity_1m": 0.4192872117400315,
+      "velocity_5m": 0.5150705837466638,
+      "velocity_15m": -0.09480470231324732,
+      "price": 0.0005269,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:50:34.424763",
+      "velocity_1m": 0.18085518666839212,
+      "velocity_5m": 0.23264831329972593,
+      "velocity_15m": -0.9452037297228235,
+      "price": 7.755,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:50:34.741135",
+      "velocity_1m": 0.22639068564036424,
+      "velocity_5m": 0.8132726089785304,
+      "velocity_15m": 2.209762532981532,
+      "price": 0.06198,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:50:35.055022",
+      "velocity_1m": 0.37346370611801866,
+      "velocity_5m": 0.4075533215595711,
+      "velocity_15m": -0.0202908353060512,
+      "price": 1.4782,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:50:35.363426",
+      "velocity_1m": -0.13643280684262082,
+      "velocity_5m": 0.6398730830248633,
+      "velocity_15m": -0.1076030758732819,
+      "price": 0.38062,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:50:35.662646",
+      "velocity_1m": 0.2843760455001731,
+      "velocity_5m": 0.7732391998655271,
+      "velocity_15m": 0.43558384989110954,
+      "price": 0.05995,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:50:35.989149",
+      "velocity_1m": 0.3929273084479325,
+      "velocity_5m": 0.5245901639344276,
+      "velocity_15m": -0.13029315960912652,
+      "price": 0.01533,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:50:36.281303",
+      "velocity_1m": -0.23543260741613792,
+      "velocity_5m": -0.8771929824561452,
+      "velocity_15m": -1.4534883720930247,
+      "price": 0.01695,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:50:36.580744",
+      "velocity_1m": 0.7067718606180142,
+      "velocity_5m": 0.3685805553280302,
+      "velocity_15m": 0.9806345282241422,
+      "price": 0.12254,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:50:36.884456",
+      "velocity_1m": 0.03399048266485245,
+      "velocity_5m": 0.30674846625766805,
+      "velocity_15m": 0.512295081967216,
+      "price": 0.02943,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HMSTRUSDT",
+      "timestamp": "2025-12-17T08:51:37.962725",
+      "velocity_1m": -0.05117707267144443,
+      "velocity_5m": 1.0869565217391288,
+      "velocity_15m": -0.66124109867752,
+      "price": 0.0001953,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SKATEUSDT",
+      "timestamp": "2025-12-17T08:51:38.273254",
+      "velocity_1m": 0.0,
+      "velocity_5m": 0.0,
+      "velocity_15m": 0.0,
+      "price": 0.00503,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "PIPPINUSDT",
+      "timestamp": "2025-12-17T08:51:38.604024",
+      "velocity_1m": -0.5210918114144035,
+      "velocity_5m": 1.3653603034133905,
+      "velocity_15m": 2.7500832970243643,
+      "price": 0.4009,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SHELLUSDT",
+      "timestamp": "2025-12-17T08:51:38.940058",
+      "velocity_1m": -0.08665511265164291,
+      "velocity_5m": 0.9190371991247346,
+      "velocity_15m": -0.21635655560362596,
+      "price": 0.04612,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "LPTUSDT",
+      "timestamp": "2025-12-17T08:51:39.255941",
+      "velocity_1m": 0.12247397428046551,
+      "velocity_5m": 0.9882643607164926,
+      "velocity_15m": 0.06119951040392363,
+      "price": 3.27,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "timestamp": "2025-12-17T08:51:39.589001",
+      "velocity_1m": 0.044782803403491236,
+      "velocity_5m": 0.9261350801897463,
+      "velocity_15m": -0.11178180192265019,
+      "price": 0.04468,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SYNUSDT",
+      "timestamp": "2025-12-17T08:51:39.894711",
+      "velocity_1m": -0.11443829868395491,
+      "velocity_5m": 0.711538461538466,
+      "velocity_15m": -0.19058509624547906,
+      "price": 0.05237,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "BULLAUSDT",
+      "timestamp": "2025-12-17T08:51:40.213082",
+      "velocity_1m": 0.034305317324183855,
+      "velocity_5m": 0.10298661174046955,
+      "velocity_15m": -0.4778156996587073,
+      "price": 0.02916,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "RONINUSDT",
+      "timestamp": "2025-12-17T08:51:40.539365",
+      "velocity_1m": 0.12853470437018366,
+      "velocity_5m": 0.9067357512953268,
+      "velocity_15m": 0.0,
+      "price": 0.1558,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "MEWUSDT",
+      "timestamp": "2025-12-17T08:51:40.867791",
+      "velocity_1m": 0.1131221719457041,
+      "velocity_5m": 1.0273972602739727,
+      "velocity_15m": 0.1131221719457041,
+      "price": 0.000885,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "BEATUSDT",
+      "timestamp": "2025-12-17T08:51:41.184174",
+      "velocity_1m": -0.2471096990556803,
+      "velocity_5m": 1.9712210744733771,
+      "velocity_15m": 0.29726252273838116,
+      "price": 2.2606,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HUSDT",
+      "timestamp": "2025-12-17T08:51:41.487952",
+      "velocity_1m": -1.2269938650306722,
+      "velocity_5m": -2.314606741573025,
+      "velocity_15m": -1.529051987767573,
+      "price": 0.08694,
+      "direction": "SHORT"
+    },
+    {
+      "symbol": "WLDUSDT",
+      "timestamp": "2025-12-17T08:51:41.792623",
+      "velocity_1m": 0.11522949875166773,
+      "velocity_5m": 1.0075566750629688,
+      "velocity_15m": -0.2487562189054665,
+      "price": 0.5213,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "STABLEUSDT",
+      "timestamp": "2025-12-17T08:51:42.121934",
+      "velocity_1m": -0.07513148009016775,
+      "velocity_5m": 0.757575757575753,
+      "velocity_15m": 0.0,
+      "price": 0.0133,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "HEMIUSDT",
+      "timestamp": "2025-12-17T08:51:42.443584",
+      "velocity_1m": 0.0,
+      "velocity_5m": 1.1065006915629232,
+      "velocity_15m": 0.41208791208790724,
+      "price": 0.01462,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "C98USDT",
+      "timestamp": "2025-12-17T08:51:42.743710",
+      "velocity_1m": -0.4184100418410016,
+      "velocity_5m": 0.8474576271186536,
+      "velocity_15m": 0.0,
+      "price": 0.0238,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "MOODENGUSDT",
+      "timestamp": "2025-12-17T08:51:43.060294",
+      "velocity_1m": 0.13574046423239156,
+      "velocity_5m": 1.1379215793803088,
+      "velocity_15m": 0.34004352557127343,
+      "price": 0.07377,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "PNUTUSDT",
+      "timestamp": "2025-12-17T08:51:43.381123",
+      "velocity_1m": 0.30516120472335684,
+      "velocity_5m": 1.299745410692749,
+      "velocity_15m": 0.21208907741252303,
+      "price": 0.0756,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "RIFUSDT",
+      "timestamp": "2025-12-17T08:51:43.698767",
+      "velocity_1m": -0.18945374171139112,
+      "velocity_5m": 0.06331117442228296,
+      "velocity_15m": -0.503619767075859,
+      "price": 0.03161,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "GOATUSDT",
+      "timestamp": "2025-12-17T08:51:43.988412",
+      "velocity_1m": -0.02933411557642435,
+      "velocity_5m": 0.7687758722649212,
+      "velocity_15m": -0.23419203747073675,
+      "price": 0.03408,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "DOODUSDT",
+      "timestamp": "2025-12-17T08:51:44.297314",
+      "velocity_1m": 0.03786444528586516,
+      "velocity_5m": 0.8781977854142811,
+      "velocity_15m": 0.5327245053272333,
+      "price": 0.005284,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "1000LUNCUSDT",
+      "timestamp": "2025-12-17T08:51:44.601445",
+      "velocity_1m": 0.19483682415977516,
+      "velocity_5m": 2.0337301587301617,
+      "velocity_15m": 2.059042421235436,
+      "price": 0.04114,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "USTCUSDT",
+      "timestamp": "2025-12-17T08:51:44.903268",
+      "velocity_1m": 0.2447192168985049,
+      "velocity_5m": 2.6239451476793305,
+      "velocity_15m": 3.870278926998536,
+      "price": 0.007783,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "FETUSDT",
+      "timestamp": "2025-12-17T08:51:45.222436",
+      "velocity_1m": 0.14058106841611748,
+      "velocity_5m": 0.8970727101038776,
+      "velocity_15m": -0.3729603729603707,
+      "price": 0.2137,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "NOTUSDT",
+      "timestamp": "2025-12-17T08:51:45.541468",
+      "velocity_1m": 0.13275175421962285,
+      "velocity_5m": 1.3824884792626857,
+      "velocity_15m": 0.0947867298578325,
+      "price": 0.000528,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZENUSDT",
+      "timestamp": "2025-12-17T08:51:45.862497",
+      "velocity_1m": 0.03868970853753048,
+      "velocity_5m": 0.8712613784135147,
+      "velocity_15m": -0.9576098059244149,
+      "price": 7.757,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ARIAUSDT",
+      "timestamp": "2025-12-17T08:51:46.192581",
+      "velocity_1m": 0.41949015811551527,
+      "velocity_5m": 1.450692746536259,
+      "velocity_15m": 2.368421052631574,
+      "price": 0.06224,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SUIUSDT",
+      "timestamp": "2025-12-17T08:51:46.501443",
+      "velocity_1m": 0.358811184076898,
+      "velocity_5m": 1.1600928074245873,
+      "velocity_15m": 0.22310864715028453,
+      "price": 1.4824,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "POWERUSDT",
+      "timestamp": "2025-12-17T08:51:46.810513",
+      "velocity_1m": 0.4084838963079355,
+      "velocity_5m": 1.5599756336573367,
+      "velocity_15m": 0.6192600367357725,
+      "price": 0.38346,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "PUFFERUSDT",
+      "timestamp": "2025-12-17T08:51:47.139045",
+      "velocity_1m": -0.0666555574070961,
+      "velocity_5m": 1.0787122872071493,
+      "velocity_15m": 0.3178320508531326,
+      "price": 0.05997,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "MUBARAKUSDT",
+      "timestamp": "2025-12-17T08:51:47.444908",
+      "velocity_1m": 0.13054830287205735,
+      "velocity_5m": 1.3879709187045615,
+      "velocity_15m": -0.06514657980456891,
+      "price": 0.01534,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "SWARMSUSDT",
+      "timestamp": "2025-12-17T08:51:47.759678",
+      "velocity_1m": 0.2941176470588115,
+      "velocity_5m": 0.1762632197414734,
+      "velocity_15m": -0.8144269924374707,
+      "price": 0.01705,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "LUNA2USDT",
+      "timestamp": "2025-12-17T08:51:48.052589",
+      "velocity_1m": 0.6453193922561665,
+      "velocity_5m": 1.415754383076796,
+      "velocity_15m": 1.4491560312885943,
+      "price": 0.12321,
+      "direction": "LONG"
+    },
+    {
+      "symbol": "ZEREBROUSDT",
+      "timestamp": "2025-12-17T08:51:48.364991",
+      "velocity_1m": -0.20318320352184566,
+      "velocity_5m": 1.375988992088067,
+      "velocity_15m": 0.47732696897375126,
+      "price": 0.02947,
+      "direction": "LONG"
     }
   ],
   "alerts": [
@@ -3132,22 +6192,162 @@
       "tier": 2,
       "velocity": -1.5462715947058912,
       "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:41:00.131803",
+      "symbol": "BEATUSDT",
+      "tier": 2,
+      "velocity": -1.6324914195194988,
+      "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:42:11.233529",
+      "symbol": "BEATUSDT",
+      "tier": 2,
+      "velocity": -1.508496384045424,
+      "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:42:14.866647",
+      "symbol": "USTCUSDT",
+      "tier": 2,
+      "velocity": 1.895102095288945,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:43:22.297808",
+      "symbol": "BEATUSDT",
+      "tier": 2,
+      "velocity": -2.416811053356445,
+      "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:43:22.590894",
+      "symbol": "HUSDT",
+      "tier": 1,
+      "velocity": 3.260492542490465,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:43:25.955831",
+      "symbol": "USTCUSDT",
+      "tier": 2,
+      "velocity": 1.8055369800722174,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:44:30.873043",
+      "symbol": "PIPPINUSDT",
+      "tier": 2,
+      "velocity": 1.5346838551258455,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:44:33.330584",
+      "symbol": "BEATUSDT",
+      "tier": 2,
+      "velocity": -1.6367194449386402,
+      "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:44:33.638023",
+      "symbol": "HUSDT",
+      "tier": 1,
+      "velocity": 3.345596688893994,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:45:45.049564",
+      "symbol": "HUSDT",
+      "tier": 2,
+      "velocity": 2.149564430365425,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:47:00.838583",
+      "symbol": "ZENUSDT",
+      "tier": 2,
+      "velocity": -1.5740977732275432,
+      "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:48:07.661581",
+      "symbol": "HUSDT",
+      "tier": 2,
+      "velocity": -1.9074177356385829,
+      "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:48:13.739335",
+      "symbol": "SWARMSUSDT",
+      "tier": 2,
+      "velocity": -1.5125072716695742,
+      "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:49:18.446263",
+      "symbol": "BEATUSDT",
+      "tier": 2,
+      "velocity": 2.339711616940242,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:49:18.748061",
+      "symbol": "HUSDT",
+      "tier": 2,
+      "velocity": -2.3851786110494775,
+      "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:51:41.184174",
+      "symbol": "BEATUSDT",
+      "tier": 2,
+      "velocity": 1.9712210744733771,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:51:41.487952",
+      "symbol": "HUSDT",
+      "tier": 2,
+      "velocity": -2.314606741573025,
+      "direction": "SHORT"
+    },
+    {
+      "timestamp": "2025-12-17T08:51:44.601445",
+      "symbol": "1000LUNCUSDT",
+      "tier": 2,
+      "velocity": 2.0337301587301617,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:51:44.903268",
+      "symbol": "USTCUSDT",
+      "tier": 1,
+      "velocity": 2.6239451476793305,
+      "direction": "LONG"
+    },
+    {
+      "timestamp": "2025-12-17T08:51:46.810513",
+      "symbol": "POWERUSDT",
+      "tier": 2,
+      "velocity": 1.5599756336573367,
+      "direction": "LONG"
     }
   ],
   "pair_stats": {
     "HMSTRUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.13149344401574162,
-      "avg_velocity_5m": 0.343297625000082,
-      "max_velocity_5m": 0.6075949367088618,
+      "total_samples": 20,
+      "avg_velocity_1m": 0.1452139652389586,
+      "avg_velocity_5m": 0.4986860737911516,
+      "max_velocity_5m": 1.3768485466598595,
       "tier1_count": 0,
       "tier2_count": 0,
       "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 4
+      "long_signals": 1,
+      "short_signals": 9
     },
     "SKATEUSDT": {
-      "total_samples": 10,
+      "total_samples": 20,
       "avg_velocity_1m": 0.0,
       "avg_velocity_5m": 0.0,
       "max_velocity_5m": 0,
@@ -3158,356 +6358,356 @@
       "short_signals": 0
     },
     "PIPPINUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.1643890442972194,
-      "avg_velocity_5m": 0.3156902897835095,
-      "max_velocity_5m": 0.7427379559444417,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 3
-    },
-    "SHELLUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.14263602732957645,
-      "avg_velocity_5m": 0.18333790678352535,
-      "max_velocity_5m": 0.581645842309363,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 1
-    },
-    "LPTUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.0732732970204295,
-      "avg_velocity_5m": 0.15851710115406106,
-      "max_velocity_5m": 0.36563071297989064,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 0
-    },
-    "BIOUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.08689794492454725,
-      "avg_velocity_5m": 0.24662444396857403,
-      "max_velocity_5m": 0.5772646536411997,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 2
-    },
-    "SYNUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.11593797434917216,
-      "avg_velocity_5m": 0.2838671393685498,
-      "max_velocity_5m": 0.6998297711367548,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 3
-    },
-    "BULLAUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.037504322890416254,
-      "avg_velocity_5m": 0.11582021543981039,
-      "max_velocity_5m": 0.23874488403818947,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 0
-    },
-    "RONINUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.1529476794596017,
-      "avg_velocity_5m": 0.4701950961896473,
-      "max_velocity_5m": 1.0779961953075503,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 4
-    },
-    "MEWUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.11280411360346579,
-      "avg_velocity_5m": 0.30367517311463055,
-      "max_velocity_5m": 0.45146726862302355,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 0
-    },
-    "BEATUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.292402634169873,
-      "avg_velocity_5m": 0.8716803433543368,
-      "max_velocity_5m": 1.8764693310536553,
-      "tier1_count": 0,
-      "tier2_count": 1,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 8
-    },
-    "HUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.5323109342885697,
-      "avg_velocity_5m": 0.7695679580454916,
-      "max_velocity_5m": 2.337840935136374,
+      "total_samples": 20,
+      "avg_velocity_1m": 0.24972107931947268,
+      "avg_velocity_5m": 0.5242743360955602,
+      "max_velocity_5m": 1.5346838551258455,
       "tier1_count": 0,
       "tier2_count": 1,
       "tier3_count": 0,
       "long_signals": 5,
-      "short_signals": 1
-    },
-    "WLDUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.08967968921728184,
-      "avg_velocity_5m": 0.18488259678262584,
-      "max_velocity_5m": 0.36204268292683167,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 0
-    },
-    "STABLEUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.24505322774046528,
-      "avg_velocity_5m": 0.681862483445679,
-      "max_velocity_5m": 1.1094674556213078,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 7
-    },
-    "HEMIUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.09578898687720318,
-      "avg_velocity_5m": 0.6909133769402107,
-      "max_velocity_5m": 1.2072434607645848,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 7
-    },
-    "C98USDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.20903068340306702,
-      "avg_velocity_5m": 0.3342050209205,
-      "max_velocity_5m": 0.4184100418410016,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 0
-    },
-    "MOODENGUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.10260164636589002,
-      "avg_velocity_5m": 0.36933453601479005,
-      "max_velocity_5m": 0.8358047991372278,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 4
-    },
-    "PNUTUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.07393365472832332,
-      "avg_velocity_5m": 0.25835373525612054,
-      "max_velocity_5m": 0.6193174331268919,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
       "short_signals": 3
     },
-    "RIFUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.08498198120953161,
-      "avg_velocity_5m": 0.08804346662854692,
-      "max_velocity_5m": 0.2827521206409042,
+    "SHELLUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.13881637974572983,
+      "avg_velocity_5m": 0.3145283220288722,
+      "max_velocity_5m": 0.9190371991247346,
       "tier1_count": 0,
       "tier2_count": 0,
       "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 0
+      "long_signals": 2,
+      "short_signals": 5
     },
-    "GOATUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.11678209155428756,
-      "avg_velocity_5m": 0.22712809130091705,
-      "max_velocity_5m": 0.4659289458357613,
+    "LPTUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.10261481036030924,
+      "avg_velocity_5m": 0.2878884201635787,
+      "max_velocity_5m": 0.9882643607164926,
       "tier1_count": 0,
       "tier2_count": 0,
       "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 0
+      "long_signals": 1,
+      "short_signals": 4
     },
-    "DOODUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.08722647467024093,
-      "avg_velocity_5m": 0.30994128285486394,
-      "max_velocity_5m": 0.5482041587901773,
+    "BIOUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.11419536133729855,
+      "avg_velocity_5m": 0.3475920157524933,
+      "max_velocity_5m": 0.9261350801897463,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 4
+    },
+    "SYNUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.12855506961229007,
+      "avg_velocity_5m": 0.29750212349154126,
+      "max_velocity_5m": 0.7421503330161778,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 4
+    },
+    "BULLAUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.04274371338254742,
+      "avg_velocity_5m": 0.181074450008606,
+      "max_velocity_5m": 0.752651385562771,
       "tier1_count": 0,
       "tier2_count": 0,
       "tier3_count": 0,
       "long_signals": 0,
       "short_signals": 2
     },
-    "1000LUNCUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.14521277767153884,
-      "avg_velocity_5m": 0.8773193444119238,
-      "max_velocity_5m": 1.4762826718296211,
+    "RONINUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.18270811422571323,
+      "avg_velocity_5m": 0.48242018968195,
+      "max_velocity_5m": 1.0779961953075503,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 8
+    },
+    "MEWUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.14720216910365508,
+      "avg_velocity_5m": 0.3786368847645253,
+      "max_velocity_5m": 1.0273972602739727,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 3
+    },
+    "BEATUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.33848508737152083,
+      "avg_velocity_5m": 1.2233283451793016,
+      "max_velocity_5m": 2.416811053356445,
+      "tier1_count": 0,
+      "tier2_count": 7,
+      "tier3_count": 0,
+      "long_signals": 4,
+      "short_signals": 13
+    },
+    "HUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.5004046247300868,
+      "avg_velocity_5m": 1.2825908920565376,
+      "max_velocity_5m": 3.345596688893994,
+      "tier1_count": 2,
+      "tier2_count": 5,
+      "tier3_count": 0,
+      "long_signals": 8,
+      "short_signals": 6
+    },
+    "WLDUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.1505821097821048,
+      "avg_velocity_5m": 0.3363235481285418,
+      "max_velocity_5m": 1.053841732132604,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 4
+    },
+    "STABLEUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.19782234955049902,
+      "avg_velocity_5m": 0.5667366229684606,
+      "max_velocity_5m": 1.1094674556213078,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 2,
+      "short_signals": 9
+    },
+    "HEMIUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.13051797482062372,
+      "avg_velocity_5m": 0.5796044433227485,
+      "max_velocity_5m": 1.2072434607645848,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 2,
+      "short_signals": 8
+    },
+    "C98USDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.2521097797659245,
+      "avg_velocity_5m": 0.35644705585916464,
+      "max_velocity_5m": 0.8474576271186536,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 3
+    },
+    "MOODENGUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.14528606930893165,
+      "avg_velocity_5m": 0.4006530789378598,
+      "max_velocity_5m": 1.1379215793803088,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 2,
+      "short_signals": 5
+    },
+    "PNUTUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.1513016870919038,
+      "avg_velocity_5m": 0.3631696130716534,
+      "max_velocity_5m": 1.299745410692749,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 7
+    },
+    "RIFUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.1009130506662796,
+      "avg_velocity_5m": 0.15433450497483453,
+      "max_velocity_5m": 0.5989911727616511,
       "tier1_count": 0,
       "tier2_count": 0,
       "tier3_count": 0,
       "long_signals": 0,
-      "short_signals": 9
+      "short_signals": 1
+    },
+    "GOATUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.15246247248124767,
+      "avg_velocity_5m": 0.3423435446032906,
+      "max_velocity_5m": 0.9953161592505856,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 3
+    },
+    "DOODUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.13210455779204555,
+      "avg_velocity_5m": 0.31203078685059615,
+      "max_velocity_5m": 0.8781977854142811,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 2,
+      "short_signals": 2
+    },
+    "1000LUNCUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.2303378037538041,
+      "avg_velocity_5m": 0.8388369996885068,
+      "max_velocity_5m": 2.0337301587301617,
+      "tier1_count": 0,
+      "tier2_count": 1,
+      "tier3_count": 0,
+      "long_signals": 4,
+      "short_signals": 12
     },
     "USTCUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.1525739562549299,
-      "avg_velocity_5m": 0.9912204407031119,
-      "max_velocity_5m": 1.6372141372141293,
+      "total_samples": 20,
+      "avg_velocity_1m": 0.24560493369250508,
+      "avg_velocity_5m": 1.087600988211863,
+      "max_velocity_5m": 2.6239451476793305,
+      "tier1_count": 1,
+      "tier2_count": 3,
+      "tier3_count": 0,
+      "long_signals": 8,
+      "short_signals": 8
+    },
+    "FETUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.17520602341525374,
+      "avg_velocity_5m": 0.3962345061786564,
+      "max_velocity_5m": 1.3071895424836586,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 4
+    },
+    "NOTUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.12737059949042578,
+      "avg_velocity_5m": 0.38283180910131204,
+      "max_velocity_5m": 1.3824884792626857,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 2,
+      "short_signals": 3
+    },
+    "ZENUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.16093078539306027,
+      "avg_velocity_5m": 0.6547778983331979,
+      "max_velocity_5m": 1.5740977732275432,
+      "tier1_count": 0,
+      "tier2_count": 1,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 9
+    },
+    "ARIAUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.2681168884966988,
+      "avg_velocity_5m": 0.9026985439633425,
+      "max_velocity_5m": 2.560777957860613,
+      "tier1_count": 1,
+      "tier2_count": 2,
+      "tier3_count": 0,
+      "long_signals": 8,
+      "short_signals": 5
+    },
+    "SUIUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.13398231492898546,
+      "avg_velocity_5m": 0.3555528947182127,
+      "max_velocity_5m": 1.1600928074245873,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 1,
+      "short_signals": 4
+    },
+    "POWERUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.2878738580287004,
+      "avg_velocity_5m": 0.9247384172222363,
+      "max_velocity_5m": 2.1644907236111925,
+      "tier1_count": 0,
+      "tier2_count": 5,
+      "tier3_count": 0,
+      "long_signals": 7,
+      "short_signals": 5
+    },
+    "PUFFERUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.15963843896726732,
+      "avg_velocity_5m": 0.3394320240269459,
+      "max_velocity_5m": 1.0787122872071493,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 2,
+      "short_signals": 3
+    },
+    "MUBARAKUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.16976942352234925,
+      "avg_velocity_5m": 0.46243585123794373,
+      "max_velocity_5m": 1.3879709187045615,
+      "tier1_count": 0,
+      "tier2_count": 0,
+      "tier3_count": 0,
+      "long_signals": 2,
+      "short_signals": 5
+    },
+    "SWARMSUSDT": {
+      "total_samples": 20,
+      "avg_velocity_1m": 0.20100277645204626,
+      "avg_velocity_5m": 0.46128148604952157,
+      "max_velocity_5m": 1.5125072716695742,
       "tier1_count": 0,
       "tier2_count": 1,
       "tier3_count": 0,
       "long_signals": 0,
       "short_signals": 8
     },
-    "FETUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.11629915622847205,
-      "avg_velocity_5m": 0.2227039850723381,
-      "max_velocity_5m": 0.4649000464899921,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 0
-    },
-    "NOTUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.07372835173891619,
-      "avg_velocity_5m": 0.20751301288789845,
-      "max_velocity_5m": 0.3774297037176917,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 0
-    },
-    "ZENUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.09144774206788187,
-      "avg_velocity_5m": 0.5788413387487753,
-      "max_velocity_5m": 1.172761664564943,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 5
-    },
-    "ARIAUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.26636655037593704,
-      "avg_velocity_5m": 1.137403445487052,
-      "max_velocity_5m": 2.560777957860613,
-      "tier1_count": 1,
-      "tier2_count": 2,
-      "tier3_count": 0,
-      "long_signals": 2,
-      "short_signals": 5
-    },
-    "SUIUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.09842004478554307,
-      "avg_velocity_5m": 0.2607251618337724,
-      "max_velocity_5m": 0.55048335123523,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 1
-    },
-    "POWERUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.3052114070099524,
-      "avg_velocity_5m": 1.3034907575389183,
-      "max_velocity_5m": 2.1644907236111925,
-      "tier1_count": 0,
-      "tier2_count": 4,
-      "tier3_count": 0,
-      "long_signals": 4,
-      "short_signals": 5
-    },
-    "PUFFERUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.19358716512665447,
-      "avg_velocity_5m": 0.2610599866210265,
-      "max_velocity_5m": 0.6314390162844773,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 1
-    },
-    "MUBARAKUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.1167875255547621,
-      "avg_velocity_5m": 0.37490059920396324,
-      "max_velocity_5m": 0.8387096774193543,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 2
-    },
-    "SWARMSUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.14470409987617375,
-      "avg_velocity_5m": 0.31747944547527696,
-      "max_velocity_5m": 0.5773672055427217,
-      "tier1_count": 0,
-      "tier2_count": 0,
-      "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 3
-    },
     "LUNA2USDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.23206126958358325,
-      "avg_velocity_5m": 0.8216856006301407,
-      "max_velocity_5m": 1.33279154815116,
+      "total_samples": 20,
+      "avg_velocity_1m": 0.2585219719288649,
+      "avg_velocity_5m": 0.683132625321512,
+      "max_velocity_5m": 1.415754383076796,
       "tier1_count": 0,
       "tier2_count": 0,
       "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 7
+      "long_signals": 3,
+      "short_signals": 8
     },
     "ZEREBROUSDT": {
-      "total_samples": 10,
-      "avg_velocity_1m": 0.13991801061909398,
-      "avg_velocity_5m": 0.22838958632004905,
-      "max_velocity_5m": 0.6118286879673795,
+      "total_samples": 20,
+      "avg_velocity_1m": 0.1380596637639496,
+      "avg_velocity_5m": 0.31594445955156547,
+      "max_velocity_5m": 1.375988992088067,
       "tier1_count": 0,
       "tier2_count": 0,
       "tier3_count": 0,
-      "long_signals": 0,
-      "short_signals": 1
+      "long_signals": 1,
+      "short_signals": 2
     }
   }
 }

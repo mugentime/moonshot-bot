@@ -1487,6 +1487,23 @@ async def backfill_trackers():
         tp_tracker._save_to_file()
         exit_tracker._save_to_file()
 
+        # Verify what's in Redis after save
+        redis_verification = {}
+        if redis_url:
+            r2 = redis_async.from_url(redis_url, decode_responses=True)
+            tp_redis_raw = await r2.get('global_tp_tracker')
+            exit_redis_raw = await r2.get('exit_tracker_v2')
+            if tp_redis_raw:
+                tp_redis_data = json.loads(tp_redis_raw)
+                redis_verification['tp_tracker_redis_events'] = len(tp_redis_data.get('events', []))
+            if exit_redis_raw:
+                exit_redis_data = json.loads(exit_redis_raw)
+                redis_verification['exit_tracker_redis_events'] = len(exit_redis_data.get('events', []))
+            # Also get all keys to check for duplicates
+            all_keys = await r2.keys('*tracker*')
+            redis_verification['all_tracker_keys'] = all_keys
+            await r2.close()
+
         return {
             "status": "success",
             "global_tp_events": len(global_tp_events),
@@ -1495,6 +1512,9 @@ async def backfill_trackers():
             "current_balance": current_balance,
             "tp_total_profit": sum(e.profit_usd for e in tp_tracker.events),
             "sl_total_loss": sum(e['profit_usd'] for e in individual_sl_events),
+            "redis_verification": redis_verification,
+            "tp_tracker_memory_events": len(tp_tracker.events),
+            "exit_tracker_memory_events": len(exit_tracker.events),
             "message": f"Backfilled {len(global_tp_events)} Global TP and {len(individual_sl_events)} SL events from Binance history"
         }
 
