@@ -8,7 +8,6 @@ Strategy:
 - Score >= +1 → LONG all coins
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
-- INDIVIDUAL SL: 20% loss per position triggers close (configurable via STOP_LOSS_PERCENT env)
 - GLOBAL TP: Portfolio profit target closes ALL positions (configurable via GLOBAL_TP_PERCENT env)
 """
 import asyncio
@@ -206,7 +205,6 @@ class MacroIndexBot:
         logger.info(f"  Leverage: {self.config.LEVERAGE}x")
         logger.info(f"  Timeframe: 24H (stable trend detection)")
         logger.info(f"  Direction Cooldown: {self.config.DIRECTION_CHANGE_COOLDOWN_SECONDS}s (1 hour)")
-        logger.info(f"  Individual SL: {self.config.STOP_LOSS_PERCENT}% (env: STOP_LOSS_PERCENT)")
         logger.info(f"  Global TP: {self.config.GLOBAL_TP_PERCENT}% (env: GLOBAL_TP_PERCENT)")
         logger.info(f"  Global TP Cooldown: {self.config.GLOBAL_TP_COOLDOWN_SECONDS}s (env: GLOBAL_TP_COOLDOWN)")
         logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")
@@ -560,8 +558,8 @@ class MacroIndexBot:
             logger.error(f"Error in position recovery check: {e}")
 
     async def _monitor_loop(self):
-        """Monitor open positions - Check Individual SL + Global TP"""
-        logger.info(f"Position monitor loop started (SL: {self.config.STOP_LOSS_PERCENT}%, Global TP: {self.config.GLOBAL_TP_PERCENT}%)")
+        """Monitor open positions - Global TP only (no individual SL)"""
+        logger.info(f"Position monitor loop started (Global TP: {self.config.GLOBAL_TP_PERCENT}%)")
         check_count = 0
 
         while self._running:
@@ -572,71 +570,6 @@ class MacroIndexBot:
 
                 positions = self.position_tracker.get_all_positions()
                 check_count += 1
-
-                if not positions:
-                    await asyncio.sleep(5)
-                    continue
-
-                # === INDIVIDUAL STOP LOSS CHECK ===
-                sl_closed = []
-                for p in positions:
-                    # Use safe price fetching with REST fallback - NEVER fall back to entry_price
-                    price = await self.data_feed.get_current_price_safe(p.symbol, max_age_seconds=10.0)
-                    if price is None:
-                        logger.warning(f"SL CHECK: No price for {p.symbol}, skipping (WebSocket + REST both failed)")
-                        continue
-
-                    if p.direction == "LONG":
-                        pnl_pct = ((price - p.entry_price) / p.entry_price) * 100 * self.config.LEVERAGE
-                    else:
-                        pnl_pct = ((p.entry_price - price) / p.entry_price) * 100 * self.config.LEVERAGE
-
-                    # Check if position hit stop loss
-                    if pnl_pct <= -self.config.STOP_LOSS_PERCENT:
-                        logger.warning(f"SL TRIGGERED: {p.symbol} at {pnl_pct:.2f}% (threshold: -{self.config.STOP_LOSS_PERCENT}%)")
-
-                        # Get balance BEFORE closing
-                        balance_before = await self._get_wallet_balance()
-
-                        # Calculate actual margin from position (handles synced positions with margin=0)
-                        # margin = notional / leverage = (quantity * entry_price) / leverage
-                        freed_margin = p.margin if p.margin > 0 else (p.quantity * p.entry_price) / self.config.LEVERAGE
-                        pnl_usd = freed_margin * (pnl_pct / 100)
-                        logger.info(f"Freed margin from {p.symbol}: ${freed_margin:.2f}")
-
-                        # Close the position
-                        await self._execute_exit(p.symbol, p, {'action': 'close', 'reason': 'stop_loss'}, price)
-                        sl_closed.append(p.symbol)
-
-                        # Get balance AFTER closing
-                        balance_after = await self._get_wallet_balance()
-
-                        # Record SL event
-                        exit_tracker.record_stop_loss(
-                            symbol=p.symbol,
-                            trigger_percent=pnl_pct,
-                            threshold_percent=-self.config.STOP_LOSS_PERCENT,
-                            balance_before=balance_before,
-                            balance_after=balance_after,
-                            position_details={
-                                'symbol': p.symbol,
-                                'direction': p.direction,
-                                'entry_price': p.entry_price,
-                                'exit_price': price,
-                                'pnl_usd': pnl_usd,
-                                'pnl_percent': pnl_pct,
-                                'margin': freed_margin
-                            }
-                        )
-
-                        # Reallocate freed capital to best position IMMEDIATELY
-                        if freed_margin > 0.5:  # Only reallocate if margin is meaningful (>$0.50)
-                            await self._reallocate_capital(freed_margin, p.symbol)
-
-                        await asyncio.sleep(0.1)  # Small delay between closes
-
-                # Remove SL-closed positions from list for Global TP calculation
-                positions = [p for p in positions if p.symbol not in sl_closed]
 
                 if not positions:
                     await asyncio.sleep(5)
@@ -668,7 +601,7 @@ class MacroIndexBot:
 
                     # Log Global PnL every minute
                     if check_count % 12 == 0:
-                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% (${total_pnl:+.2f} / ${total_margin:.2f} margin) | SL: -{self.config.STOP_LOSS_PERCENT}% | TP: +{self.config.GLOBAL_TP_PERCENT}%")
+                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% (${total_pnl:+.2f} / ${total_margin:.2f} margin) | TP: +{self.config.GLOBAL_TP_PERCENT}%")
 
                     # Check if Global TP triggered
                     if global_pnl_pct >= self.config.GLOBAL_TP_PERCENT:
