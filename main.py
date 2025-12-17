@@ -1229,11 +1229,11 @@ async def reset_trackers():
             exit_tracker.events = []
             cleared.append('exit_tracker_v2')
 
-        # Clear tp tracker
+        # Clear tp tracker (key is 'global_tp_tracker' per src/tp_tracker.py)
         if tp_tracker.redis:
-            await tp_tracker.redis.delete('tp_tracker_v2')
+            await tp_tracker.redis.delete('global_tp_tracker')
             tp_tracker.events = []
-            cleared.append('tp_tracker_v2')
+            cleared.append('global_tp_tracker')
 
         return {"status": "success", "cleared": cleared, "message": "Tracker data cleared. Fresh start!"}
     except Exception as e:

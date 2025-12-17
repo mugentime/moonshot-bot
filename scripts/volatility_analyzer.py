@@ -9,6 +9,10 @@ Example:
     python scripts/volatility_analyzer.py https://moonshot-bot-testnet.up.railway.app
 """
 import asyncio
+import functools
+
+# Force unbuffered output
+print = functools.partial(print, flush=True)
 import json
 import os
 import sys
