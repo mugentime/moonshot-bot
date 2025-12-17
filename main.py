@@ -1330,6 +1330,7 @@ async def backfill_trackers():
         from src.tp_tracker import tp_tracker, GlobalTPEvent
         from collections import defaultdict
         from datetime import datetime
+        from dataclasses import asdict
 
         # Ensure trackers are initialized
         await exit_tracker.initialize()
@@ -1457,13 +1458,33 @@ async def backfill_trackers():
         for e in individual_sl_events:
             exit_tracker.events.append(ExitEvent(**e))
 
-        # Save to Redis and file
-        if tp_tracker.redis:
-            await tp_tracker._save_to_redis()
-        tp_tracker._save_to_file()
+        # Save directly to Redis (bypass tracker's connection issues)
+        import redis.asyncio as redis_async
+        import json
+        redis_url = os.getenv('REDIS_URL')
 
-        if exit_tracker.redis:
-            await exit_tracker._save_to_redis()
+        if redis_url:
+            r = redis_async.from_url(redis_url, decode_responses=True)
+
+            # Save tp_tracker data directly
+            tp_data = {
+                'events': [asdict(e) for e in tp_tracker.events],
+                'total_events': len(tp_tracker.events),
+                'total_profit': sum(e.profit_usd for e in tp_tracker.events)
+            }
+            await r.set('global_tp_tracker', json.dumps(tp_data))
+
+            # Save exit_tracker data directly
+            exit_data = {
+                'events': [asdict(e) for e in exit_tracker.events],
+                'total_events': len(exit_tracker.events)
+            }
+            await r.set('exit_tracker_v2', json.dumps(exit_data))
+
+            await r.close()
+
+        # Also save to files
+        tp_tracker._save_to_file()
         exit_tracker._save_to_file()
 
         return {
