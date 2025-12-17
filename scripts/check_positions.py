@@ -21,15 +21,21 @@ async def check_positions():
 
     if open_positions:
         total_pnl = 0
+        total_margin = 0
         for p in open_positions:
             sym = p['symbol']
             amt = float(p['positionAmt'])
             pnl = float(p['unRealizedProfit'])
             entry = float(p['entryPrice'])
+            leverage = int(p['leverage'])
+            notional = abs(amt * entry)
+            margin = notional / leverage
             side = 'LONG' if amt > 0 else 'SHORT'
             total_pnl += pnl
-            print(f'  {sym:15} {side:5} | Entry: {entry:.6f} | PnL: ${pnl:+.2f}')
+            total_margin += margin
+            print(f'  {sym:15} {side:5} | Entry: {entry:.6f} | Qty: {abs(amt):.4f} | Margin: ${margin:.2f} | PnL: ${pnl:+.2f}')
         print()
+        print(f'Total Margin: ${total_margin:.2f}')
         print(f'Total Unrealized PnL: ${total_pnl:+.2f}')
     else:
         print('NO OPEN POSITIONS!')

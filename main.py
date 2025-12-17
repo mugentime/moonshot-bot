@@ -450,15 +450,17 @@ class MacroIndexBot:
                     if pnl_pct <= -self.config.STOP_LOSS_PERCENT:
                         logger.warning(f"SL TRIGGERED: {p.symbol} at {pnl_pct:.2f}% (threshold: -{self.config.STOP_LOSS_PERCENT}%)")
 
-                        # Capture margin before closing for reallocation
-                        freed_margin = p.margin
+                        # Calculate actual margin from position (handles synced positions with margin=0)
+                        # margin = notional / leverage = (quantity * entry_price) / leverage
+                        freed_margin = p.margin if p.margin > 0 else (p.quantity * p.entry_price) / self.config.LEVERAGE
+                        logger.info(f"Freed margin from {p.symbol}: ${freed_margin:.2f}")
 
                         # Close the position
                         await self._execute_exit(p.symbol, p, {'action': 'close', 'reason': 'stop_loss'}, price)
                         sl_closed.append(p.symbol)
 
                         # Reallocate freed capital to best position IMMEDIATELY
-                        if freed_margin > 0:
+                        if freed_margin > 0.5:  # Only reallocate if margin is meaningful (>$0.50)
                             await self._reallocate_capital(freed_margin, p.symbol)
 
                         await asyncio.sleep(0.1)  # Small delay between closes
