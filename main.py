@@ -339,12 +339,20 @@ class MacroIndexBot:
 
     async def _close_all_positions_global_tp(self, trigger_percent: float = 0, total_margin: float = 0):
         """Close ALL positions due to Global TP trigger"""
+        positions = self.position_tracker.get_all_positions()
+
+        # CRITICAL: Don't record TP events if no positions to close
+        if not positions:
+            logger.warning("Global TP triggered but NO POSITIONS to close - skipping record")
+            return
+
         logger.info("Closing ALL positions for Global TP...")
 
-        # Get balance BEFORE closing
+        # Get balance BEFORE closing - with sanity check
         balance_before = await self._get_wallet_balance()
-
-        positions = self.position_tracker.get_all_positions()
+        if balance_before > 1000:  # Sanity check - account has ~$18
+            logger.error(f"SANITY CHECK FAILED: balance_before={balance_before} is impossible, using 0")
+            balance_before = 0
         closed = 0
         total_pnl = 0
         position_details = []  # For TP tracker
@@ -398,10 +406,18 @@ class MacroIndexBot:
 
             await asyncio.sleep(0.05)  # Small delay between closes
 
-        # Get balance AFTER closing
+        # Get balance AFTER closing - with sanity check
         balance_after = await self._get_wallet_balance()
+        if balance_after > 1000:  # Sanity check - account has ~$18
+            logger.error(f"SANITY CHECK FAILED: balance_after={balance_after} is impossible, using 0")
+            balance_after = 0
 
-        # Record to TP tracker (legacy)
+        # Only record if we actually closed positions
+        if closed == 0:
+            logger.warning("No positions were actually closed - skipping TP record")
+            return
+
+        # Record to TP tracker
         tp_tracker.record_tp(
             trigger_percent=trigger_percent,
             threshold_percent=self.config.GLOBAL_TP_PERCENT,
