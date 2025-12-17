@@ -251,8 +251,8 @@ async def scan_volatility(client: AsyncClient, tracker: VolatilityTracker, symbo
                     # Print if significant
                     if abs(velocity_5m) >= 1.5:
                         tier = 1 if abs(velocity_5m) >= 2.5 else 2
-                        emoji = "🚀🚀🚀" if tier == 1 else "🚀🚀"
-                        print(f"{emoji} T{tier} {symbol}: {velocity_5m:+.2f}% (5m) | {velocity_1m:+.2f}% (1m)")
+                        marker = "***" if tier == 1 else "**"
+                        print(f"{marker} T{tier} {symbol}: {velocity_5m:+.2f}% (5m) | {velocity_1m:+.2f}% (1m)")
 
                 await asyncio.sleep(0.1)  # Rate limit
 
@@ -269,14 +269,14 @@ async def main():
     testnet = len(sys.argv) > 1 and 'testnet' in sys.argv[1].lower()
 
     if testnet:
-        print("🧪 TESTNET MODE")
+        print("[TESTNET MODE]")
         client = await AsyncClient.create(
             api_key=os.getenv('BINANCE_TESTNET_KEY', BINANCE_API_KEY),
             api_secret=os.getenv('BINANCE_TESTNET_SECRET', BINANCE_API_SECRET),
             testnet=True
         )
     else:
-        print("💰 PRODUCTION MODE")
+        print("[PRODUCTION MODE]")
         client = await AsyncClient.create(
             api_key=BINANCE_API_KEY,
             api_secret=BINANCE_API_SECRET
@@ -286,7 +286,7 @@ async def main():
 
     # Get symbols to track
     from config import PairFilterConfig
-    symbols = PairFilterConfig.WHITELISTED_PAIRS
+    symbols = list(PairFilterConfig.ALLOWED_COINS)
     print(f"Tracking {len(symbols)} symbols")
 
     scan_count = 0

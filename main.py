@@ -1214,6 +1214,32 @@ async def exits_json():
         return {"error": str(e)}
 
 
+@app.get("/reset-trackers")
+async def reset_trackers():
+    """Clear all corrupted tracker data from Redis"""
+    try:
+        from src.exit_tracker import exit_tracker
+        from src.tp_tracker import tp_tracker
+
+        cleared = []
+
+        # Clear exit tracker
+        if exit_tracker.redis:
+            await exit_tracker.redis.delete('exit_tracker_v2')
+            exit_tracker.events = []
+            cleared.append('exit_tracker_v2')
+
+        # Clear tp tracker
+        if tp_tracker.redis:
+            await tp_tracker.redis.delete('tp_tracker_v2')
+            tp_tracker.events = []
+            cleared.append('tp_tracker_v2')
+
+        return {"status": "success", "cleared": cleared, "message": "Tracker data cleared. Fresh start!"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 @app.get("/macro")
 async def macro():
     """Get current macro indicator state"""
