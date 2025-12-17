@@ -563,12 +563,15 @@ class MacroIndexBot:
                         logger.debug(f"TP CHECK: No price for {p.symbol}, excluding from Global TP calc")
                         continue
 
+                    # Calculate margin - handle synced positions with margin=0
+                    pos_margin = p.margin if p.margin > 0 else (p.quantity * p.entry_price) / self.config.LEVERAGE
+
                     if p.direction == "LONG":
-                        pnl = ((price - p.entry_price) / p.entry_price) * p.margin * self.config.LEVERAGE
+                        pnl = ((price - p.entry_price) / p.entry_price) * pos_margin * self.config.LEVERAGE
                     else:
-                        pnl = ((p.entry_price - price) / p.entry_price) * p.margin * self.config.LEVERAGE
+                        pnl = ((p.entry_price - price) / p.entry_price) * pos_margin * self.config.LEVERAGE
                     total_pnl += pnl
-                    total_margin += p.margin
+                    total_margin += pos_margin
 
                 if total_margin > 0:
                     global_pnl_pct = (total_pnl / total_margin) * 100
