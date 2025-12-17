@@ -8,7 +8,7 @@ Strategy:
 - Score >= +1 → LONG all coins
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
-- INDIVIDUAL SL: 10% loss per position triggers close (configurable via STOP_LOSS_PERCENT env)
+- INDIVIDUAL SL: 20% loss per position triggers close (configurable via STOP_LOSS_PERCENT env)
 - GLOBAL TP: Portfolio profit target closes ALL positions (configurable via GLOBAL_TP_PERCENT env)
 """
 import asyncio
