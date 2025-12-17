@@ -197,18 +197,23 @@ class PairFilterConfig:
     ]
 
     # ==========================================================================
-    # ALLOWED COINS - TOP 20 high-liquidity coins for better fee efficiency
+    # ALLOWED COINS - ONLY trade valid Binance Futures perpetual contracts
     # Set to None to allow all coins, or a set of symbols to restrict
-    # Updated: 2025-12-17 - Reduced to 20 coins to minimize fee impact
+    # Updated: 2025-12-07 - Removed 27 invalid/delisted symbols
     # ==========================================================================
     ALLOWED_COINS = {
-        # HIGH LIQUIDITY MOONSHOTS (top volume)
-        "SUIUSDT", "WLDUSDT", "FETUSDT", "NOTUSDT", "ZENUSDT",
-        "PNUTUSDT", "MOODENGUSDT", "DOODUSDT", "GOATUSDT", "MUBARAKUSDT",
-        # ACTIVE TRADERS (good movement)
-        "HMSTRUSDT", "MEWUSDT", "BIOUSDT", "STABLEUSDT", "POWERUSDT",
-        # MEMECOIN MOVERS
-        "ARIAUSDT", "RONINUSDT", "SHELLUSDT", "LUNA2USDT", "C98USDT",
+        # VALID MOONSHOTS (verified active on Binance Futures)
+        "USTCUSDT", "MOODENGUSDT", "LUNA2USDT",
+        "SWARMSUSDT", "DOODUSDT", "BEATUSDT",
+        "NOTUSDT", "SYNUSDT",
+        "RONINUSDT", "HEMIUSDT", "POWERUSDT", "MUBARAKUSDT", "1000LUNCUSDT",
+        "BULLAUSDT", "HMSTRUSDT", "GOATUSDT", "C98USDT",
+        "FETUSDT", "MEWUSDT", "SUIUSDT", "ZENUSDT", "SHELLUSDT",
+        "RIFUSDT", "LPTUSDT",
+        # VALID MOONDROPS (verified active on Binance Futures)
+        "PIPPINUSDT", "HUSDT", "SKATEUSDT",
+        "PNUTUSDT", "PUFFERUSDT", "ZEREBROUSDT", "STABLEUSDT",
+        "ARIAUSDT", "BIOUSDT", "WLDUSDT",
     }
 
 # =============================================================================

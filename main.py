@@ -206,7 +206,7 @@ class MacroIndexBot:
         logger.info(f"  Timeframe: 24H (stable trend detection)")
         logger.info(f"  Direction Cooldown: {self.config.DIRECTION_CHANGE_COOLDOWN_SECONDS}s (1 hour)")
         logger.info(f"  Global TP: {self.config.GLOBAL_TP_PERCENT}% (env: GLOBAL_TP_PERCENT)")
-        logger.info(f"  Global TP Cooldown: {self.config.GLOBAL_TP_COOLDOWN_SECONDS}s (env: GLOBAL_TP_COOLDOWN)")
+        logger.info(f"  Post-TP Cooldown: {self.config.POST_TP_COOLDOWN_SECONDS}s (env: POST_TP_COOLDOWN)")
         logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")
         logger.info(f"  Short Trigger: Score <= {self.config.SHORT_TRIGGER_SCORE}")
         logger.info("=" * 60)
@@ -469,7 +469,7 @@ class MacroIndexBot:
         logger.info(f"GLOBAL TP COMPLETE: Closed {closed}/{len(positions)} positions")
         logger.info(f"Balance: ${balance_before:.2f} -> ${balance_after:.2f}")
         logger.info(f"REAL PROFIT: ${actual_profit:+.2f}")
-        logger.info(f"Cooldown: {self.config.GLOBAL_TP_COOLDOWN_SECONDS}s before reopening")
+        logger.info(f"Cooldown: {self.config.POST_TP_COOLDOWN_SECONDS}s before reopening")
         logger.info(f"{'='*60}")
 
     async def _open_all_positions(self, direction: str):
@@ -477,8 +477,8 @@ class MacroIndexBot:
         # Check Global TP cooldown
         if self.last_global_tp_time > 0:
             time_since_tp = time.time() - self.last_global_tp_time
-            if time_since_tp < self.config.GLOBAL_TP_COOLDOWN_SECONDS:
-                remaining = int(self.config.GLOBAL_TP_COOLDOWN_SECONDS - time_since_tp)
+            if time_since_tp < self.config.POST_TP_COOLDOWN_SECONDS:
+                remaining = int(self.config.POST_TP_COOLDOWN_SECONDS - time_since_tp)
                 logger.info(f"Global TP cooldown active. {remaining}s remaining. Skipping position opening.")
                 return
 
