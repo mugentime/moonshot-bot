@@ -365,12 +365,29 @@ class OrderExecutor:
                 await self.cancel_all_orders(symbol)
                 logger.info(f"🧹 Cancelled all orders for {symbol} before full close")
 
-            # Close position
+            # Get current price for limit order
+            ticker = await self.client.futures_symbol_ticker(symbol=symbol)
+            current_price = float(ticker['price'])
+
+            # Get price precision
+            _, price_precision, _ = await self.get_symbol_precision(symbol)
+
+            # Set limit price with small slippage to ensure fill
+            # For SELL: slightly below market, For BUY: slightly above market
+            slippage = 0.001  # 0.1% slippage tolerance
+            if side == SIDE_SELL:
+                limit_price = round(current_price * (1 - slippage), price_precision)
+            else:
+                limit_price = round(current_price * (1 + slippage), price_precision)
+
+            # Close position with LIMIT order (better execution than market)
             order = await self.client.futures_create_order(
                 symbol=symbol,
                 side=side,
-                type=ORDER_TYPE_MARKET,
+                type=ORDER_TYPE_LIMIT,
                 quantity=close_qty,
+                price=limit_price,
+                timeInForce='GTC',
                 reduceOnly=True
             )
 

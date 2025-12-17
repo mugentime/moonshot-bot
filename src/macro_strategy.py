@@ -44,8 +44,8 @@ class MacroConfig:
     DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
 
     # GLOBAL TAKE PROFIT - Portfolio level (closes ALL positions)
-    # Configurable via GLOBAL_TP_PERCENT env var (default 2.0%)
-    GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "2.0"))
+    # Configurable via GLOBAL_TP_PERCENT env var (default 10.0%)
+    GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "10.0"))
     GLOBAL_TP_COOLDOWN_SECONDS: int = int(os.getenv("GLOBAL_TP_COOLDOWN", "300"))
 
     # INDIVIDUAL STOP LOSS - Per position (20% loss triggers close)
