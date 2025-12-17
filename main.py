@@ -605,6 +605,9 @@ class MacroIndexBot:
 
                     # Check if Global TP triggered
                     if global_pnl_pct >= self.config.GLOBAL_TP_PERCENT:
+                        # Set cooldown IMMEDIATELY to prevent race condition with macro_loop
+                        self.last_global_tp_time = time.time()
+
                         logger.info(f"{'='*60}")
                         logger.info(f"GLOBAL TP TRIGGERED: +{global_pnl_pct:.2f}% (threshold: {self.config.GLOBAL_TP_PERCENT}%)")
                         logger.info(f"Total PnL: ${total_pnl:.2f} | Margin: ${total_margin:.2f}")
@@ -613,7 +616,6 @@ class MacroIndexBot:
                             trigger_percent=global_pnl_pct,
                             total_margin=total_margin
                         )
-                        self.last_global_tp_time = time.time()
 
                 await asyncio.sleep(5)  # Check every 5 seconds
 
