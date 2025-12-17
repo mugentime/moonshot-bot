@@ -45,6 +45,7 @@ class MacroConfig:
 
     # GLOBAL TAKE PROFIT - Portfolio level (closes ALL positions)
     # Configurable via GLOBAL_TP_PERCENT env var (default 10.0%)
+    # NOTE: With fees (~0.04% per trade), 10%+ needed for profit on small accounts
     GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "10.0"))
     GLOBAL_TP_COOLDOWN_SECONDS: int = int(os.getenv("GLOBAL_TP_COOLDOWN", "300"))
 
