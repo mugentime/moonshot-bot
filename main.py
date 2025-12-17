@@ -1220,24 +1220,35 @@ async def reset_trackers():
     try:
         from src.exit_tracker import exit_tracker
         from src.tp_tracker import tp_tracker
+        import redis.asyncio as redis
+        import os
 
         cleared = []
+        redis_url = os.getenv('REDIS_URL')
 
-        # Clear exit tracker
-        if exit_tracker.redis:
-            await exit_tracker.redis.delete('exit_tracker_v2')
-            exit_tracker.events = []
-            cleared.append('exit_tracker_v2')
+        if not redis_url:
+            return {"status": "error", "message": "No REDIS_URL configured"}
 
-        # Clear tp tracker (key is 'global_tp_tracker' per src/tp_tracker.py)
-        if tp_tracker.redis:
-            await tp_tracker.redis.delete('global_tp_tracker')
-            tp_tracker.events = []
-            cleared.append('global_tp_tracker')
+        # Connect directly to Redis and clear all tracker keys
+        r = redis.from_url(redis_url, decode_responses=True)
 
-        return {"status": "success", "cleared": cleared, "message": "Tracker data cleared. Fresh start!"}
+        # Clear all known tracker keys
+        keys_to_clear = ['exit_tracker_v2', 'global_tp_tracker', 'tp_tracker_v2']
+        for key in keys_to_clear:
+            existed = await r.delete(key)
+            if existed:
+                cleared.append(key)
+
+        # Also clear in-memory events
+        exit_tracker.events = []
+        tp_tracker.events = []
+
+        await r.close()
+
+        return {"status": "success", "cleared": cleared, "message": f"Cleared {len(cleared)} Redis keys. Fresh start!"}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        import traceback
+        return {"status": "error", "message": str(e), "trace": traceback.format_exc()}
 
 
 @app.get("/macro")
