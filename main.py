@@ -390,6 +390,7 @@ class MacroIndexBot:
 
         # Fetch ACTUAL realized PnL from Binance (source of truth)
         position_details = []
+        actual_profit = 0
         try:
             income = await self.data_feed.client.futures_income_history(
                 incomeType='REALIZED_PNL',
@@ -406,6 +407,9 @@ class MacroIndexBot:
                     if sym not in pnl_by_symbol:
                         pnl_by_symbol[sym] = 0
                     pnl_by_symbol[sym] += pnl
+
+            # Calculate ACTUAL profit from sum of realized PnL (not balance diff which includes fees)
+            actual_profit = sum(pnl_by_symbol.values())
 
             # Build position details with REAL PnL from Binance
             for symbol in symbols_to_close:
@@ -432,15 +436,16 @@ class MacroIndexBot:
                     peak_profit=0
                 )
 
-            logger.info(f"Fetched real PnL for {len(pnl_by_symbol)} symbols from Binance")
+            logger.info(f"Fetched real PnL for {len(pnl_by_symbol)} symbols from Binance: ${actual_profit:+.4f}")
 
         except Exception as e:
             logger.error(f"Error fetching real PnL from Binance: {e}")
-            # Fallback: use balance difference as total profit
-            position_details = [{'symbol': 'ALL', 'direction': 'MIXED', 'pnl_usd': balance_after - balance_before}]
+            # Fallback: use balance difference
+            actual_profit = balance_after - balance_before
+            position_details = [{'symbol': 'ALL', 'direction': 'MIXED', 'pnl_usd': actual_profit}]
 
-        # Calculate actual profit from balance change (most accurate)
-        actual_profit = balance_after - balance_before
+        # Use calculated balance_after based on actual profit (consistent with PnL)
+        balance_after = balance_before + actual_profit
 
         # Record to TP tracker
         tp_tracker.record_tp(
