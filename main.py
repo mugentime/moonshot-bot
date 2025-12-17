@@ -925,6 +925,8 @@ async def tp_tracker_ui():
     """HTML dashboard showing Global TP tracker history"""
     try:
         from src.tp_tracker import tp_tracker
+        from collections import defaultdict
+        from datetime import datetime
 
         # Ensure initialized
         if not tp_tracker._initialized:
@@ -933,7 +935,7 @@ async def tp_tracker_ui():
         stats = tp_tracker.get_stats()
         events = tp_tracker.events
 
-        # Build event rows
+        # Build event rows for tracked events
         rows = ""
         for event in reversed(events):  # Most recent first
             profit_color = "#22c55e" if event.profit_usd >= 0 else "#ef4444"
@@ -963,13 +965,71 @@ async def tp_tracker_ui():
         if not events:
             rows = '<tr><td colspan="8" style="padding:40px;text-align:center;color:#888">No Global TP events recorded yet</td></tr>'
 
+        # Fetch last 3 batch closes from Binance (historical reference)
+        history_rows = ""
+        try:
+            income = await bot.data_feed.client.futures_income_history(incomeType='REALIZED_PNL', limit=200)
+            income = sorted(income, key=lambda x: int(x.get('time', 0)))
+
+            # Group by minute
+            by_minute = defaultdict(list)
+            for i in income:
+                minute = int(i.get('time', 0)) // 60000
+                by_minute[minute].append(i)
+
+            # Find batches with 3+ trades
+            batches = []
+            for minute, trades in by_minute.items():
+                if len(trades) >= 3:
+                    total_pnl = sum(float(t.get('income', 0)) for t in trades)
+                    ts = datetime.fromtimestamp(minute * 60)
+                    batches.append({'timestamp': ts, 'count': len(trades), 'pnl': total_pnl, 'trades': trades})
+
+            batches.sort(key=lambda x: x['timestamp'], reverse=True)
+
+            # Get current balance for calculating before/after
+            acc = await bot.data_feed.client.futures_account()
+            current_balance = float(acc['totalWalletBalance'])
+
+            for batch in batches[:3]:  # Last 3
+                batch_minute = int(batch['timestamp'].timestamp()) // 60
+                income_after = sum(float(i.get('income', 0)) for i in income if int(i.get('time', 0)) // 60000 > batch_minute)
+                balance_after = current_balance - income_after
+                balance_before = balance_after - batch['pnl']
+
+                profit_color = "#22c55e" if batch['pnl'] >= 0 else "#ef4444"
+                emoji = "📜"
+
+                # Position details
+                pos_details = ""
+                for t in batch['trades'][:5]:  # Show max 5
+                    pnl = float(t.get('income', 0))
+                    p_color = "#22c55e" if pnl >= 0 else "#ef4444"
+                    pos_details += f'<div style="font-size:11px;color:#888;padding:2px 0">{t.get("symbol", "N/A")} <span style="color:{p_color}">${pnl:+.4f}</span></div>'
+                if len(batch['trades']) > 5:
+                    pos_details += f'<div style="font-size:11px;color:#666">+{len(batch["trades"])-5} more</div>'
+
+                history_rows += f'''<tr style="opacity:0.7">
+                    <td>{emoji} {batch['timestamp'].strftime('%Y-%m-%d %H:%M')}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>${balance_before:.2f}</td>
+                    <td>${balance_after:.2f}</td>
+                    <td style="color:{profit_color};font-weight:bold">${batch['pnl']:+.2f}</td>
+                    <td>{batch['count']}</td>
+                    <td style="max-width:200px">{pos_details}</td>
+                </tr>'''
+        except Exception as e:
+            history_rows = f'<tr><td colspan="8" style="color:#666">Could not load history: {e}</td></tr>'
+
         # Stats colors
         profit_color = "#22c55e" if stats['total_profit'] >= 0 else "#ef4444"
         win_color = "#22c55e" if stats.get('win_rate', 0) >= 50 else "#eab308" if stats.get('win_rate', 0) >= 30 else "#ef4444"
+        storage_type = "Redis" if tp_tracker.redis else "File"
 
-        html = f'''<!DOCTYPE html><html><head><title>Global TP Tracker</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="30"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1400px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:22px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333;vertical-align:top}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}</style></head><body><div class="container">
+        html = f'''<!DOCTYPE html><html><head><title>Global TP Tracker</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="30"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1400px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:22px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333;vertical-align:top}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}.section-title{{font-size:18px;font-weight:600;margin:30px 0 15px;padding-top:20px;border-top:1px solid #333}}</style></head><body><div class="container">
         <div class="nav"><a href="/positions">📊 Positions</a><a href="/tp-tracker">🎯 TP Tracker</a><a href="/health">❤️ Health</a></div>
-        <div class="header"><div class="title">🎯 Global Take Profit Tracker</div><div class="refresh">Auto-refresh: 30s</div></div>
+        <div class="header"><div class="title">🎯 Global Take Profit Tracker</div><div class="refresh">Auto-refresh: 30s | Storage: {storage_type}</div></div>
         <div class="cards">
             <div class="card"><div class="card-label">Total Events</div><div class="card-value">{stats['total_events']}</div></div>
             <div class="card"><div class="card-label">Total Profit</div><div class="card-value" style="color:{profit_color}">${stats['total_profit']:+.2f}</div></div>
@@ -980,8 +1040,10 @@ async def tp_tracker_ui():
             <div class="card"><div class="card-label">Avg Trigger</div><div class="card-value">{stats['avg_trigger_percent']:.2f}%</div></div>
             <div class="card"><div class="card-label">Avg Positions</div><div class="card-value">{stats['avg_positions']:.1f}</div></div>
         </div>
+        <div class="section-title">🎯 Tracked Global TP Events</div>
         <table><thead><tr><th>Timestamp</th><th>Trigger %</th><th>Threshold</th><th>Balance Before</th><th>Balance After</th><th>Profit</th><th>Positions</th><th>Details</th></tr></thead><tbody>{rows}</tbody></table>
-        <div style="margin-top:20px;color:#666;font-size:12px;text-align:center">Data persisted to: data/global_tp_tracker.json</div>
+        <div class="section-title">📜 Recent Batch Closes (Last 3 from Binance)</div>
+        <table><thead><tr><th>Timestamp</th><th>Trigger %</th><th>Threshold</th><th>Balance Before</th><th>Balance After</th><th>Profit</th><th>Positions</th><th>Details</th></tr></thead><tbody>{history_rows}</tbody></table>
         </div></body></html>'''
         return HTMLResponse(content=html)
     except Exception as e:
