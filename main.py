@@ -32,6 +32,7 @@ from src import DataFeed, PairFilter, PositionTracker, OrderExecutor
 from src.macro_strategy import MacroIndicator, MacroConfig, MacroDirection
 from src.profit_tracker import profit_tracker
 from src.tp_tracker import tp_tracker
+from src.exit_tracker import exit_tracker
 
 # Configure logging
 logger.remove()
@@ -185,6 +186,10 @@ class MacroIndexBot:
         # Initialize TP tracker with Redis
         await tp_tracker.initialize()
         logger.info("TP tracker ready")
+
+        # Initialize exit tracker with Redis
+        await exit_tracker.initialize()
+        logger.info("Exit tracker ready")
 
         # Cancel any leftover STOP_MARKET orders from previous code versions
         # This ensures software SL has exclusive control
@@ -396,8 +401,18 @@ class MacroIndexBot:
         # Get balance AFTER closing
         balance_after = await self._get_wallet_balance()
 
-        # Record to TP tracker
+        # Record to TP tracker (legacy)
         tp_tracker.record_tp(
+            trigger_percent=trigger_percent,
+            threshold_percent=self.config.GLOBAL_TP_PERCENT,
+            balance_before=balance_before,
+            balance_after=balance_after,
+            positions=position_details,
+            total_margin=total_margin
+        )
+
+        # Record to unified exit tracker
+        exit_tracker.record_global_tp(
             trigger_percent=trigger_percent,
             threshold_percent=self.config.GLOBAL_TP_PERCENT,
             balance_before=balance_before,
@@ -534,14 +549,39 @@ class MacroIndexBot:
                     if pnl_pct <= -self.config.STOP_LOSS_PERCENT:
                         logger.warning(f"SL TRIGGERED: {p.symbol} at {pnl_pct:.2f}% (threshold: -{self.config.STOP_LOSS_PERCENT}%)")
 
+                        # Get balance BEFORE closing
+                        balance_before = await self._get_wallet_balance()
+
                         # Calculate actual margin from position (handles synced positions with margin=0)
                         # margin = notional / leverage = (quantity * entry_price) / leverage
                         freed_margin = p.margin if p.margin > 0 else (p.quantity * p.entry_price) / self.config.LEVERAGE
+                        pnl_usd = freed_margin * (pnl_pct / 100)
                         logger.info(f"Freed margin from {p.symbol}: ${freed_margin:.2f}")
 
                         # Close the position
                         await self._execute_exit(p.symbol, p, {'action': 'close', 'reason': 'stop_loss'}, price)
                         sl_closed.append(p.symbol)
+
+                        # Get balance AFTER closing
+                        balance_after = await self._get_wallet_balance()
+
+                        # Record SL event
+                        exit_tracker.record_stop_loss(
+                            symbol=p.symbol,
+                            trigger_percent=pnl_pct,
+                            threshold_percent=-self.config.STOP_LOSS_PERCENT,
+                            balance_before=balance_before,
+                            balance_after=balance_after,
+                            position_details={
+                                'symbol': p.symbol,
+                                'direction': p.direction,
+                                'entry_price': p.entry_price,
+                                'exit_price': price,
+                                'pnl_usd': pnl_usd,
+                                'pnl_percent': pnl_pct,
+                                'margin': freed_margin
+                            }
+                        )
 
                         # Reallocate freed capital to best position IMMEDIATELY
                         if freed_margin > 0.5:  # Only reallocate if margin is meaningful (>$0.50)
@@ -1028,7 +1068,7 @@ async def tp_tracker_ui():
         storage_type = "Redis" if tp_tracker.redis else "File"
 
         html = f'''<!DOCTYPE html><html><head><title>Global TP Tracker</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="30"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1400px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:22px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333;vertical-align:top}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}.section-title{{font-size:18px;font-weight:600;margin:30px 0 15px;padding-top:20px;border-top:1px solid #333}}</style></head><body><div class="container">
-        <div class="nav"><a href="/positions">📊 Positions</a><a href="/tp-tracker">🎯 TP Tracker</a><a href="/health">❤️ Health</a></div>
+        <div class="nav"><a href="/positions">📊 Positions</a><a href="/exits">📋 Exits</a><a href="/tp-tracker">🎯 TP Only</a><a href="/health">❤️ Health</a></div>
         <div class="header"><div class="title">🎯 Global Take Profit Tracker</div><div class="refresh">Auto-refresh: 30s | Storage: {storage_type}</div></div>
         <div class="cards">
             <div class="card"><div class="card-label">Total Events</div><div class="card-value">{stats['total_events']}</div></div>
@@ -1066,6 +1106,110 @@ async def tp_tracker_json():
             "events": [asdict(e) for e in tp_tracker.events],
             "total_events": len(tp_tracker.events),
             "storage": "redis" if tp_tracker.redis else "file"
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/exits", response_class=HTMLResponse)
+async def exits_ui():
+    """HTML dashboard showing ALL exit events (Global TP + Stop Loss)"""
+    try:
+        from src.exit_tracker import exit_tracker
+        from dataclasses import asdict
+
+        # Ensure initialized
+        if not exit_tracker._initialized:
+            await exit_tracker.initialize()
+
+        stats = exit_tracker.get_stats()
+        events = exit_tracker.get_recent_events(50)  # Last 50 events
+
+        # Build event rows
+        rows = ""
+        for event in events:  # Already sorted most recent first
+            if event.event_type == "GLOBAL_TP":
+                emoji = "🎯"
+                type_color = "#22c55e"
+                type_label = "GLOBAL TP"
+            else:
+                emoji = "🛑"
+                type_color = "#ef4444"
+                type_label = "STOP LOSS"
+
+            profit_color = "#22c55e" if event.profit_usd >= 0 else "#ef4444"
+
+            # Position details
+            pos_details = ""
+            for p in event.positions[:5]:  # Max 5 positions shown
+                p_color = "#22c55e" if p.get('pnl_usd', 0) >= 0 else "#ef4444"
+                pos_details += f'<div style="font-size:11px;color:#888;padding:2px 0">{p.get("symbol", "N/A"):15} <span style="color:{p_color}">${p.get("pnl_usd", 0):+.4f}</span></div>'
+            if len(event.positions) > 5:
+                pos_details += f'<div style="font-size:11px;color:#666">+{len(event.positions)-5} more</div>'
+
+            if not pos_details:
+                pos_details = f'<div style="font-size:11px;color:#666">{event.symbol}</div>'
+
+            rows += f'''<tr>
+                <td>{emoji} {event.timestamp[:19]}</td>
+                <td style="color:{type_color};font-weight:bold">{type_label}</td>
+                <td>{event.symbol}</td>
+                <td>{event.trigger_percent:.2f}%</td>
+                <td>{event.threshold_percent:.2f}%</td>
+                <td>${event.balance_before:.2f}</td>
+                <td>${event.balance_after:.2f}</td>
+                <td style="color:{profit_color};font-weight:bold">${event.profit_usd:+.2f}</td>
+                <td>{event.positions_closed}</td>
+                <td style="max-width:200px">{pos_details}</td>
+            </tr>'''
+
+        if not events:
+            rows = '<tr><td colspan="10" style="padding:40px;text-align:center;color:#888">No exit events recorded yet</td></tr>'
+
+        # Stats colors
+        total_color = "#22c55e" if stats['total_profit'] >= 0 else "#ef4444"
+        tp_color = "#22c55e" if stats['tp_profit'] >= 0 else "#ef4444"
+        sl_color = "#ef4444" if stats['sl_loss'] < 0 else "#22c55e"
+        storage_type = "Redis" if exit_tracker.redis else "File"
+
+        html = f'''<!DOCTYPE html><html><head><title>Exit Tracker - TP & SL</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="30"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1600px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:20px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333;vertical-align:top}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}</style></head><body><div class="container">
+        <div class="nav"><a href="/positions">📊 Positions</a><a href="/exits">📋 Exits</a><a href="/tp-tracker">🎯 TP Only</a><a href="/health">❤️ Health</a></div>
+        <div class="header"><div class="title">📋 Exit Tracker (TP + SL)</div><div class="refresh">Auto-refresh: 30s | Storage: {storage_type}</div></div>
+        <div class="cards">
+            <div class="card"><div class="card-label">Total Events</div><div class="card-value">{stats['total_events']}</div></div>
+            <div class="card"><div class="card-label">🎯 TP Events</div><div class="card-value" style="color:#22c55e">{stats['tp_events']}</div></div>
+            <div class="card"><div class="card-label">🛑 SL Events</div><div class="card-value" style="color:#ef4444">{stats['sl_events']}</div></div>
+            <div class="card"><div class="card-label">Net Profit</div><div class="card-value" style="color:{total_color}">${stats['total_profit']:+.2f}</div></div>
+            <div class="card"><div class="card-label">TP Profit</div><div class="card-value" style="color:{tp_color}">${stats['tp_profit']:+.2f}</div></div>
+            <div class="card"><div class="card-label">SL Loss</div><div class="card-value" style="color:{sl_color}">${stats['sl_loss']:+.2f}</div></div>
+            <div class="card"><div class="card-label">Avg TP Profit</div><div class="card-value">${stats['avg_tp_profit']:+.2f}</div></div>
+            <div class="card"><div class="card-label">Avg SL Loss</div><div class="card-value">${stats['avg_sl_loss']:+.2f}</div></div>
+        </div>
+        <table><thead><tr><th>Timestamp</th><th>Type</th><th>Symbol</th><th>Trigger %</th><th>Threshold</th><th>Before</th><th>After</th><th>P&L</th><th>Positions</th><th>Details</th></tr></thead><tbody>{rows}</tbody></table>
+        </div></body></html>'''
+        return HTMLResponse(content=html)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"<h1>Error</h1><pre>{traceback.format_exc()}</pre>")
+
+
+@app.get("/exits/json")
+async def exits_json():
+    """JSON API for exit tracker data"""
+    try:
+        from src.exit_tracker import exit_tracker
+        from dataclasses import asdict
+
+        # Ensure initialized
+        if not exit_tracker._initialized:
+            await exit_tracker.initialize()
+
+        return {
+            "stats": exit_tracker.get_stats(),
+            "events": [asdict(e) for e in exit_tracker.get_recent_events(50)],
+            "tp_events": [asdict(e) for e in exit_tracker.get_tp_events()],
+            "sl_events": [asdict(e) for e in exit_tracker.get_sl_events()],
+            "storage": "redis" if exit_tracker.redis else "file"
         }
     except Exception as e:
         return {"error": str(e)}
