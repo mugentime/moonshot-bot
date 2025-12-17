@@ -817,6 +817,34 @@ async def metrics():
     return profit_tracker.get_metrics().__dict__
 
 
+@app.get("/debug-sync")
+async def debug_sync():
+    """Debug endpoint - force sync and show position comparison"""
+    try:
+        # Get positions from Binance directly
+        binance_positions = await bot.data_feed.client.futures_position_information()
+        binance_open = [p for p in binance_positions if float(p['positionAmt']) != 0]
+
+        # Get positions from tracker BEFORE sync
+        tracker_before = [p.symbol for p in bot.position_tracker.get_all_positions()]
+
+        # Force sync
+        await bot.position_tracker.sync_with_exchange()
+
+        # Get positions from tracker AFTER sync
+        tracker_after = [p.symbol for p in bot.position_tracker.get_all_positions()]
+
+        return {
+            "binance_positions": len(binance_open),
+            "binance_symbols": [p['symbol'] for p in binance_open],
+            "tracker_before_sync": tracker_before,
+            "tracker_after_sync": tracker_after,
+            "sync_worked": len(tracker_after) == len(binance_open)
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/report")
 async def report():
     return {"report": profit_tracker.print_report()}
