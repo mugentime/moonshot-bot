@@ -31,6 +31,7 @@ from config import PORT, LOG_LEVEL, PairFilterConfig
 from src import DataFeed, PairFilter, PositionTracker, OrderExecutor
 from src.macro_strategy import MacroIndicator, MacroConfig, MacroDirection
 from src.profit_tracker import profit_tracker
+from src.tp_tracker import tp_tracker
 
 # Configure logging
 logger.remove()
@@ -327,13 +328,17 @@ class MacroIndexBot:
 
         logger.info(f"Closed {closed} {direction} positions")
 
-    async def _close_all_positions_global_tp(self):
+    async def _close_all_positions_global_tp(self, trigger_percent: float = 0, total_margin: float = 0):
         """Close ALL positions due to Global TP trigger"""
         logger.info("Closing ALL positions for Global TP...")
+
+        # Get balance BEFORE closing
+        balance_before = await self._get_wallet_balance()
 
         positions = self.position_tracker.get_all_positions()
         closed = 0
         total_pnl = 0
+        position_details = []  # For TP tracker
 
         for position in positions:
             symbol = position.symbol
@@ -355,6 +360,17 @@ class MacroIndexBot:
                     pnl_usd = position.margin * (pnl_pct / 100) * self.config.LEVERAGE
                     total_pnl += pnl_usd
 
+                    # Collect position details for TP tracker
+                    position_details.append({
+                        'symbol': symbol,
+                        'direction': position.direction,
+                        'entry_price': position.entry_price,
+                        'exit_price': current_price,
+                        'pnl_usd': pnl_usd,
+                        'pnl_percent': pnl_pct * self.config.LEVERAGE,
+                        'margin': position.margin
+                    })
+
                     profit_tracker.record_exit(
                         symbol=symbol,
                         exit_price=current_price,
@@ -373,9 +389,23 @@ class MacroIndexBot:
 
             await asyncio.sleep(0.05)  # Small delay between closes
 
+        # Get balance AFTER closing
+        balance_after = await self._get_wallet_balance()
+
+        # Record to TP tracker
+        tp_tracker.record_tp(
+            trigger_percent=trigger_percent,
+            threshold_percent=self.config.GLOBAL_TP_PERCENT,
+            balance_before=balance_before,
+            balance_after=balance_after,
+            positions=position_details,
+            total_margin=total_margin
+        )
+
         logger.info(f"{'='*60}")
         logger.info(f"GLOBAL TP COMPLETE: Closed {closed}/{len(positions)} positions")
-        logger.info(f"Total PnL: ${total_pnl:+.2f}")
+        logger.info(f"Balance: ${balance_before:.2f} -> ${balance_after:.2f}")
+        logger.info(f"PROFIT: ${balance_after - balance_before:+.2f}")
         logger.info(f"Cooldown: {self.config.GLOBAL_TP_COOLDOWN_SECONDS}s before reopening")
         logger.info(f"{'='*60}")
 
@@ -553,7 +583,10 @@ class MacroIndexBot:
                         logger.info(f"GLOBAL TP TRIGGERED: +{global_pnl_pct:.2f}% (threshold: {self.config.GLOBAL_TP_PERCENT}%)")
                         logger.info(f"Total PnL: ${total_pnl:.2f} | Margin: ${total_margin:.2f}")
                         logger.info(f"{'='*60}")
-                        await self._close_all_positions_global_tp()
+                        await self._close_all_positions_global_tp(
+                            trigger_percent=global_pnl_pct,
+                            total_margin=total_margin
+                        )
                         self.last_global_tp_time = time.time()
 
                 await asyncio.sleep(5)  # Check every 5 seconds
@@ -700,6 +733,17 @@ class MacroIndexBot:
 
         except Exception as e:
             logger.error(f"Error in capital reallocation: {e}")
+
+    async def _get_wallet_balance(self) -> float:
+        """Get current USDT wallet balance from Binance"""
+        try:
+            account = await self.data_feed.client.futures_account_balance()
+            for asset in account:
+                if asset['asset'] == 'USDT':
+                    return float(asset['balance'])
+        except Exception as e:
+            logger.error(f"Error getting wallet balance: {e}")
+        return 0.0
 
     def get_status(self):
         """Get bot status"""
