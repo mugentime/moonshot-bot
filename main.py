@@ -1232,12 +1232,13 @@ async def exits_json():
 
 @app.get("/reset-trackers")
 async def reset_trackers():
-    """Clear all corrupted tracker data from Redis AND local file backups"""
+    """Clear all corrupted tracker data - Redis, files, and memory"""
     try:
         from src.exit_tracker import exit_tracker
         from src.tp_tracker import tp_tracker
         import redis.asyncio as redis
         import os
+        import json
 
         cleared = []
         redis_url = os.getenv('REDIS_URL')
@@ -1255,22 +1256,48 @@ async def reset_trackers():
             if existed:
                 cleared.append(f"redis:{key}")
 
+        # Write empty data to Redis to prevent any reload
+        empty_data = json.dumps({'events': [], 'total_events': 0})
+        await r.set('exit_tracker_v2', empty_data)
+        await r.set('global_tp_tracker', empty_data)
+        cleared.append("redis:wrote_empty_data")
+
         await r.close()
 
         # Clear file backups to prevent reload from file
         file_backups = ['data/exit_tracker.json', 'data/global_tp_tracker.json']
         for file_path in file_backups:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                cleared.append(f"file:{file_path}")
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    cleared.append(f"file:deleted:{file_path}")
+                # Write empty file to prevent recreation
+                os.makedirs('data', exist_ok=True)
+                with open(file_path, 'w') as f:
+                    json.dump({'events': [], 'total_events': 0}, f)
+                cleared.append(f"file:wrote_empty:{file_path}")
+            except Exception as e:
+                cleared.append(f"file:error:{file_path}:{str(e)}")
 
         # Clear in-memory events on the global singletons
         exit_tracker.events = []
-        exit_tracker._initialized = False  # Force re-init on next use
+        exit_tracker._initialized = True  # Mark as initialized with empty data
         tp_tracker.events = []
-        tp_tracker._initialized = False  # Force re-init on next use
+        tp_tracker._initialized = True  # Mark as initialized with empty data
 
-        return {"status": "success", "cleared": cleared, "message": f"Cleared {len(cleared)} items. Fresh start! Trackers will re-initialize clean on next access."}
+        # Also clear the Redis connections to force fresh connection
+        if exit_tracker.redis:
+            exit_tracker.redis = None
+        if tp_tracker.redis:
+            tp_tracker.redis = None
+
+        return {
+            "status": "success",
+            "cleared": cleared,
+            "exit_tracker_events": len(exit_tracker.events),
+            "tp_tracker_events": len(tp_tracker.events),
+            "message": f"Cleared {len(cleared)} items. Both trackers now have 0 events."
+        }
     except Exception as e:
         import traceback
         return {"status": "error", "message": str(e), "trace": traceback.format_exc()}

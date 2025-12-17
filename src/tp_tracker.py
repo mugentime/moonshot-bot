@@ -295,6 +295,28 @@ ALL EVENTS
             if datetime.fromisoformat(e.timestamp).timestamp() > cutoff
         ]
 
+    async def clear_all(self):
+        """Clear all events from memory, Redis, and file"""
+        self.events = []
+
+        # Clear Redis
+        if self.redis:
+            try:
+                await self.redis.delete(REDIS_KEY)
+                logger.info("Cleared TP tracker from Redis")
+            except Exception as e:
+                logger.error(f"Error clearing Redis: {e}")
+
+        # Clear file
+        try:
+            if os.path.exists(self.tracker_file):
+                os.remove(self.tracker_file)
+                logger.info("Cleared TP tracker file")
+        except Exception as e:
+            logger.error(f"Error clearing file: {e}")
+
+        logger.info("TP Tracker cleared successfully")
+
 
 # Global instance
 tp_tracker = GlobalTPTracker()
