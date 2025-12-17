@@ -49,9 +49,6 @@ class MacroConfig:
     GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "10.0"))
     GLOBAL_TP_COOLDOWN_SECONDS: int = int(os.getenv("GLOBAL_TP_COOLDOWN", "300"))
 
-    # INDIVIDUAL STOP LOSS - Per position (20% loss triggers close)
-    STOP_LOSS_PERCENT: float = float(os.getenv("STOP_LOSS_PERCENT", "20.0"))
-
     # POSITION SIZING
     LEVERAGE = 20  # 20x leverage (aggressive)
     MAX_POSITIONS = 61  # All coins
