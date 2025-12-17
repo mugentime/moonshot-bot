@@ -461,7 +461,7 @@ class OrderExecutor:
         """Get all open positions"""
         try:
             positions = await self.client.futures_position_information()
-            
+
             open_positions = []
             for p in positions:
                 if float(p['positionAmt']) != 0:
@@ -473,9 +473,102 @@ class OrderExecutor:
                         'unrealized_pnl': float(p['unRealizedProfit']),
                         'leverage': int(p['leverage'])
                     })
-            
+
             return open_positions
-            
+
         except Exception as e:
             logger.error(f"Error getting open positions: {e}")
             return []
+
+    async def add_to_position(self, symbol: str, margin: float, leverage: int) -> OrderResult:
+        """
+        Add margin to an existing position by placing an additional order.
+        Binance automatically averages the entry price.
+
+        Args:
+            symbol: Trading pair symbol
+            margin: Additional margin to add in USDT
+            leverage: Leverage to use
+
+        Returns:
+            OrderResult with new averaged entry price from Binance
+        """
+        try:
+            # Get current position to determine direction
+            positions = await self.client.futures_position_information(symbol=symbol)
+
+            position = None
+            for p in positions:
+                if p['symbol'] == symbol and float(p['positionAmt']) != 0:
+                    position = p
+                    break
+
+            if not position:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side="", quantity=0, price=0,
+                    error="No existing position to add to"
+                )
+
+            position_amt = float(position['positionAmt'])
+            direction = "LONG" if position_amt > 0 else "SHORT"
+
+            # Get current price
+            ticker = await self.data_feed.get_ticker(symbol)
+            if not ticker:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side=direction, quantity=0, price=0,
+                    error="Could not get current price"
+                )
+
+            price = ticker.price
+            quantity = await self.calculate_quantity(symbol, margin, leverage, price)
+
+            if quantity <= 0:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side=direction, quantity=0, price=price,
+                    error="Invalid quantity calculated"
+                )
+
+            # Place order in same direction to add to position
+            side = SIDE_BUY if direction == "LONG" else SIDE_SELL
+
+            order = await self.client.futures_create_order(
+                symbol=symbol,
+                side=side,
+                type=ORDER_TYPE_MARKET,
+                quantity=quantity
+            )
+
+            # Get updated position info for new averaged entry price
+            await asyncio.sleep(0.3)  # Wait for position update
+            updated_positions = await self.client.futures_position_information(symbol=symbol)
+
+            new_entry_price = price  # Fallback
+            new_quantity = abs(position_amt) + quantity
+            for up in updated_positions:
+                if up['symbol'] == symbol and float(up['positionAmt']) != 0:
+                    new_entry_price = float(up['entryPrice'])
+                    new_quantity = abs(float(up['positionAmt']))
+                    break
+
+            logger.info(f"🔄 Added to {symbol} {direction}: +{quantity} qty @ {price} | New entry: {new_entry_price}")
+
+            return OrderResult(
+                success=True,
+                order_id=str(order['orderId']),
+                symbol=symbol,
+                side=side,
+                quantity=new_quantity,  # Total quantity after addition
+                price=new_entry_price   # New averaged entry price
+            )
+
+        except Exception as e:
+            logger.error(f"Error adding to position {symbol}: {e}")
+            return OrderResult(
+                success=False, order_id=None, symbol=symbol,
+                side="", quantity=0, price=0,
+                error=str(e)
+            )

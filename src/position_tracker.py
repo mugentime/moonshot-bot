@@ -214,7 +214,47 @@ class PositionTracker:
             del self.positions[symbol]
             await self._save_to_redis()
             logger.info(f"📤 Position removed from tracking: {symbol}")
-    
+
+    async def update_position_size(
+        self,
+        symbol: str,
+        new_quantity: float,
+        new_entry_price: float,
+        added_margin: float
+    ):
+        """
+        Update a position after adding to it.
+        Called after add_to_position() to sync local tracking.
+
+        Args:
+            symbol: Trading pair symbol
+            new_quantity: Total quantity after addition
+            new_entry_price: New averaged entry price from Binance
+            added_margin: Additional margin that was added
+        """
+        if symbol not in self.positions:
+            logger.warning(f"Cannot update {symbol} - not in tracking")
+            return
+
+        position = self.positions[symbol]
+        old_qty = position.quantity
+        old_margin = position.margin
+        old_entry = position.entry_price
+
+        # Update position
+        position.quantity = new_quantity
+        position.entry_price = new_entry_price
+        position.margin = old_margin + added_margin
+
+        await self._save_to_redis()
+
+        logger.info(
+            f"📈 Position updated: {symbol} | "
+            f"Qty: {old_qty:.4f} → {new_quantity:.4f} | "
+            f"Entry: {old_entry:.6f} → {new_entry_price:.6f} | "
+            f"Margin: ${old_margin:.2f} → ${position.margin:.2f}"
+        )
+
     async def reduce_position(self, symbol: str, reduce_percent: float):
         """Reduce position quantity after partial close"""
         if symbol in self.positions:

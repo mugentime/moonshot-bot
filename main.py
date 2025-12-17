@@ -449,8 +449,18 @@ class MacroIndexBot:
                     # Check if position hit stop loss
                     if pnl_pct <= -self.config.STOP_LOSS_PERCENT:
                         logger.warning(f"SL TRIGGERED: {p.symbol} at {pnl_pct:.2f}% (threshold: -{self.config.STOP_LOSS_PERCENT}%)")
+
+                        # Capture margin before closing for reallocation
+                        freed_margin = p.margin
+
+                        # Close the position
                         await self._execute_exit(p.symbol, p, {'action': 'close', 'reason': 'stop_loss'}, price)
                         sl_closed.append(p.symbol)
+
+                        # Reallocate freed capital to best position IMMEDIATELY
+                        if freed_margin > 0:
+                            await self._reallocate_capital(freed_margin, p.symbol)
+
                         await asyncio.sleep(0.1)  # Small delay between closes
 
                 # Remove SL-closed positions from list for Global TP calculation
@@ -543,6 +553,90 @@ class MacroIndexBot:
 
         except Exception as e:
             logger.error(f"Error executing exit: {e}")
+
+    def _find_best_position(self, exclude_symbols: list = None):
+        """
+        Find the best performing position (highest PnL %).
+        Used for capital reallocation after SL closes a position.
+
+        Args:
+            exclude_symbols: List of symbols to exclude (e.g., just-closed position)
+
+        Returns:
+            TrackedPosition with highest PnL %, or None if no positions
+        """
+        exclude_symbols = exclude_symbols or []
+        positions = self.position_tracker.get_all_positions()
+
+        # Filter out excluded symbols
+        candidates = [p for p in positions if p.symbol not in exclude_symbols]
+
+        if not candidates:
+            return None
+
+        best_position = None
+        best_pnl_pct = float('-inf')
+
+        for p in candidates:
+            price = self.data_feed.get_current_price(p.symbol) or p.entry_price
+            if p.direction == "LONG":
+                pnl_pct = ((price - p.entry_price) / p.entry_price) * 100 * self.config.LEVERAGE
+            else:
+                pnl_pct = ((p.entry_price - price) / p.entry_price) * 100 * self.config.LEVERAGE
+
+            if pnl_pct > best_pnl_pct:
+                best_pnl_pct = pnl_pct
+                best_position = p
+
+        return best_position
+
+    async def _reallocate_capital(self, freed_margin: float, closed_symbol: str):
+        """
+        Reallocate freed margin from closed position to the best performing position.
+        Called immediately after SL closes a position.
+
+        Args:
+            freed_margin: Margin freed from the closed position
+            closed_symbol: Symbol of the position that was just closed
+        """
+        try:
+            # Find best position (excluding the one just closed)
+            best_position = self._find_best_position(exclude_symbols=[closed_symbol])
+
+            if not best_position:
+                logger.info(f"💰 No positions to reallocate ${freed_margin:.2f} to (all positions closed)")
+                return
+
+            # Calculate current PnL of best position for logging
+            price = self.data_feed.get_current_price(best_position.symbol) or best_position.entry_price
+            if best_position.direction == "LONG":
+                best_pnl_pct = ((price - best_position.entry_price) / best_position.entry_price) * 100 * self.config.LEVERAGE
+            else:
+                best_pnl_pct = ((best_position.entry_price - price) / best_position.entry_price) * 100 * self.config.LEVERAGE
+
+            logger.info(f"💰 REALLOCATING: ${freed_margin:.2f} from {closed_symbol} → {best_position.symbol} (best: {best_pnl_pct:+.2f}%)")
+
+            # Add to best position
+            result = await self.order_executor.add_to_position(
+                symbol=best_position.symbol,
+                margin=freed_margin,
+                leverage=self.config.LEVERAGE
+            )
+
+            if result.success:
+                # Update tracking with new size and entry
+                await self.position_tracker.update_position_size(
+                    symbol=best_position.symbol,
+                    new_quantity=result.quantity,
+                    new_entry_price=result.price,
+                    added_margin=freed_margin
+                )
+                logger.info(f"✅ Reallocation complete: {best_position.symbol} now has ${best_position.margin + freed_margin:.2f} margin")
+            else:
+                logger.error(f"❌ Reallocation failed: {result.error}")
+
+        except Exception as e:
+            logger.error(f"Error in capital reallocation: {e}")
 
     def get_status(self):
         """Get bot status"""
