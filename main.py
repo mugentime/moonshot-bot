@@ -23,6 +23,7 @@ if sys.platform == "win32":
 from datetime import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from loguru import logger
 import uvicorn
 
@@ -774,11 +775,66 @@ async def report():
     return {"report": profit_tracker.print_report()}
 
 
-@app.get("/positions")
+@app.get("/positions", response_class=HTMLResponse)
 async def positions():
-    if bot:
-        return {"positions": [str(p) for p in bot.position_tracker.get_all_positions()]}
-    return {"positions": []}
+    """HTML dashboard showing all positions"""
+    try:
+        # Fetch fresh data from Binance
+        positions_data = await bot.data_feed.client.futures_position_information()
+        open_positions = [p for p in positions_data if float(p['positionAmt']) != 0]
+
+        account = await bot.data_feed.client.futures_account()
+        wallet = float(account['totalWalletBalance'])
+        margin = float(account['totalMarginBalance'])
+        available = float(account['availableBalance'])
+
+        # Process positions
+        rows = ""
+        total_pnl = 0
+        total_margin = 0
+        winners = 0
+
+        position_list = []
+        for p in open_positions:
+            amt = float(p['positionAmt'])
+            entry = float(p['entryPrice'])
+            mark = float(p['markPrice'])
+            pnl = float(p['unRealizedProfit'])
+            leverage = int(p['leverage'])
+            liq = float(p['liquidationPrice'])
+
+            notional = abs(amt * entry)
+            pos_margin = notional / leverage
+            side = 'LONG' if amt > 0 else 'SHORT'
+            roi = ((mark - entry) / entry * 100) if side == 'LONG' else ((entry - mark) / entry * 100)
+            sl_dist = 10.0 + roi
+
+            position_list.append({'symbol': p['symbol'], 'side': side, 'roi': roi, 'pnl': pnl, 'sl_dist': sl_dist, 'margin': pos_margin, 'liq': liq})
+            total_pnl += pnl
+            total_margin += pos_margin
+            if roi >= 0: winners += 1
+
+        position_list.sort(key=lambda x: x['roi'], reverse=True)
+
+        for p in position_list:
+            color = "#22c55e" if p['roi'] >= 0 else "#ef4444"
+            emoji = "🚀" if p['roi'] >= 5 else "🟢" if p['roi'] >= 2 else "🟡" if p['roi'] >= 0 else "🟠" if p['roi'] > -5 else "🔴"
+            rows += f'<tr><td>{emoji} {p["symbol"]}</td><td>{p["side"]}</td><td style="color:{color};font-weight:bold">{p["roi"]:+.2f}%</td><td style="color:{color}">${p["pnl"]:+.2f}</td><td>{p["sl_dist"]:+.1f}%</td><td>${p["margin"]:.2f}</td><td style="font-size:11px">{p["liq"]:.6f}</td></tr>'
+
+        if not position_list:
+            rows = '<tr><td colspan="7" style="padding:40px;text-align:center;color:#888">No open positions</td></tr>'
+
+        losers = len(position_list) - winners
+        portfolio_roi = (total_pnl / total_margin * 100) if total_margin > 0 else 0
+        margin_usage = ((margin - available) / margin * 100) if margin > 0 else 0
+        pnl_color = "#22c55e" if total_pnl >= 0 else "#ef4444"
+        health_color = "#22c55e" if margin_usage < 70 else "#eab308" if margin_usage < 90 else "#ef4444"
+        health_text = "HEALTHY" if margin_usage < 70 else "MODERATE" if margin_usage < 90 else "HIGH RISK"
+
+        html = f'''<!DOCTYPE html><html><head><title>Position Monitor</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="10"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1200px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:24px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333}}.status{{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600}}</style></head><body><div class="container"><div class="header"><div class="title">📊 Position Monitor</div><div class="refresh">Auto-refresh: 10s | SL: 10%</div></div><div class="cards"><div class="card"><div class="card-label">Positions</div><div class="card-value">{len(position_list)} <span style="font-size:14px;color:#888">({winners}W / {losers}L)</span></div></div><div class="card"><div class="card-label">Portfolio PnL</div><div class="card-value" style="color:{pnl_color}">${total_pnl:+.2f} <span style="font-size:14px">({portfolio_roi:+.1f}%)</span></div></div><div class="card"><div class="card-label">Wallet Balance</div><div class="card-value">${wallet:.2f}</div></div><div class="card"><div class="card-label">Margin Usage</div><div class="card-value" style="color:{health_color}">{margin_usage:.1f}% <span class="status" style="background:{health_color}20;color:{health_color}">{health_text}</span></div></div></div><table><thead><tr><th>Symbol</th><th>Side</th><th>ROI</th><th>PnL</th><th>SL Dist</th><th>Margin</th><th>Liq Price</th></tr></thead><tbody>{rows}</tbody></table><div style="margin-top:20px;color:#666;font-size:12px;text-align:center">Available: ${available:.2f} | Margin: ${margin:.2f}</div></div></body></html>'''
+        return HTMLResponse(content=html)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>Error</h1><pre>{str(e)}</pre>")
 
 
 @app.get("/macro")
