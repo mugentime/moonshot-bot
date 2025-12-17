@@ -5,10 +5,11 @@ Trade all whitelisted coins in same direction based on 24H macro indicator.
 Strategy:
 - Uses 24-HOUR price changes (NOT 5-minute noise) for stable trend detection
 - Calculate macro score from majority vote + leader-follower + aggregate velocity
-- Score >= +2 → LONG all coins
-- Score <= -2 → SHORT all coins
+- Score >= +1 → LONG all coins
+- Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
-- NO INDIVIDUAL SL/TP - positions only close when macro direction flips
+- INDIVIDUAL SL: 10% loss per position triggers close (configurable via STOP_LOSS_PERCENT env)
+- GLOBAL TP: Portfolio profit target closes ALL positions (configurable via GLOBAL_TP_PERCENT env)
 """
 import asyncio
 import sys
@@ -156,6 +157,7 @@ class MacroIndexBot:
         logger.info(f"  Leverage: {self.config.LEVERAGE}x")
         logger.info(f"  Timeframe: 24H (stable trend detection)")
         logger.info(f"  Direction Cooldown: {self.config.DIRECTION_CHANGE_COOLDOWN_SECONDS}s (1 hour)")
+        logger.info(f"  Individual SL: {self.config.STOP_LOSS_PERCENT}% (env: STOP_LOSS_PERCENT)")
         logger.info(f"  Global TP: {self.config.GLOBAL_TP_PERCENT}% (env: GLOBAL_TP_PERCENT)")
         logger.info(f"  Global TP Cooldown: {self.config.GLOBAL_TP_COOLDOWN_SECONDS}s (env: GLOBAL_TP_COOLDOWN)")
         logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")
@@ -418,8 +420,8 @@ class MacroIndexBot:
             logger.error(f"Error in position recovery check: {e}")
 
     async def _monitor_loop(self):
-        """Monitor open positions - Check Global TP only"""
-        logger.info(f"Position monitor loop started (Global TP: {self.config.GLOBAL_TP_PERCENT}%)")
+        """Monitor open positions - Check Individual SL + Global TP"""
+        logger.info(f"Position monitor loop started (SL: {self.config.STOP_LOSS_PERCENT}%, Global TP: {self.config.GLOBAL_TP_PERCENT}%)")
         check_count = 0
 
         while self._running:
@@ -431,12 +433,34 @@ class MacroIndexBot:
                 positions = self.position_tracker.get_all_positions()
                 check_count += 1
 
+                if not positions:
+                    await asyncio.sleep(5)
+                    continue
+
+                # === INDIVIDUAL STOP LOSS CHECK ===
+                sl_closed = []
+                for p in positions:
+                    price = self.data_feed.get_current_price(p.symbol) or p.entry_price
+                    if p.direction == "LONG":
+                        pnl_pct = ((price - p.entry_price) / p.entry_price) * 100 * self.config.LEVERAGE
+                    else:
+                        pnl_pct = ((p.entry_price - price) / p.entry_price) * 100 * self.config.LEVERAGE
+
+                    # Check if position hit stop loss
+                    if pnl_pct <= -self.config.STOP_LOSS_PERCENT:
+                        logger.warning(f"SL TRIGGERED: {p.symbol} at {pnl_pct:.2f}% (threshold: -{self.config.STOP_LOSS_PERCENT}%)")
+                        await self._execute_exit(p.symbol, p, {'action': 'close', 'reason': 'stop_loss'}, price)
+                        sl_closed.append(p.symbol)
+                        await asyncio.sleep(0.1)  # Small delay between closes
+
+                # Remove SL-closed positions from list for Global TP calculation
+                positions = [p for p in positions if p.symbol not in sl_closed]
 
                 if not positions:
                     await asyncio.sleep(5)
                     continue
 
-                # === GLOBAL TP CHECK (ONLY EXIT MECHANISM) ===
+                # === GLOBAL TP CHECK ===
                 total_pnl = 0
                 total_margin = 0
 
@@ -454,7 +478,7 @@ class MacroIndexBot:
 
                     # Log Global PnL every minute
                     if check_count % 12 == 0:
-                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% (${total_pnl:+.2f} / ${total_margin:.2f} margin) | Target: {self.config.GLOBAL_TP_PERCENT}%")
+                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% (${total_pnl:+.2f} / ${total_margin:.2f} margin) | SL: -{self.config.STOP_LOSS_PERCENT}% | TP: +{self.config.GLOBAL_TP_PERCENT}%")
 
                     # Check if Global TP triggered
                     if global_pnl_pct >= self.config.GLOBAL_TP_PERCENT:

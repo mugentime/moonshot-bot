@@ -12,7 +12,7 @@ Strategy:
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
 - GLOBAL TP: Portfolio profit closes ALL positions (configurable via env)
-- NO INDIVIDUAL SL/TP - Only Global TP can close positions
+- INDIVIDUAL SL: 10% loss per position triggers close (configurable via env)
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -47,6 +47,9 @@ class MacroConfig:
     # Configurable via GLOBAL_TP_PERCENT env var (default 2.0%)
     GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "2.0"))
     GLOBAL_TP_COOLDOWN_SECONDS: int = int(os.getenv("GLOBAL_TP_COOLDOWN", "300"))
+
+    # INDIVIDUAL STOP LOSS - Per position (10% loss triggers close)
+    STOP_LOSS_PERCENT: float = float(os.getenv("STOP_LOSS_PERCENT", "10.0"))
 
     # POSITION SIZING
     LEVERAGE = 20  # 20x leverage (aggressive)
@@ -299,4 +302,4 @@ class MacroIndicator:
             return 0, avg_velocity
 
 
-# MacroExitManager removed - all exits handled by Global TP only
+# Exit logic handled in main.py monitor loop (Global TP + Individual SL)
