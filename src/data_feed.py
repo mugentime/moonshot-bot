@@ -389,9 +389,42 @@ class DataFeed:
             return 0.0
     
     def get_current_price(self, symbol: str) -> Optional[float]:
-        """Get current price from ticker cache"""
+        """Get current price from ticker cache (fast, no staleness check)"""
         if symbol in self.tickers:
-            return self.tickers[symbol].price
+            price = self.tickers[symbol].price
+            if price > 0:  # Ensure price is valid (not 0)
+                return price
+        return None
+
+    async def get_current_price_safe(self, symbol: str, max_age_seconds: float = 10.0) -> Optional[float]:
+        """
+        Get current price with staleness check and REST API fallback.
+        Use this for critical operations like SL checks.
+
+        Args:
+            symbol: Trading pair symbol
+            max_age_seconds: Maximum age of cached price before REST fallback
+
+        Returns:
+            Current price or None if unavailable from both sources
+        """
+        # Check WebSocket cache first
+        if symbol in self.tickers:
+            cached = self.tickers[symbol]
+            age = time.time() - cached.timestamp
+            if cached.price > 0 and age < max_age_seconds:
+                return cached.price
+            elif age >= max_age_seconds:
+                logger.debug(f"Price cache stale for {symbol} ({age:.1f}s old), fetching from REST")
+
+        # Fallback to REST API
+        try:
+            ticker = await self._fetch_ticker_rest(symbol)
+            if ticker and ticker.price > 0:
+                return ticker.price
+        except Exception as e:
+            logger.error(f"REST price fetch failed for {symbol}: {e}")
+
         return None
 
     def get_volume_average(self, symbol: str, periods: int = 12) -> float:

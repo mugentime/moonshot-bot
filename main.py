@@ -299,8 +299,11 @@ class MacroIndexBot:
 
                     if result.success:
                         closed += 1
-                        # Calculate PnL
-                        current_price = self.data_feed.get_current_price(symbol) or position.entry_price
+                        # Calculate PnL using safe price fetch
+                        current_price = await self.data_feed.get_current_price_safe(symbol)
+                        if current_price is None:
+                            logger.warning(f"No price for {symbol} after close, using entry price for PnL calc")
+                            current_price = position.entry_price
                         if direction == "LONG":
                             pnl_pct = ((current_price - position.entry_price) / position.entry_price) * 100
                         else:
@@ -334,7 +337,10 @@ class MacroIndexBot:
         for position in positions:
             symbol = position.symbol
             try:
-                current_price = self.data_feed.get_current_price(symbol) or position.entry_price
+                current_price = await self.data_feed.get_current_price_safe(symbol)
+                if current_price is None:
+                    logger.warning(f"No price for {symbol} in Global TP, using entry price")
+                    current_price = position.entry_price
 
                 if position.direction == "LONG":
                     result = await self.order_executor.close_long(symbol)
@@ -478,7 +484,12 @@ class MacroIndexBot:
                 # === INDIVIDUAL STOP LOSS CHECK ===
                 sl_closed = []
                 for p in positions:
-                    price = self.data_feed.get_current_price(p.symbol) or p.entry_price
+                    # Use safe price fetching with REST fallback - NEVER fall back to entry_price
+                    price = await self.data_feed.get_current_price_safe(p.symbol, max_age_seconds=10.0)
+                    if price is None:
+                        logger.warning(f"SL CHECK: No price for {p.symbol}, skipping (WebSocket + REST both failed)")
+                        continue
+
                     if p.direction == "LONG":
                         pnl_pct = ((price - p.entry_price) / p.entry_price) * 100 * self.config.LEVERAGE
                     else:
@@ -515,7 +526,12 @@ class MacroIndexBot:
                 total_margin = 0
 
                 for p in positions:
-                    price = self.data_feed.get_current_price(p.symbol) or p.entry_price
+                    # Use safe price fetching with REST fallback
+                    price = await self.data_feed.get_current_price_safe(p.symbol, max_age_seconds=10.0)
+                    if price is None:
+                        logger.debug(f"TP CHECK: No price for {p.symbol}, excluding from Global TP calc")
+                        continue
+
                     if p.direction == "LONG":
                         pnl = ((price - p.entry_price) / p.entry_price) * p.margin * self.config.LEVERAGE
                     else:
@@ -594,7 +610,7 @@ class MacroIndexBot:
         except Exception as e:
             logger.error(f"Error executing exit: {e}")
 
-    def _find_best_position(self, exclude_symbols: list = None):
+    async def _find_best_position(self, exclude_symbols: list = None):
         """
         Find the best performing position (highest PnL %).
         Used for capital reallocation after SL closes a position.
@@ -618,7 +634,10 @@ class MacroIndexBot:
         best_pnl_pct = float('-inf')
 
         for p in candidates:
-            price = self.data_feed.get_current_price(p.symbol) or p.entry_price
+            price = await self.data_feed.get_current_price_safe(p.symbol)
+            if price is None:
+                logger.debug(f"No price for {p.symbol}, skipping from best position calc")
+                continue
             if p.direction == "LONG":
                 pnl_pct = ((price - p.entry_price) / p.entry_price) * 100 * self.config.LEVERAGE
             else:
@@ -641,14 +660,17 @@ class MacroIndexBot:
         """
         try:
             # Find best position (excluding the one just closed)
-            best_position = self._find_best_position(exclude_symbols=[closed_symbol])
+            best_position = await self._find_best_position(exclude_symbols=[closed_symbol])
 
             if not best_position:
                 logger.info(f"💰 No positions to reallocate ${freed_margin:.2f} to (all positions closed)")
                 return
 
             # Calculate current PnL of best position for logging
-            price = self.data_feed.get_current_price(best_position.symbol) or best_position.entry_price
+            price = await self.data_feed.get_current_price_safe(best_position.symbol)
+            if price is None:
+                logger.warning(f"No price for {best_position.symbol} in reallocation, using entry price")
+                price = best_position.entry_price
             if best_position.direction == "LONG":
                 best_pnl_pct = ((price - best_position.entry_price) / best_position.entry_price) * 100 * self.config.LEVERAGE
             else:
