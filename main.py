@@ -182,6 +182,10 @@ class MacroIndexBot:
         await self.position_tracker.initialize()
         logger.info("Position tracker ready")
 
+        # Initialize TP tracker with Redis
+        await tp_tracker.initialize()
+        logger.info("TP tracker ready")
+
         # Cancel any leftover STOP_MARKET orders from previous code versions
         # This ensures software SL has exclusive control
         await self._cancel_all_stop_orders()
@@ -922,6 +926,10 @@ async def tp_tracker_ui():
     try:
         from src.tp_tracker import tp_tracker
 
+        # Ensure initialized
+        if not tp_tracker._initialized:
+            await tp_tracker.initialize()
+
         stats = tp_tracker.get_stats()
         events = tp_tracker.events
 
@@ -987,10 +995,15 @@ async def tp_tracker_json():
         from src.tp_tracker import tp_tracker
         from dataclasses import asdict
 
+        # Ensure initialized
+        if not tp_tracker._initialized:
+            await tp_tracker.initialize()
+
         return {
             "stats": tp_tracker.get_stats(),
             "events": [asdict(e) for e in tp_tracker.events],
-            "total_events": len(tp_tracker.events)
+            "total_events": len(tp_tracker.events),
+            "storage": "redis" if tp_tracker.redis else "file"
         }
     except Exception as e:
         return {"error": str(e)}

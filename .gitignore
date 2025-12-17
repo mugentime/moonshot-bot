@@ -55,6 +55,9 @@ htmlcov/
 *.db
 *.sqlite3
 
+# TP tracker data (persisted in Redis)
+data/global_tp_tracker.json
+
 # Claude Flow generated files
 .claude/settings.local.json
 .mcp.json

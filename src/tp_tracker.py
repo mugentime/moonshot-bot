@@ -1,15 +1,18 @@
 """
 GLOBAL TAKE PROFIT TRACKER
 Tracks all Global TP events with balance before/after and position details.
+Uses Redis for persistence across deploys.
 """
 import json
 import os
+import asyncio
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
 from typing import List, Optional
 from loguru import logger
 
 TRACKER_FILE = "data/global_tp_tracker.json"
+REDIS_KEY = "global_tp_tracker"
 
 
 @dataclass
@@ -43,15 +46,39 @@ class GlobalTPEvent:
 class GlobalTPTracker:
     """
     Tracks all Global Take Profit events.
-    Persists to JSON for historical analysis.
+    Persists to Redis (primary) and JSON file (backup).
     """
 
     def __init__(self, tracker_file: str = TRACKER_FILE):
         self.tracker_file = tracker_file
         self.events: List[GlobalTPEvent] = []
-        self._load()
+        self.redis = None
+        self._redis_url = os.getenv('REDIS_URL')
+        self._initialized = False
 
-    def _load(self):
+    async def initialize(self):
+        """Initialize Redis connection and load data"""
+        if self._initialized:
+            return
+
+        # Try Redis first
+        if self._redis_url:
+            try:
+                import redis.asyncio as redis
+                self.redis = redis.from_url(self._redis_url, decode_responses=True)
+                await self._load_from_redis()
+                self._initialized = True
+                logger.info(f"TP Tracker initialized with Redis ({len(self.events)} events)")
+                return
+            except Exception as e:
+                logger.warning(f"Redis init failed, falling back to file: {e}")
+                self.redis = None
+
+        # Fall back to file
+        self._load_from_file()
+        self._initialized = True
+
+    def _load_from_file(self):
         """Load existing events from file"""
         try:
             os.makedirs(os.path.dirname(self.tracker_file), exist_ok=True)
@@ -59,13 +86,50 @@ class GlobalTPTracker:
                 with open(self.tracker_file, 'r') as f:
                     data = json.load(f)
                     self.events = [GlobalTPEvent(**e) for e in data.get('events', [])]
-                    logger.info(f"Loaded {len(self.events)} Global TP events from tracker")
+                    logger.info(f"Loaded {len(self.events)} Global TP events from file")
         except Exception as e:
-            logger.error(f"Error loading TP tracker: {e}")
+            logger.error(f"Error loading TP tracker from file: {e}")
             self.events = []
 
-    def _save(self):
-        """Save events to file"""
+    async def _load_from_redis(self):
+        """Load events from Redis"""
+        if not self.redis:
+            return
+
+        try:
+            data = await self.redis.get(REDIS_KEY)
+            if data:
+                parsed = json.loads(data)
+                self.events = [GlobalTPEvent(**e) for e in parsed.get('events', [])]
+                logger.info(f"Loaded {len(self.events)} Global TP events from Redis")
+            else:
+                # No data in Redis, try loading from file and migrate
+                self._load_from_file()
+                if self.events:
+                    await self._save_to_redis()
+                    logger.info(f"Migrated {len(self.events)} events from file to Redis")
+        except Exception as e:
+            logger.error(f"Error loading from Redis: {e}")
+            self._load_from_file()
+
+    async def _save_to_redis(self):
+        """Save events to Redis"""
+        if not self.redis:
+            return
+
+        try:
+            data = {
+                'last_updated': datetime.now().isoformat(),
+                'total_events': len(self.events),
+                'total_profit': sum(e.profit_usd for e in self.events),
+                'events': [asdict(e) for e in self.events]
+            }
+            await self.redis.set(REDIS_KEY, json.dumps(data))
+        except Exception as e:
+            logger.error(f"Error saving to Redis: {e}")
+
+    def _save_to_file(self):
+        """Save events to file (backup)"""
         try:
             os.makedirs(os.path.dirname(self.tracker_file), exist_ok=True)
             with open(self.tracker_file, 'w') as f:
@@ -76,7 +140,13 @@ class GlobalTPTracker:
                     'events': [asdict(e) for e in self.events]
                 }, f, indent=2)
         except Exception as e:
-            logger.error(f"Error saving TP tracker: {e}")
+            logger.error(f"Error saving TP tracker to file: {e}")
+
+    async def _save(self):
+        """Save to both Redis and file"""
+        if self.redis:
+            await self._save_to_redis()
+        self._save_to_file()
 
     def record_tp(
         self,
@@ -118,7 +188,17 @@ class GlobalTPTracker:
         )
 
         self.events.append(event)
-        self._save()
+
+        # Save async - fire and forget
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self._save())
+            else:
+                loop.run_until_complete(self._save())
+        except Exception as e:
+            logger.error(f"Error scheduling save: {e}")
+            self._save_to_file()  # Fallback to sync file save
 
         logger.info(f"{'='*60}")
         logger.info(f"GLOBAL TP RECORDED: {event_id}")
