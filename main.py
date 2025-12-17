@@ -1322,6 +1322,166 @@ async def macro():
     return {"status": "calculating..."}
 
 
+@app.get("/backfill-trackers")
+async def backfill_trackers():
+    """Repopulate trackers from real Binance income history"""
+    try:
+        from src.exit_tracker import exit_tracker, ExitEvent
+        from src.tp_tracker import tp_tracker, GlobalTPEvent
+        from collections import defaultdict
+        from datetime import datetime
+
+        # Ensure trackers are initialized
+        await exit_tracker.initialize()
+        await tp_tracker.initialize()
+
+        # Fetch all realized PnL from Binance
+        income = await bot.data_feed.client.futures_income_history(incomeType='REALIZED_PNL', limit=1000)
+        income = sorted(income, key=lambda x: int(x.get('time', 0)))
+
+        if not income:
+            return {"status": "error", "message": "No income history found"}
+
+        # Get current balance to work backwards
+        acc = await bot.data_feed.client.futures_account()
+        current_balance = float(acc['totalWalletBalance'])
+
+        # Group by minute to find batch closes
+        by_minute = defaultdict(list)
+        for i in income:
+            minute = int(i.get('time', 0)) // 60000
+            by_minute[minute].append(i)
+
+        # Categorize events
+        global_tp_events = []  # 3+ trades in same minute = Global TP
+        individual_sl_events = []  # Single trade with loss = Individual SL
+
+        for minute, trades in by_minute.items():
+            timestamp = datetime.fromtimestamp(minute * 60)
+            total_pnl = sum(float(t.get('income', 0)) for t in trades)
+
+            # Calculate balance at this point
+            income_after = sum(
+                float(i.get('income', 0))
+                for i in income
+                if int(i.get('time', 0)) // 60000 > minute
+            )
+            balance_after = current_balance - income_after
+            balance_before = balance_after - total_pnl
+
+            if len(trades) >= 3:
+                # Global TP event (batch close)
+                positions = []
+                for t in trades:
+                    pnl = float(t.get('income', 0))
+                    positions.append({
+                        'symbol': t.get('symbol', 'N/A'),
+                        'direction': 'LONG',
+                        'entry_price': 0,
+                        'exit_price': 0,
+                        'pnl_usd': pnl,
+                        'pnl_percent': 0,
+                        'margin': 0
+                    })
+
+                trigger_pct = (total_pnl / balance_before * 100) if balance_before > 0 else 0
+
+                global_tp_events.append({
+                    'id': f"TP_{timestamp.strftime('%Y%m%d_%H%M%S')}",
+                    'timestamp': timestamp.isoformat(),
+                    'trigger_percent': abs(trigger_pct),
+                    'threshold_percent': 5.0,
+                    'balance_before': balance_before,
+                    'balance_after': balance_after,
+                    'profit_usd': total_pnl,
+                    'positions_closed': len(trades),
+                    'positions': positions,
+                    'total_margin': 0
+                })
+            else:
+                # Individual trades - check if SL (loss)
+                for t in trades:
+                    pnl = float(t.get('income', 0))
+                    symbol = t.get('symbol', 'N/A')
+                    trade_time = datetime.fromtimestamp(int(t.get('time', 0)) / 1000)
+
+                    # Calculate balance for this specific trade
+                    income_after_trade = sum(
+                        float(i.get('income', 0))
+                        for i in income
+                        if int(i.get('time', 0)) > int(t.get('time', 0))
+                    )
+                    trade_balance_after = current_balance - income_after_trade
+                    trade_balance_before = trade_balance_after - pnl
+
+                    if pnl < 0:
+                        # Stop Loss event
+                        individual_sl_events.append({
+                            'id': f"SL_{trade_time.strftime('%Y%m%d_%H%M%S')}_{symbol}",
+                            'timestamp': trade_time.isoformat(),
+                            'event_type': 'STOP_LOSS',
+                            'symbol': symbol,
+                            'trigger_percent': 0,
+                            'threshold_percent': 20.0,
+                            'balance_before': trade_balance_before,
+                            'balance_after': trade_balance_after,
+                            'profit_usd': pnl,
+                            'positions_closed': 1,
+                            'positions': [{'symbol': symbol, 'pnl_usd': pnl}],
+                            'total_margin': 0
+                        })
+
+        # Clear existing and add new events
+        exit_tracker.events = []
+        tp_tracker.events = []
+
+        # Add Global TP events to both trackers
+        for e in global_tp_events:
+            tp_tracker.events.append(GlobalTPEvent(**e))
+            exit_tracker.events.append(ExitEvent(
+                id=e['id'],
+                timestamp=e['timestamp'],
+                event_type='GLOBAL_TP',
+                symbol='ALL',
+                trigger_percent=e['trigger_percent'],
+                threshold_percent=e['threshold_percent'],
+                balance_before=e['balance_before'],
+                balance_after=e['balance_after'],
+                profit_usd=e['profit_usd'],
+                positions_closed=e['positions_closed'],
+                positions=e['positions'],
+                total_margin=e['total_margin']
+            ))
+
+        # Add SL events to exit tracker only
+        for e in individual_sl_events:
+            exit_tracker.events.append(ExitEvent(**e))
+
+        # Save to Redis and file
+        if tp_tracker.redis:
+            await tp_tracker._save_to_redis()
+        tp_tracker._save_to_file()
+
+        if exit_tracker.redis:
+            await exit_tracker._save_to_redis()
+        exit_tracker._save_to_file()
+
+        return {
+            "status": "success",
+            "global_tp_events": len(global_tp_events),
+            "individual_sl_events": len(individual_sl_events),
+            "total_income_records": len(income),
+            "current_balance": current_balance,
+            "tp_total_profit": sum(e.profit_usd for e in tp_tracker.events),
+            "sl_total_loss": sum(e['profit_usd'] for e in individual_sl_events),
+            "message": f"Backfilled {len(global_tp_events)} Global TP and {len(individual_sl_events)} SL events from Binance history"
+        }
+
+    except Exception as e:
+        import traceback
+        return {"status": "error", "message": str(e), "trace": traceback.format_exc()}
+
+
 if __name__ == "__main__":
     # Create logs directory
     os.makedirs("logs", exist_ok=True)

@@ -267,6 +267,28 @@ class ExitTracker:
         """Get all SL events"""
         return [e for e in self.events if e.event_type == "STOP_LOSS"]
 
+    async def clear_all(self):
+        """Clear all events from memory, Redis, and file"""
+        self.events = []
+
+        # Clear Redis
+        if self.redis:
+            try:
+                await self.redis.delete(REDIS_KEY)
+                logger.info("Cleared Exit tracker from Redis")
+            except Exception as e:
+                logger.error(f"Error clearing Redis: {e}")
+
+        # Clear file
+        try:
+            if os.path.exists(self.tracker_file):
+                os.remove(self.tracker_file)
+                logger.info("Cleared Exit tracker file")
+        except Exception as e:
+            logger.error(f"Error clearing file: {e}")
+
+        logger.info("Exit Tracker cleared successfully")
+
 
 # Global instance
 exit_tracker = ExitTracker()
