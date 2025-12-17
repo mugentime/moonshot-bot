@@ -1191,6 +1191,42 @@ async def exits_json():
         return {"error": str(e)}
 
 
+@app.get("/cancel-all-orders")
+async def cancel_all_orders():
+    """Cancel ALL open orders on Binance (including SL orders)"""
+    try:
+        # Get all open orders
+        open_orders = await bot.data_feed.client.futures_get_open_orders()
+
+        if not open_orders:
+            return {"status": "ok", "message": "No open orders to cancel", "cancelled": 0}
+
+        cancelled = 0
+        errors = []
+
+        # Group by symbol for efficient cancellation
+        symbols = set(o['symbol'] for o in open_orders)
+
+        for symbol in symbols:
+            try:
+                await bot.data_feed.client.futures_cancel_all_open_orders(symbol=symbol)
+                symbol_orders = len([o for o in open_orders if o['symbol'] == symbol])
+                cancelled += symbol_orders
+                logger.info(f"Cancelled {symbol_orders} orders for {symbol}")
+            except Exception as e:
+                errors.append(f"{symbol}: {str(e)}")
+
+        return {
+            "status": "ok",
+            "cancelled": cancelled,
+            "symbols": list(symbols),
+            "errors": errors if errors else None
+        }
+    except Exception as e:
+        logger.error(f"Error cancelling orders: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 @app.get("/reset-trackers")
 async def reset_trackers():
     """Clear all corrupted tracker data - Redis, files, and memory"""
