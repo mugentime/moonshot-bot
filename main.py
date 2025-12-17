@@ -117,6 +117,40 @@ class MacroIndexBot:
         except Exception as e:
             logger.error(f"Error closing positions: {e}")
 
+    async def _cancel_all_stop_orders(self):
+        """
+        Cancel all STOP_MARKET orders to ensure software SL has exclusive control.
+        This prevents leftover exchange-side stop orders from earlier code versions
+        from triggering at different thresholds than the current software SL.
+        """
+        try:
+            # Get all open orders across all symbols
+            open_orders = await self.data_feed.client.futures_get_open_orders()
+
+            # Filter for stop orders
+            stop_orders = [o for o in open_orders if o['type'] == 'STOP_MARKET']
+
+            if stop_orders:
+                logger.info(f"🧹 Found {len(stop_orders)} STOP_MARKET orders to cancel...")
+                cancelled = 0
+                for order in stop_orders:
+                    try:
+                        await self.data_feed.client.futures_cancel_order(
+                            symbol=order['symbol'],
+                            orderId=order['orderId']
+                        )
+                        cancelled += 1
+                        logger.debug(f"  Cancelled stop order for {order['symbol']}")
+                    except Exception as e:
+                        logger.warning(f"  Failed to cancel stop order for {order['symbol']}: {e}")
+
+                logger.info(f"✅ Cancelled {cancelled}/{len(stop_orders)} stop orders - software SL now in control")
+            else:
+                logger.info("No leftover STOP_MARKET orders found")
+
+        except Exception as e:
+            logger.error(f"Error cancelling stop orders: {e}")
+
     async def initialize(self):
         """Initialize the bot"""
         logger.info("=" * 60)
@@ -145,6 +179,10 @@ class MacroIndexBot:
         # Initialize position tracker
         await self.position_tracker.initialize()
         logger.info("Position tracker ready")
+
+        # Cancel any leftover STOP_MARKET orders from previous code versions
+        # This ensures software SL has exclusive control
+        await self._cancel_all_stop_orders()
 
         # Get starting balance
         balance = await self.data_feed.get_account_balance()
