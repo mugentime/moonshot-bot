@@ -1216,7 +1216,7 @@ async def exits_json():
 
 @app.get("/reset-trackers")
 async def reset_trackers():
-    """Clear all corrupted tracker data from Redis"""
+    """Clear all corrupted tracker data from Redis AND local file backups"""
     try:
         from src.exit_tracker import exit_tracker
         from src.tp_tracker import tp_tracker
@@ -1237,15 +1237,24 @@ async def reset_trackers():
         for key in keys_to_clear:
             existed = await r.delete(key)
             if existed:
-                cleared.append(key)
-
-        # Also clear in-memory events
-        exit_tracker.events = []
-        tp_tracker.events = []
+                cleared.append(f"redis:{key}")
 
         await r.close()
 
-        return {"status": "success", "cleared": cleared, "message": f"Cleared {len(cleared)} Redis keys. Fresh start!"}
+        # Clear file backups to prevent reload from file
+        file_backups = ['data/exit_tracker.json', 'data/global_tp_tracker.json']
+        for file_path in file_backups:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                cleared.append(f"file:{file_path}")
+
+        # Clear in-memory events on the global singletons
+        exit_tracker.events = []
+        exit_tracker._initialized = False  # Force re-init on next use
+        tp_tracker.events = []
+        tp_tracker._initialized = False  # Force re-init on next use
+
+        return {"status": "success", "cleared": cleared, "message": f"Cleared {len(cleared)} items. Fresh start! Trackers will re-initialize clean on next access."}
     except Exception as e:
         import traceback
         return {"status": "error", "message": str(e), "trace": traceback.format_exc()}
