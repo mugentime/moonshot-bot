@@ -189,16 +189,19 @@ class GlobalTPTracker:
 
         self.events.append(event)
 
-        # Save async - fire and forget
+        # Save synchronously to file first (guaranteed)
+        self._save_to_file()
+
+        # Then try async Redis save
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(self._save())
-            else:
-                loop.run_until_complete(self._save())
+            if self.redis:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(self._save_to_redis())
+                else:
+                    loop.run_until_complete(self._save_to_redis())
         except Exception as e:
-            logger.error(f"Error scheduling save: {e}")
-            self._save_to_file()  # Fallback to sync file save
+            logger.error(f"Error saving to Redis: {e}")
 
         logger.info(f"{'='*60}")
         logger.info(f"GLOBAL TP RECORDED: {event_id}")
