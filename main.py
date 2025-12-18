@@ -442,8 +442,10 @@ class MacroIndexBot:
             actual_profit = balance_after - balance_before
             position_details = [{'symbol': 'ALL', 'direction': 'MIXED', 'pnl_usd': actual_profit}]
 
-        # Use calculated balance_after based on actual profit (consistent with PnL)
-        balance_after = balance_before + actual_profit
+        # NET PROFIT = real balance change (includes fees)
+        # REALIZED_PNL doesn't include trading fees - use actual wallet difference
+        net_profit = balance_after - balance_before
+        logger.info(f"Gross PnL (REALIZED_PNL): ${actual_profit:+.4f} | Net profit (after fees): ${net_profit:+.4f} | Fees: ${actual_profit - net_profit:+.4f}")
 
         # Record to TP tracker
         tp_tracker.record_tp(
@@ -467,8 +469,9 @@ class MacroIndexBot:
 
         logger.info(f"{'='*60}")
         logger.info(f"GLOBAL TP COMPLETE: Closed {closed}/{len(positions)} positions")
-        logger.info(f"Balance: ${balance_before:.2f} -> ${balance_after:.2f}")
-        logger.info(f"REAL PROFIT: ${actual_profit:+.2f}")
+        logger.info(f"Balance: ${balance_before:.4f} -> ${balance_after:.4f}")
+        logger.info(f"NET PROFIT: ${net_profit:+.4f} (after fees)")
+        logger.info(f"Gross PnL: ${actual_profit:+.4f} | Fees paid: ${actual_profit - net_profit:+.4f}")
         logger.info(f"Cooldown: {self.config.POST_TP_COOLDOWN_SECONDS}s before reopening")
         logger.info(f"{'='*60}")
 
