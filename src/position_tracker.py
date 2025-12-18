@@ -60,6 +60,7 @@ class PositionTracker:
         self.positions: Dict[str, TrackedPosition] = {}
         self.redis: Optional[redis.Redis] = None
         self._redis_key = f"{REDIS_PREFIX}positions"
+        self._lock = asyncio.Lock()  # Prevent race conditions on position dict
     
     async def initialize(self):
         """Initialize Redis connection and load positions"""
@@ -118,61 +119,62 @@ class PositionTracker:
     
     async def sync_with_exchange(self):
         """Sync local tracking with actual exchange positions"""
-        try:
-            # Get actual positions from exchange
-            account = await self.data_feed.client.futures_position_information()
-            
-            exchange_positions = {}
-            for p in account:
-                if float(p['positionAmt']) != 0:
-                    symbol = p['symbol']
-                    entry_price = float(p['entryPrice'])
-                    # Skip positions with invalid entry price (would cause division by zero)
-                    if entry_price == 0:
-                        logger.warning(f"Skipping {symbol} - entry price is 0")
-                        continue
-                    exchange_positions[symbol] = {
-                        'quantity': abs(float(p['positionAmt'])),
-                        'entry_price': entry_price,
-                        'direction': 'LONG' if float(p['positionAmt']) > 0 else 'SHORT',
-                        'unrealized_pnl': float(p['unRealizedProfit']),
-                        'leverage': int(p['leverage'])
-                    }
-            
-            # Update local tracking
-            for symbol, ex_pos in exchange_positions.items():
-                if symbol in self.positions:
-                    # Update existing
-                    self.positions[symbol].quantity = ex_pos['quantity']
-                    self.positions[symbol].unrealized_pnl = ex_pos['unrealized_pnl']
-                else:
-                    # New position not tracked locally (maybe opened manually)
-                    self.positions[symbol] = TrackedPosition(
-                        symbol=symbol,
-                        direction=ex_pos['direction'],
-                        entry_price=ex_pos['entry_price'],
-                        quantity=ex_pos['quantity'],
-                        margin=0,  # Unknown
-                        leverage=ex_pos['leverage'],
-                        entry_time=time.time(),
-                        order_id="SYNCED",
-                        unrealized_pnl=ex_pos['unrealized_pnl']
-                    )
-                    logger.info(f"📥 Synced position from exchange: {symbol}")
-            
-            # Remove closed positions
-            for symbol in list(self.positions.keys()):
-                if symbol not in exchange_positions:
-                    del self.positions[symbol]
-                    logger.info(f"📤 Position no longer on exchange: {symbol}")
-            
-            # Save to Redis
-            await self._save_to_redis()
-            
-            logger.debug(f"Synced {len(self.positions)} positions with exchange")
-            
-        except Exception as e:
-            logger.error(f"Error syncing with exchange: {e}")
+        async with self._lock:  # Prevent race conditions
+            try:
+                # Get actual positions from exchange
+                account = await self.data_feed.client.futures_position_information()
+
+                exchange_positions = {}
+                for p in account:
+                    if float(p['positionAmt']) != 0:
+                        symbol = p['symbol']
+                        entry_price = float(p['entryPrice'])
+                        # Skip positions with invalid entry price (would cause division by zero)
+                        if entry_price == 0:
+                            logger.warning(f"Skipping {symbol} - entry price is 0")
+                            continue
+                        exchange_positions[symbol] = {
+                            'quantity': abs(float(p['positionAmt'])),
+                            'entry_price': entry_price,
+                            'direction': 'LONG' if float(p['positionAmt']) > 0 else 'SHORT',
+                            'unrealized_pnl': float(p['unRealizedProfit']),
+                            'leverage': int(p['leverage'])
+                        }
+
+                # Update local tracking
+                for symbol, ex_pos in exchange_positions.items():
+                    if symbol in self.positions:
+                        # Update existing
+                        self.positions[symbol].quantity = ex_pos['quantity']
+                        self.positions[symbol].unrealized_pnl = ex_pos['unrealized_pnl']
+                    else:
+                        # New position not tracked locally (maybe opened manually)
+                        self.positions[symbol] = TrackedPosition(
+                            symbol=symbol,
+                            direction=ex_pos['direction'],
+                            entry_price=ex_pos['entry_price'],
+                            quantity=ex_pos['quantity'],
+                            margin=0,  # Unknown
+                            leverage=ex_pos['leverage'],
+                            entry_time=time.time(),
+                            order_id="SYNCED",
+                            unrealized_pnl=ex_pos['unrealized_pnl']
+                        )
+                        logger.info(f"📥 Synced position from exchange: {symbol}")
+
+                # Remove closed positions
+                for symbol in list(self.positions.keys()):
+                    if symbol not in exchange_positions:
+                        del self.positions[symbol]
+                        logger.info(f"📤 Position no longer on exchange: {symbol}")
+
+                # Save to Redis
+                await self._save_to_redis()
+
+                logger.debug(f"Synced {len(self.positions)} positions with exchange")
+
+            except Exception as e:
+                logger.error(f"Error syncing with exchange: {e}")
     
     async def add_position(
         self,
@@ -185,35 +187,38 @@ class PositionTracker:
         order_id: str
     ):
         """Add a new position to tracking"""
-        position = TrackedPosition(
-            symbol=symbol,
-            direction=direction,
-            entry_price=entry_price,
-            quantity=quantity,
-            margin=margin,
-            leverage=leverage,
-            entry_time=time.time(),
-            order_id=order_id,
-            current_price=entry_price
-        )
-        
-        self.positions[symbol] = position
-        await self._save_to_redis()
-        
-        logger.info(f"📍 Position tracked: {symbol} {direction} @ {entry_price}")
-    
+        async with self._lock:  # Prevent race conditions
+            position = TrackedPosition(
+                symbol=symbol,
+                direction=direction,
+                entry_price=entry_price,
+                quantity=quantity,
+                margin=margin,
+                leverage=leverage,
+                entry_time=time.time(),
+                order_id=order_id,
+                current_price=entry_price
+            )
+
+            self.positions[symbol] = position
+            await self._save_to_redis()
+
+            logger.info(f"📍 Position tracked: {symbol} {direction} @ {entry_price}")
+
     async def update_position(self, symbol: str, current_price: float, unrealized_pnl: float):
         """Update position with current market data"""
-        if symbol in self.positions:
-            self.positions[symbol].current_price = current_price
-            self.positions[symbol].unrealized_pnl = unrealized_pnl
-    
+        async with self._lock:  # Prevent race conditions
+            if symbol in self.positions:
+                self.positions[symbol].current_price = current_price
+                self.positions[symbol].unrealized_pnl = unrealized_pnl
+
     async def remove_position(self, symbol: str):
         """Remove a position from tracking"""
-        if symbol in self.positions:
-            del self.positions[symbol]
-            await self._save_to_redis()
-            logger.info(f"📤 Position removed from tracking: {symbol}")
+        async with self._lock:  # Prevent race conditions
+            if symbol in self.positions:
+                del self.positions[symbol]
+                await self._save_to_redis()
+                logger.info(f"📤 Position removed from tracking: {symbol}")
 
     async def update_position_size(
         self,

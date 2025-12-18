@@ -32,6 +32,7 @@ from src.macro_strategy import MacroIndicator, MacroConfig, MacroDirection
 from src.profit_tracker import profit_tracker
 from src.tp_tracker import tp_tracker
 from src.exit_tracker import exit_tracker
+from src.fee_tracker import fee_tracker
 
 # Configure logging
 logger.remove()
@@ -190,6 +191,11 @@ class MacroIndexBot:
         await exit_tracker.initialize()
         logger.info("Exit tracker ready")
 
+        # Initialize fee tracker with data feed for API access
+        fee_tracker.data_feed = self.data_feed
+        await fee_tracker.start_background_updates()
+        logger.info("Fee tracker ready")
+
         # Cancel any leftover STOP_MARKET orders from previous code versions
         # This ensures software SL has exclusive control
         await self._cancel_all_stop_orders()
@@ -211,6 +217,20 @@ class MacroIndexBot:
         logger.info(f"  Short Trigger: Score <= {self.config.SHORT_TRIGGER_SCORE}")
         logger.info("=" * 60)
 
+    def _task_exception_handler(self, task: asyncio.Task):
+        """Handle exceptions from background tasks to prevent silent failures"""
+        try:
+            task.result()  # This will raise if task failed
+        except asyncio.CancelledError:
+            pass  # Expected during shutdown
+        except Exception as e:
+            logger.exception(f"CRITICAL: Background task '{task.get_name()}' failed with exception: {e}")
+            # Log the full traceback for debugging
+            import traceback
+            logger.error(f"Task traceback:\n{traceback.format_exc()}")
+            # Optionally: trigger graceful shutdown or restart the task
+            logger.error("Bot may be in unstable state - manual restart recommended")
+
     async def start(self):
         """Start the bot"""
         self._running = True
@@ -220,19 +240,45 @@ class MacroIndexBot:
         await self.data_feed.start_ticker_stream()
         logger.info("Ticker stream started - Global TP monitoring active")
 
-        # Start macro calculation and monitor loops
-        self._macro_task = asyncio.create_task(self._macro_loop())
-        self._monitor_task = asyncio.create_task(self._monitor_loop())
+        # Start macro calculation and monitor loops with exception handlers
+        self._macro_task = asyncio.create_task(self._macro_loop(), name="macro_loop")
+        self._monitor_task = asyncio.create_task(self._monitor_loop(), name="monitor_loop")
+
+        # Add exception callbacks to catch and log failures
+        self._macro_task.add_done_callback(self._task_exception_handler)
+        self._monitor_task.add_done_callback(self._task_exception_handler)
 
     async def stop(self):
         """Stop the bot"""
         self._running = False
         logger.info("Stopping bot...")
 
+        # Cancel background tasks
         if self._macro_task:
             self._macro_task.cancel()
         if self._monitor_task:
             self._monitor_task.cancel()
+
+        # Stop fee tracker background updates
+        await fee_tracker.stop_background_updates()
+
+        # Close all Redis connections to prevent leaks
+        logger.info("Closing tracker Redis connections...")
+        try:
+            await self.position_tracker.close()
+            await tp_tracker.close()
+            await exit_tracker.close()
+            await fee_tracker.close()
+            logger.info("All tracker connections closed")
+        except Exception as e:
+            logger.error(f"Error closing tracker connections: {e}")
+
+        # Stop WebSocket data feed
+        try:
+            await self.data_feed.close()
+            logger.info("WebSocket data feed closed")
+        except Exception as e:
+            logger.error(f"Error closing data feed: {e}")
 
         # Print final report
         profit_tracker.print_report()
@@ -272,23 +318,30 @@ class MacroIndexBot:
                 await asyncio.sleep(5)
 
     async def _handle_direction_change(self, score):
-        """Handle when macro direction changes - NO LONGER CLOSES POSITIONS"""
+        """Handle when macro direction changes - CLOSES OLD POSITIONS FIRST"""
         old_direction = self.current_direction
         new_direction = score.direction
 
         logger.info(f"{'='*60}")
         logger.info(f"MACRO DIRECTION CHANGE: {old_direction.value} -> {new_direction.value}")
-        logger.info(f"NOTE: Positions NOT closed - only Global TP can close")
         logger.info(f"{'='*60}")
 
-        # REMOVED: No longer closing positions on macro flip
-        # Positions only close via Global TP
+        # CRITICAL FIX: Close existing positions BEFORE opening new direction
+        # This prevents hedged positions (LONG + SHORT simultaneously)
+        # which result in zero net PnL but double the fees
+        if old_direction != MacroDirection.FLAT:
+            logger.info(f"Closing existing {old_direction.value} positions before opening {new_direction.value}...")
+            await self._close_all_positions_for_direction(old_direction.value)
+            logger.info(f"All {old_direction.value} positions closed")
 
-        # Open new positions if not flat (additive, not replacing)
+        # Open new positions for the new direction
         if new_direction != MacroDirection.FLAT:
+            logger.info(f"Opening {new_direction.value} positions...")
             await self._open_all_positions(new_direction.value)
+            logger.info(f"All {new_direction.value} positions opened")
 
         self.current_direction = new_direction
+        logger.info(f"Direction change complete: {old_direction.value} -> {new_direction.value}")
 
     async def _close_all_positions_for_direction(self, direction: str):
         """Close all positions for a given direction"""
@@ -367,6 +420,16 @@ class MacroIndexBot:
                 if result.success:
                     closed += 1
                     await self.position_tracker.remove_position(symbol)
+
+                    # Record fee for position close
+                    notional = position.margin * self.config.LEVERAGE if position.margin > 0 else 0
+                    await fee_tracker.record_trade_fee(
+                        symbol=symbol,
+                        side=position.direction,
+                        action="CLOSE",
+                        notional_value=notional,
+                        order_id=result.order_id
+                    )
                 else:
                     logger.error(f"Failed to close {symbol}: {result.error}")
 
@@ -522,6 +585,16 @@ class MacroIndexBot:
                         leverage=self.config.LEVERAGE,
                         margin=margin_per_position,
                         velocity=0
+                    )
+
+                    # Record fee for position open
+                    notional = margin_per_position * self.config.LEVERAGE
+                    await fee_tracker.record_trade_fee(
+                        symbol=symbol,
+                        side=direction,
+                        action="OPEN",
+                        notional_value=notional,
+                        order_id=result.order_id
                     )
                 else:
                     failed += 1
@@ -798,6 +871,19 @@ bot = None
 _init_task = None
 
 
+def _init_task_exception_handler(task: asyncio.Task):
+    """Handle exceptions from initialization task"""
+    try:
+        task.result()  # This will raise if task failed
+    except asyncio.CancelledError:
+        logger.info("Bot initialization cancelled during shutdown")
+    except Exception as e:
+        logger.exception(f"CRITICAL: Bot initialization failed with exception: {e}")
+        import traceback
+        logger.error(f"Initialization traceback:\n{traceback.format_exc()}")
+        logger.error("Bot failed to start - server is running but bot is inactive")
+
+
 async def _initialize_bot():
     """Initialize bot in background so server can start accepting requests"""
     global bot
@@ -806,20 +892,27 @@ async def _initialize_bot():
         await bot.start()
         logger.info("Bot initialization complete!")
     except Exception as e:
-        logger.error(f"Bot initialization failed: {e}")
+        logger.exception(f"Bot initialization failed: {e}")
+        raise  # Re-raise so the task callback can catch it
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global bot, _init_task
     bot = MacroIndexBot()
-    # Start initialization in background - don't block server startup
-    _init_task = asyncio.create_task(_initialize_bot())
+    # Start initialization in background with exception handler
+    _init_task = asyncio.create_task(_initialize_bot(), name="bot_initialization")
+    _init_task.add_done_callback(_init_task_exception_handler)
     yield
     # Wait for init to complete before stopping
     if _init_task and not _init_task.done():
         _init_task.cancel()
-    await bot.stop()
+        try:
+            await _init_task
+        except asyncio.CancelledError:
+            pass
+    if bot:
+        await bot.stop()
 
 
 app = FastAPI(lifespan=lifespan, title="Macro Index Bot")
@@ -935,7 +1028,7 @@ async def positions():
         # Get TP from bot config
         tp_pct = bot.config.GLOBAL_TP_PERCENT if bot else 10.0
 
-        html = f'''<!DOCTYPE html><html><head><title>Position Monitor</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="10"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1200px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:24px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333}}.status{{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}</style></head><body><div class="container"><div class="nav"><a href="/positions">📊 Positions</a><a href="/tp-tracker">🎯 TP Tracker</a><a href="/health">❤️ Health</a></div><div class="header"><div class="title">📊 Position Monitor</div><div class="refresh">Auto-refresh: 10s | TP: {tp_pct}%</div></div><div class="cards"><div class="card"><div class="card-label">Positions</div><div class="card-value">{len(position_list)} <span style="font-size:14px;color:#888">({winners}W / {losers}L)</span></div></div><div class="card"><div class="card-label">Portfolio PnL</div><div class="card-value" style="color:{pnl_color}">${total_pnl:+.2f} <span style="font-size:14px">({portfolio_roi:+.1f}%)</span></div></div><div class="card"><div class="card-label">Account Equity</div><div class="card-value">${margin:.2f}</div></div><div class="card"><div class="card-label">Margin Usage</div><div class="card-value" style="color:{health_color}">{margin_usage:.1f}% <span class="status" style="background:{health_color}20;color:{health_color}">{health_text}</span></div></div></div><table><thead><tr><th>Symbol</th><th>Side</th><th>ROI</th><th>PnL</th><th>Margin</th><th>Liq Price</th></tr></thead><tbody>{rows}</tbody></table><div style="margin-top:20px;color:#666;font-size:12px;text-align:center">Available: ${available:.2f} | Margin: ${margin:.2f}</div></div></body></html>'''
+        html = f'''<!DOCTYPE html><html><head><title>Position Monitor</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="10"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1200px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:24px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333}}.status{{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}</style></head><body><div class="container"><div class="nav"><a href="/positions">📊 Positions</a><a href="/exits">📋 Exits</a><a href="/fees">💰 Fees</a><a href="/health">❤️ Health</a></div><div class="header"><div class="title">📊 Position Monitor</div><div class="refresh">Auto-refresh: 10s | TP: {tp_pct}%</div></div><div class="cards"><div class="card"><div class="card-label">Positions</div><div class="card-value">{len(position_list)} <span style="font-size:14px;color:#888">({winners}W / {losers}L)</span></div></div><div class="card"><div class="card-label">Portfolio PnL</div><div class="card-value" style="color:{pnl_color}">${total_pnl:+.2f} <span style="font-size:14px">({portfolio_roi:+.1f}%)</span></div></div><div class="card"><div class="card-label">Account Equity</div><div class="card-value">${margin:.2f}</div></div><div class="card"><div class="card-label">Margin Usage</div><div class="card-value" style="color:{health_color}">{margin_usage:.1f}% <span class="status" style="background:{health_color}20;color:{health_color}">{health_text}</span></div></div></div><table><thead><tr><th>Symbol</th><th>Side</th><th>ROI</th><th>PnL</th><th>Margin</th><th>Liq Price</th></tr></thead><tbody>{rows}</tbody></table><div style="margin-top:20px;color:#666;font-size:12px;text-align:center">Available: ${available:.2f} | Margin: ${margin:.2f}</div></div></body></html>'''
         return HTMLResponse(content=html)
     except Exception as e:
         return HTMLResponse(content=f"<h1>Error</h1><pre>{str(e)}</pre>")
@@ -1322,6 +1415,132 @@ async def macro():
             "leader_velocity": f"{score.leader_velocity:.2f}%"
         }
     return {"status": "calculating..."}
+
+
+@app.get("/api/fees")
+async def api_fees():
+    """JSON API for fee tracking data"""
+    try:
+        # Get current balance for percentage calculations
+        balance = await bot.data_feed.get_account_balance() if bot else 0
+
+        # Get stats
+        stats = fee_tracker.get_stats(balance)
+
+        # Get breakdown by symbol
+        breakdown = fee_tracker.get_fee_breakdown_by_symbol()
+
+        # Check for alerts
+        alerts = fee_tracker.check_alerts(balance)
+
+        return {
+            "session_id": fee_tracker.session_id,
+            "session_start": fee_tracker.session_start,
+            "balance": balance,
+            "stats": {
+                "total_fees": stats.total_fees,
+                "total_commission": stats.total_commission,
+                "total_funding": stats.total_funding,
+                "total_trades": stats.total_trades,
+                "avg_fee_per_trade": stats.avg_fee_per_trade,
+                "fee_as_percent_balance": stats.fee_as_percent_balance,
+                "expected_fee_rate": stats.expected_fee_rate,
+                "actual_avg_fee_rate": stats.actual_avg_fee_rate,
+                "fee_efficiency": stats.fee_efficiency,
+                "fees_today": stats.fees_today,
+                "fees_this_hour": stats.fees_this_hour,
+                "hourly_fee_rate": stats.hourly_fee_rate
+            },
+            "breakdown_by_symbol": breakdown,
+            "alerts": alerts,
+            "total_records": len(fee_tracker.fee_records)
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/fees", response_class=HTMLResponse)
+async def fees_dashboard():
+    """HTML dashboard for fee tracking"""
+    try:
+        from dataclasses import asdict
+
+        # Get current balance
+        balance = await bot.data_feed.get_account_balance() if bot else 0
+
+        # Get stats
+        stats = fee_tracker.get_stats(balance)
+
+        # Get breakdown by symbol
+        breakdown = fee_tracker.get_fee_breakdown_by_symbol()
+
+        # Check for alerts
+        alerts = fee_tracker.check_alerts(balance)
+
+        # Build symbol breakdown rows
+        breakdown_rows = ""
+        for symbol, fees in list(breakdown.items())[:20]:  # Top 20
+            breakdown_rows += f'<tr><td>{symbol}</td><td>${fees:.4f}</td></tr>'
+
+        if not breakdown_rows:
+            breakdown_rows = '<tr><td colspan="2" style="text-align:center;color:#888">No fee data yet</td></tr>'
+
+        # Alert banner
+        alert_html = ""
+        if alerts:
+            alert_list = "".join([f'<div style="margin:5px 0">{alert}</div>' for alert in alerts])
+            alert_html = f'<div style="background:#7f1d1d;border:1px solid #991b1b;border-radius:8px;padding:15px;margin-bottom:20px">{alert_list}</div>'
+
+        # Recent fees (last 10)
+        recent_rows = ""
+        for record in reversed(fee_tracker.fee_records[-10:]):
+            fee_color = "#ef4444" if record.fee_amount > 0 else "#22c55e"
+            recent_rows += f'''<tr>
+                <td>{record.timestamp[:19]}</td>
+                <td>{record.symbol}</td>
+                <td>{record.action}</td>
+                <td style="color:{fee_color}">${record.fee_amount:.4f}</td>
+                <td>{record.fee_rate*100:.3f}%</td>
+                <td>${record.notional_value:.2f}</td>
+            </tr>'''
+
+        if not recent_rows:
+            recent_rows = '<tr><td colspan="6" style="text-align:center;color:#888">No recent fees</td></tr>'
+
+        # Colors for stats
+        efficiency_color = "#22c55e" if stats.fee_efficiency >= 90 else "#eab308" if stats.fee_efficiency >= 70 else "#ef4444"
+        hourly_color = "#22c55e" if stats.hourly_fee_rate < 1 else "#eab308" if stats.hourly_fee_rate < 2 else "#ef4444"
+
+        html = f'''<!DOCTYPE html><html><head><title>Fee Tracker</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="30"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1400px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:20px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden;margin-bottom:20px}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}.section-title{{font-size:18px;font-weight:600;margin:20px 0 10px}}</style></head><body><div class="container">
+        <div class="nav"><a href="/positions">📊 Positions</a><a href="/exits">📋 Exits</a><a href="/fees">💰 Fees</a><a href="/health">❤️ Health</a></div>
+        <div class="header"><div class="title">💰 Fee Tracker</div><div class="refresh">Auto-refresh: 30s</div></div>
+        {alert_html}
+        <div class="cards">
+            <div class="card"><div class="card-label">Total Fees</div><div class="card-value" style="color:#ef4444">${stats.total_fees:.4f}</div></div>
+            <div class="card"><div class="card-label">Commission</div><div class="card-value" style="color:#ef4444">${stats.total_commission:.4f}</div></div>
+            <div class="card"><div class="card-label">Funding</div><div class="card-value" style="color:#ef4444">${stats.total_funding:.4f}</div></div>
+            <div class="card"><div class="card-label">Total Trades</div><div class="card-value">{stats.total_trades}</div></div>
+            <div class="card"><div class="card-label">Avg Fee/Trade</div><div class="card-value">${stats.avg_fee_per_trade:.4f}</div></div>
+            <div class="card"><div class="card-label">Fee % Balance</div><div class="card-value">{stats.fee_as_percent_balance:.2f}%</div></div>
+            <div class="card"><div class="card-label">Fee Efficiency</div><div class="card-value" style="color:{efficiency_color}">{stats.fee_efficiency:.1f}%</div></div>
+            <div class="card"><div class="card-label">Fees Today</div><div class="card-value" style="color:#ef4444">${stats.fees_today:.4f}</div></div>
+            <div class="card"><div class="card-label">Fees This Hour</div><div class="card-value" style="color:#ef4444">${stats.fees_this_hour:.4f}</div></div>
+            <div class="card"><div class="card-label">Hourly Fee Rate</div><div class="card-value" style="color:{hourly_color}">{stats.hourly_fee_rate:.3f}%</div></div>
+            <div class="card"><div class="card-label">Actual Fee Rate</div><div class="card-value">{stats.actual_avg_fee_rate*100:.4f}%</div></div>
+            <div class="card"><div class="card-label">Expected Rate</div><div class="card-value">{stats.expected_fee_rate*100:.2f}%</div></div>
+        </div>
+        <div class="section-title">💸 Recent Fees (Last 10)</div>
+        <table><thead><tr><th>Timestamp</th><th>Symbol</th><th>Action</th><th>Fee</th><th>Rate</th><th>Notional</th></tr></thead><tbody>{recent_rows}</tbody></table>
+        <div class="section-title">📊 Fee Breakdown by Symbol (Top 20)</div>
+        <table><thead><tr><th>Symbol</th><th>Total Fees</th></tr></thead><tbody>{breakdown_rows}</tbody></table>
+        <div style="margin-top:20px;color:#666;font-size:12px;text-align:center">Session: {fee_tracker.session_id} | Started: {fee_tracker.session_start[:19]} | Balance: ${balance:.2f}</div>
+        </div></body></html>'''
+
+        return HTMLResponse(content=html)
+
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"<h1>Error</h1><pre>{traceback.format_exc()}</pre>")
 
 
 @app.get("/backfill-trackers")

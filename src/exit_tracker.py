@@ -289,6 +289,16 @@ class ExitTracker:
 
         logger.info("Exit Tracker cleared successfully")
 
+    async def close(self):
+        """Clean shutdown - save and close Redis connection"""
+        if self.redis:
+            try:
+                await self._save_to_redis()
+                await self.redis.close()
+                logger.info("Exit Tracker Redis connection closed")
+            except Exception as e:
+                logger.error(f"Error closing Exit Tracker Redis connection: {e}")
+
 
 # Global instance
 exit_tracker = ExitTracker()

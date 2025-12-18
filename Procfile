@@ -1,1 +1,1 @@
-web: python main_momentum.py
+web: python main.py
