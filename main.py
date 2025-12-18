@@ -317,15 +317,15 @@ class MacroIndexBot:
 
     async def _handle_direction_change(self, score):
         """
-        MACRO FOLLOWING STRATEGY
-        - Opens positions when macro signals LONG or SHORT
-        - Closes positions when macro direction changes
-        - No automated TP/SL - positions held until direction change
+        MANUAL EXIT ONLY - NO AUTOMATIC POSITION CLOSING
+        - Opens positions when macro signals LONG or SHORT (from FLAT only)
+        - NEVER closes positions automatically on direction change
+        - All exits are manual via /close-all endpoint
         """
         old_direction = self.current_direction
         new_direction = score.direction
 
-        # Case 1: FLAT → LONG or SHORT (open new positions)
+        # ONLY open positions when going from FLAT to a direction
         if old_direction == MacroDirection.FLAT and new_direction != MacroDirection.FLAT:
             logger.info(f"{'='*60}")
             logger.info(f"📈 MACRO SIGNAL: {new_direction.value}")
@@ -334,37 +334,14 @@ class MacroIndexBot:
             await self._open_all_positions(new_direction.value)
             self.current_direction = new_direction
 
-        # Case 2: LONG/SHORT → FLAT (close all positions)
-        elif old_direction != MacroDirection.FLAT and new_direction == MacroDirection.FLAT:
-            logger.info(f"{'='*60}")
-            logger.info(f"📉 MACRO SIGNAL: FLAT (exit all positions)")
-            logger.info(f"Closing all {old_direction.value} positions")
-            logger.info(f"{'='*60}")
-            await self._close_all_positions_for_direction(old_direction.value)
-            self.current_direction = MacroDirection.FLAT
-
-        # Case 3: LONG → SHORT or SHORT → LONG (reverse positions)
-        elif old_direction != MacroDirection.FLAT and new_direction != old_direction and new_direction != MacroDirection.FLAT:
-            logger.info(f"{'='*60}")
-            logger.info(f"🔄 DIRECTION REVERSAL: {old_direction.value} → {new_direction.value}")
-            logger.info(f"Step 1: Closing all {old_direction.value} positions")
-            logger.info(f"{'='*60}")
-
-            # Close old positions
-            await self._close_all_positions_for_direction(old_direction.value)
-
-            # Wait for settlement
-            await asyncio.sleep(2.0)
-
-            # Open new positions in opposite direction
-            logger.info(f"{'='*60}")
-            logger.info(f"Step 2: Opening {new_direction.value} positions")
-            logger.info(f"{'='*60}")
-            await self._open_all_positions(new_direction.value)
-            self.current_direction = new_direction
+        # ALL OTHER CASES: Log but DO NOT close positions
+        elif old_direction != MacroDirection.FLAT and new_direction != old_direction:
+            # Direction changed but we IGNORE it - no automatic closing
+            logger.info(f"📊 MACRO CHANGED: {old_direction.value} → {new_direction.value} (IGNORED - manual exit only)")
+            # DO NOT update direction - keep positions open
 
         else:
-            # FLAT → FLAT or same direction, no action needed
+            # Same direction or FLAT → FLAT
             self.current_direction = new_direction
 
     async def _close_all_positions_for_direction(self, direction: str):
