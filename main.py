@@ -406,7 +406,7 @@ class MacroIndexBot:
                         })
 
                         # Record individual fee
-                        await fee_tracker.record_fee(
+                        await fee_tracker.record_trade_fee(
                             symbol=symbol,
                             side=position.direction,
                             action="CLOSE",
@@ -1031,8 +1031,8 @@ async def positions():
         health_color = "#22c55e" if margin_usage < 70 else "#eab308" if margin_usage < 90 else "#ef4444"
         health_text = "HEALTHY" if margin_usage < 70 else "MODERATE" if margin_usage < 90 else "HIGH RISK"
 
-        # Get TP from bot config
-        tp_pct = bot.config.GLOBAL_TP_PERCENT if bot else 10.0
+        # TP is disabled - show N/A
+        tp_pct = "N/A (disabled)"
 
         html = f'''<!DOCTYPE html><html><head><title>Position Monitor</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="10"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1200px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:24px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333}}.status{{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}</style></head><body><div class="container"><div class="nav"><a href="/positions">📊 Positions</a><a href="/exits">📋 Exits</a><a href="/fees">💰 Fees</a><a href="/health">❤️ Health</a></div><div class="header"><div class="title">📊 Position Monitor</div><div class="refresh">Auto-refresh: 10s | TP: {tp_pct}%</div></div><div class="cards"><div class="card"><div class="card-label">Positions</div><div class="card-value">{len(position_list)} <span style="font-size:14px;color:#888">({winners}W / {losers}L)</span></div></div><div class="card"><div class="card-label">Portfolio PnL</div><div class="card-value" style="color:{pnl_color}">${total_pnl:+.2f} <span style="font-size:14px">({portfolio_roi:+.1f}%)</span></div></div><div class="card"><div class="card-label">Account Equity</div><div class="card-value">${margin:.2f}</div></div><div class="card"><div class="card-label">Margin Usage</div><div class="card-value" style="color:{health_color}">{margin_usage:.1f}% <span class="status" style="background:{health_color}20;color:{health_color}">{health_text}</span></div></div></div><table><thead><tr><th>Symbol</th><th>Side</th><th>ROI</th><th>PnL</th><th>Margin</th><th>Liq Price</th></tr></thead><tbody>{rows}</tbody></table><div style="margin-top:20px;color:#666;font-size:12px;text-align:center">Available: ${available:.2f} | Margin: ${margin:.2f}</div></div></body></html>'''
         return HTMLResponse(content=html)
@@ -1253,21 +1253,18 @@ async def exits_ui():
         # Stats colors
         total_color = "#22c55e" if stats['total_profit'] >= 0 else "#ef4444"
         tp_color = "#22c55e" if stats['tp_profit'] >= 0 else "#ef4444"
-        sl_color = "#ef4444" if stats['sl_loss'] < 0 else "#22c55e"
         storage_type = "Redis" if exit_tracker.redis else "File"
 
-        html = f'''<!DOCTYPE html><html><head><title>Exit Tracker - TP & SL</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="30"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1600px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:20px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333;vertical-align:top}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}</style></head><body><div class="container">
+        html = f'''<!DOCTYPE html><html><head><title>Exit Tracker</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="30"><style>*{{margin:0;padding:0;box-sizing:border-box}}body{{font-family:system-ui,sans-serif;background:#0a0a0a;color:#e5e5e5;padding:20px}}.container{{max-width:1600px;margin:0 auto}}.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #333}}.title{{font-size:24px;font-weight:600}}.refresh{{color:#666;font-size:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-bottom:20px}}.card{{background:#171717;border-radius:8px;padding:16px;border:1px solid #262626}}.card-label{{color:#888;font-size:12px;margin-bottom:4px}}.card-value{{font-size:20px;font-weight:600}}table{{width:100%;border-collapse:collapse;background:#171717;border-radius:8px;overflow:hidden}}th{{background:#262626;padding:12px;text-align:left;font-weight:500;font-size:13px;color:#888}}td{{padding:12px;border-bottom:1px solid #333;vertical-align:top}}.nav{{margin-bottom:20px}}.nav a{{color:#3b82f6;text-decoration:none;margin-right:15px}}.nav a:hover{{text-decoration:underline}}</style></head><body><div class="container">
         <div class="nav"><a href="/positions">📊 Positions</a><a href="/exits">📋 Exits</a><a href="/tp-tracker">🎯 TP Only</a><a href="/health">❤️ Health</a></div>
-        <div class="header"><div class="title">📋 Exit Tracker (TP + SL)</div><div class="refresh">Auto-refresh: 30s | Storage: {storage_type}</div></div>
+        <div class="header"><div class="title">📋 Exit Tracker (Manual Only)</div><div class="refresh">Auto-refresh: 30s | Storage: {storage_type}</div></div>
         <div class="cards">
             <div class="card"><div class="card-label">Total Events</div><div class="card-value">{stats['total_events']}</div></div>
-            <div class="card"><div class="card-label">🎯 TP Events</div><div class="card-value" style="color:#22c55e">{stats['tp_events']}</div></div>
-            <div class="card"><div class="card-label">🛑 SL Events</div><div class="card-value" style="color:#ef4444">{stats['sl_events']}</div></div>
+            <div class="card"><div class="card-label">🎯 TP/Flip Events</div><div class="card-value" style="color:#22c55e">{stats['tp_events']}</div></div>
             <div class="card"><div class="card-label">Net Profit</div><div class="card-value" style="color:{total_color}">${stats['total_profit']:+.2f}</div></div>
             <div class="card"><div class="card-label">TP Profit</div><div class="card-value" style="color:{tp_color}">${stats['tp_profit']:+.2f}</div></div>
-            <div class="card"><div class="card-label">SL Loss</div><div class="card-value" style="color:{sl_color}">${stats['sl_loss']:+.2f}</div></div>
-            <div class="card"><div class="card-label">Avg TP Profit</div><div class="card-value">${stats['avg_tp_profit']:+.2f}</div></div>
-            <div class="card"><div class="card-label">Avg SL Loss</div><div class="card-value">${stats['avg_sl_loss']:+.2f}</div></div>
+            <div class="card"><div class="card-label">Avg Profit</div><div class="card-value">${stats['avg_tp_profit']:+.2f}</div></div>
+            <div class="card"><div class="card-label">Win Rate</div><div class="card-value">{stats['tp_win_rate']:.1f}%</div></div>
         </div>
         <table><thead><tr><th>Timestamp</th><th>Type</th><th>Symbol</th><th>Trigger %</th><th>Threshold</th><th>Before</th><th>After</th><th>P&L</th><th>Positions</th><th>Details</th></tr></thead><tbody>{rows}</tbody></table>
         </div></body></html>'''
@@ -1292,7 +1289,6 @@ async def exits_json():
             "stats": exit_tracker.get_stats(),
             "events": [asdict(e) for e in exit_tracker.get_recent_events(50)],
             "tp_events": [asdict(e) for e in exit_tracker.get_tp_events()],
-            "sl_events": [asdict(e) for e in exit_tracker.get_sl_events()],
             "storage": "redis" if exit_tracker.redis else "file"
         }
     except Exception as e:

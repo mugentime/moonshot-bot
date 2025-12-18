@@ -23,7 +23,7 @@ class Trade:
     entry_price: float
     exit_time: Optional[str] = None
     exit_price: Optional[float] = None
-    exit_reason: Optional[str] = None  # stop_loss, trailing_stop, global_tp, manual
+    exit_reason: Optional[str] = None  # global_tp, macro_flip, manual
     pnl_percent: Optional[float] = None
     pnl_usd: Optional[float] = None
     leverage: int = 10

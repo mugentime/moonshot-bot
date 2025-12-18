@@ -5,6 +5,7 @@ Tracks all open positions and syncs with exchange
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from loguru import logger
+import asyncio
 import time
 import json
 import redis.asyncio as redis
@@ -24,7 +25,6 @@ class TrackedPosition:
     order_id: str
     unrealized_pnl: float = 0.0
     current_price: float = 0.0
-    peak_profit_pct: float = 0.0  # Track highest profit % for trailing stop
 
     def to_dict(self) -> dict:
         return {
@@ -37,15 +37,13 @@ class TrackedPosition:
             'entry_time': self.entry_time,
             'order_id': self.order_id,
             'unrealized_pnl': self.unrealized_pnl,
-            'current_price': self.current_price,
-            'peak_profit_pct': self.peak_profit_pct
+            'current_price': self.current_price
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> 'TrackedPosition':
-        # Handle missing peak_profit_pct for backwards compatibility
-        if 'peak_profit_pct' not in data:
-            data['peak_profit_pct'] = 0.0
+        # Remove deprecated field if present
+        data.pop('peak_profit_pct', None)
         return cls(**data)
 
 

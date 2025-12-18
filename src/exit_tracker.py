@@ -223,50 +223,6 @@ class ExitTracker:
 
         return event_id
 
-    def record_stop_loss(
-        self,
-        symbol: str,
-        trigger_percent: float,
-        threshold_percent: float,
-        balance_before: float,
-        balance_after: float,
-        position_details: dict
-    ) -> str:
-        """Record a Stop Loss event"""
-        event_id = f"SL_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol}"
-        profit = balance_after - balance_before
-
-        event = ExitEvent(
-            id=event_id,
-            timestamp=datetime.now().isoformat(),
-            event_type="STOP_LOSS",
-            symbol=symbol,
-            trigger_percent=trigger_percent,
-            threshold_percent=threshold_percent,
-            balance_before=balance_before,
-            balance_after=balance_after,
-            profit_usd=profit,
-            positions_closed=1,
-            positions=[position_details],
-            total_margin=position_details.get('margin', 0)
-        )
-
-        self.events.append(event)
-        self._save_to_file()
-
-        # Async Redis save
-        try:
-            if self.redis:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.create_task(self._save_to_redis())
-        except Exception as e:
-            logger.error(f"Error saving to Redis: {e}")
-
-        logger.info(f"SL RECORDED: {symbol} | Loss: ${profit:.2f}")
-
-        return event_id
-
     def get_stats(self) -> dict:
         """Get summary statistics - GLOBAL TP ONLY (no SL tracking)"""
         if not self.events:
@@ -297,12 +253,8 @@ class ExitTracker:
         return sorted(self.events, key=lambda x: x.timestamp, reverse=True)[:limit]
 
     def get_tp_events(self) -> List[ExitEvent]:
-        """Get all TP events"""
-        return [e for e in self.events if e.event_type == "GLOBAL_TP"]
-
-    def get_sl_events(self) -> List[ExitEvent]:
-        """Get all SL events"""
-        return [e for e in self.events if e.event_type == "STOP_LOSS"]
+        """Get all TP and MACRO_FLIP events"""
+        return [e for e in self.events if e.event_type in ["GLOBAL_TP", "MACRO_FLIP"]]
 
     async def clear_all(self):
         """Clear all events from memory, Redis, and file"""

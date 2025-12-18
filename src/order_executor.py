@@ -30,7 +30,7 @@ class OrderResult:
 class OrderExecutor:
     """
     Executes orders on Binance Futures
-    Handles market orders, stop-losses, and position management
+    Handles market orders and position management
     """
 
     def __init__(self, data_feed):
@@ -134,11 +134,10 @@ class OrderExecutor:
             return 0.0
     
     async def open_long(
-        self, 
-        symbol: str, 
-        margin: float, 
-        leverage: int,
-        stop_loss: Optional[float] = None
+        self,
+        symbol: str,
+        margin: float,
+        leverage: int
     ) -> OrderResult:
         """Open a long position"""
         try:
@@ -175,10 +174,6 @@ class OrderExecutor:
             
             logger.info(f"🟢 LONG opened: {symbol} | Qty: {quantity} | Price: ~{price}")
 
-            # Set stop-loss if provided
-            if stop_loss:
-                await self._set_stop_loss(symbol, "LONG", quantity, stop_loss)
-
             # Get actual entry price from position (avgPrice in response is often 0)
             actual_price = float(order.get('avgPrice', 0))
             if actual_price <= 0:
@@ -213,11 +208,10 @@ class OrderExecutor:
             )
     
     async def open_short(
-        self, 
-        symbol: str, 
-        margin: float, 
-        leverage: int,
-        stop_loss: Optional[float] = None
+        self,
+        symbol: str,
+        margin: float,
+        leverage: int
     ) -> OrderResult:
         """Open a short position"""
         try:
@@ -254,10 +248,6 @@ class OrderExecutor:
             
             logger.info(f"🔴 SHORT opened: {symbol} | Qty: {quantity} | Price: ~{price}")
 
-            # Set stop-loss if provided
-            if stop_loss:
-                await self._set_stop_loss(symbol, "SHORT", quantity, stop_loss)
-
             # Get actual entry price from position (avgPrice in response is often 0)
             actual_price = float(order.get('avgPrice', 0))
             if actual_price <= 0:
@@ -290,36 +280,6 @@ class OrderExecutor:
                 side="SELL", quantity=0, price=0,
                 error=str(e)
             )
-    
-    async def _set_stop_loss(self, symbol: str, direction: str, quantity: float, stop_price: float) -> bool:
-        """Set a stop-loss order with verification"""
-        try:
-            _, price_precision, _ = await self.get_symbol_precision(symbol)
-            stop_price = round(stop_price, price_precision)
-
-            side = SIDE_SELL if direction == "LONG" else SIDE_BUY
-
-            order = await self.client.futures_create_order(
-                symbol=symbol,
-                side=side,
-                type=FUTURE_ORDER_TYPE_STOP_MARKET,
-                stopPrice=stop_price,
-                closePosition=True
-            )
-
-            # Verify order was accepted
-            if order and 'orderId' in order:
-                logger.info(f"✅ Stop-loss confirmed for {symbol} at {stop_price} (Order: {order['orderId']})")
-                return True
-            else:
-                logger.critical(f"🚨 STOP-LOSS NOT CONFIRMED for {symbol} - response: {order}")
-                return False
-
-        except Exception as e:
-            logger.warning(f"⚠️ Exchange SL order failed for {symbol}: {e}")
-            logger.warning(f"⚠️ Position {symbol} will use software-based trailing stop monitoring")
-            # DO NOT auto-close - trailing stop monitoring will protect the position
-            return False
     
     async def close_position(self, symbol: str, percent: float = 100) -> OrderResult:
         """Close a position (fully or partially)"""
@@ -422,32 +382,6 @@ class OrderExecutor:
             logger.debug(f"All orders cancelled for {symbol}")
         except Exception as e:
             logger.error(f"Error cancelling orders for {symbol}: {e}")
-    
-    async def update_stop_loss(self, symbol: str, new_stop: float):
-        """Update stop-loss price for a position"""
-        try:
-            # Cancel existing stop orders
-            await self.cancel_all_orders(symbol)
-            
-            # Get position
-            positions = await self.client.futures_position_information(symbol=symbol)
-            
-            for p in positions:
-                if p['symbol'] == symbol:
-                    position_amt = float(p['positionAmt'])
-                    
-                    if position_amt > 0:
-                        direction = "LONG"
-                    elif position_amt < 0:
-                        direction = "SHORT"
-                    else:
-                        return
-                    
-                    await self._set_stop_loss(symbol, direction, abs(position_amt), new_stop)
-                    break
-                    
-        except Exception as e:
-            logger.error(f"Error updating stop-loss for {symbol}: {e}")
     
     async def close_long(self, symbol: str) -> OrderResult:
         """Close a long position (convenience wrapper)"""
