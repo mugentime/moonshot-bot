@@ -1253,7 +1253,7 @@ async def tp_tracker_json():
 
 @app.get("/exits", response_class=HTMLResponse)
 async def exits_ui():
-    """HTML dashboard showing ALL exit events (Global TP + Stop Loss)"""
+    """HTML dashboard showing ALL exit events (Global TP ONLY - no SL)"""
     try:
         from src.exit_tracker import exit_tracker
         from dataclasses import asdict
@@ -1268,6 +1268,7 @@ async def exits_ui():
         # Build event rows
         rows = ""
         for event in events:  # Already sorted most recent first
+            # ONLY show GLOBAL_TP and MACRO_FLIP events (skip SL)
             if event.event_type == "GLOBAL_TP":
                 emoji = "🎯"
                 type_color = "#22c55e"
@@ -1277,9 +1278,8 @@ async def exits_ui():
                 type_color = "#f59e0b"
                 type_label = "MACRO FLIP"
             else:
-                emoji = "🛑"
-                type_color = "#ef4444"
-                type_label = "STOP LOSS"
+                # Skip STOP_LOSS and unknown event types
+                continue
 
             profit_color = "#22c55e" if event.profit_usd >= 0 else "#ef4444"
 
@@ -1764,15 +1764,13 @@ async def backfill_trackers():
         return {
             "status": "success",
             "global_tp_events": len(global_tp_events),
-            "individual_sl_events": len(individual_sl_events),
             "total_income_records": len(income),
             "current_balance": current_balance,
             "tp_total_profit": sum(e.profit_usd for e in tp_tracker.events),
-            "sl_total_loss": sum(e['profit_usd'] for e in individual_sl_events),
             "redis_verification": redis_verification,
             "tp_tracker_memory_events": len(tp_tracker.events),
             "exit_tracker_memory_events": len(exit_tracker.events),
-            "message": f"Backfilled {len(global_tp_events)} Global TP and {len(individual_sl_events)} SL events from Binance history"
+            "message": f"Backfilled {len(global_tp_events)} Global TP events from Binance history (SL tracking removed)"
         }
 
     except Exception as e:

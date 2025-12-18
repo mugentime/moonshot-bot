@@ -12,7 +12,7 @@ Strategy:
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
 - GLOBAL TP: Portfolio profit closes ALL positions (configurable via env)
-- INDIVIDUAL SL: 10% loss per position triggers close (configurable via env)
+- NO STOP LOSS: Only Global TP closes positions (no individual SL)
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -303,4 +303,4 @@ class MacroIndicator:
             return 0, avg_velocity
 
 
-# Exit logic handled in main.py monitor loop (Global TP + Individual SL)
+# Exit logic handled in main.py monitor loop (Global TP only - NO Stop Loss)

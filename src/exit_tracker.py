@@ -268,38 +268,28 @@ class ExitTracker:
         return event_id
 
     def get_stats(self) -> dict:
-        """Get summary statistics"""
+        """Get summary statistics - GLOBAL TP ONLY (no SL tracking)"""
         if not self.events:
             return {
                 'total_events': 0,
                 'tp_events': 0,
-                'sl_events': 0,
                 'total_profit': 0,
                 'tp_profit': 0,
-                'sl_loss': 0,
                 'avg_tp_profit': 0,
-                'avg_sl_loss': 0,
-                'tp_win_rate': 0,
-                'sl_positions': 0
+                'tp_win_rate': 0
             }
 
-        tp_events = [e for e in self.events if e.event_type == "GLOBAL_TP"]
-        sl_events = [e for e in self.events if e.event_type == "STOP_LOSS"]
-
+        # Only count GLOBAL_TP and MACRO_FLIP events (no STOP_LOSS)
+        tp_events = [e for e in self.events if e.event_type in ["GLOBAL_TP", "MACRO_FLIP"]]
         tp_profits = [e.profit_usd for e in tp_events]
-        sl_profits = [e.profit_usd for e in sl_events]
 
         return {
             'total_events': len(self.events),
             'tp_events': len(tp_events),
-            'sl_events': len(sl_events),
-            'total_profit': sum(tp_profits) + sum(sl_profits),
+            'total_profit': sum(tp_profits),
             'tp_profit': sum(tp_profits),
-            'sl_loss': sum(sl_profits),
             'avg_tp_profit': sum(tp_profits) / len(tp_profits) if tp_profits else 0,
-            'avg_sl_loss': sum(sl_profits) / len(sl_profits) if sl_profits else 0,
-            'tp_win_rate': len([p for p in tp_profits if p > 0]) / len(tp_profits) * 100 if tp_profits else 0,
-            'sl_positions': len(sl_events)
+            'tp_win_rate': len([p for p in tp_profits if p > 0]) / len(tp_profits) * 100 if tp_profits else 0
         }
 
     def get_recent_events(self, limit: int = 20) -> List[ExitEvent]:
