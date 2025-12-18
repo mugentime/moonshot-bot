@@ -1644,9 +1644,8 @@ async def backfill_trackers():
             minute = int(i.get('time', 0)) // 60000
             by_minute[minute].append(i)
 
-        # Categorize events
-        global_tp_events = []  # 3+ trades in same minute = Global TP
-        individual_sl_events = []  # Single trade with loss = Individual SL
+        # Categorize events - ONLY Global TP (no SL tracking)
+        global_tp_events = []
 
         for minute, trades in by_minute.items():
             timestamp = datetime.fromtimestamp(minute * 60)
@@ -1690,38 +1689,7 @@ async def backfill_trackers():
                     'positions': positions,
                     'total_margin': 0
                 })
-            else:
-                # Individual trades - check if SL (loss)
-                for t in trades:
-                    pnl = float(t.get('income', 0))
-                    symbol = t.get('symbol', 'N/A')
-                    trade_time = datetime.fromtimestamp(int(t.get('time', 0)) / 1000)
-
-                    # Calculate balance for this specific trade
-                    income_after_trade = sum(
-                        float(i.get('income', 0))
-                        for i in income
-                        if int(i.get('time', 0)) > int(t.get('time', 0))
-                    )
-                    trade_balance_after = current_balance - income_after_trade
-                    trade_balance_before = trade_balance_after - pnl
-
-                    if pnl < 0:
-                        # Stop Loss event
-                        individual_sl_events.append({
-                            'id': f"SL_{trade_time.strftime('%Y%m%d_%H%M%S')}_{symbol}",
-                            'timestamp': trade_time.isoformat(),
-                            'event_type': 'STOP_LOSS',
-                            'symbol': symbol,
-                            'trigger_percent': 0,
-                            'threshold_percent': 20.0,
-                            'balance_before': trade_balance_before,
-                            'balance_after': trade_balance_after,
-                            'profit_usd': pnl,
-                            'positions_closed': 1,
-                            'positions': [{'symbol': symbol, 'pnl_usd': pnl}],
-                            'total_margin': 0
-                        })
+            # else: REMOVED - No longer tracking individual SL events
 
         # Clear existing and add new events
         exit_tracker.events = []
@@ -1745,9 +1713,7 @@ async def backfill_trackers():
                 total_margin=e['total_margin']
             ))
 
-        # Add SL events to exit tracker only
-        for e in individual_sl_events:
-            exit_tracker.events.append(ExitEvent(**e))
+        # SL tracking completely removed - only Global TP events
 
         # Save directly to Redis (bypass tracker's connection issues)
         import redis.asyncio as redis_async
