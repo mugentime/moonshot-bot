@@ -5,3 +5,4 @@ from .position_sizer import PositionSizer
 from .order_executor import OrderExecutor
 from .position_tracker import PositionTracker
 from .macro_strategy import MacroIndicator, MacroConfig, MacroDirection
+from .fee_tracker import fee_tracker, FeeTracker

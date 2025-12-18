@@ -318,21 +318,36 @@ class MacroIndexBot:
                 await asyncio.sleep(5)
 
     async def _handle_direction_change(self, score):
-        """Handle when macro direction changes - NO POSITION CLOSING"""
+        """
+        ALL IN OR DIE STRATEGY
+        - Only open positions when going FLAT → LONG or FLAT → SHORT
+        - Once committed to a direction, IGNORE all macro flips
+        - Only exit on Global TP (50% profit target)
+        """
         old_direction = self.current_direction
         new_direction = score.direction
 
-        logger.info(f"{'='*60}")
-        logger.info(f"MACRO DIRECTION CHANGE: {old_direction.value} -> {new_direction.value}")
-        logger.info(f"NOTE: Existing positions remain open - only Global TP closes positions")
-        logger.info(f"{'='*60}")
-
-        # Open new positions (existing positions remain open)
-        # WARNING: This can create hedged positions (LONG + SHORT simultaneously)
-        if new_direction != MacroDirection.FLAT:
+        # ONLY act on FLAT → LONG or FLAT → SHORT transitions
+        if old_direction == MacroDirection.FLAT and new_direction != MacroDirection.FLAT:
+            logger.info(f"{'='*60}")
+            logger.info(f"🎯 ALL IN: {old_direction.value} → {new_direction.value}")
+            logger.info(f"Opening {new_direction.value} positions - RIDE OR DIE until Global TP")
+            logger.info(f"{'='*60}")
             await self._open_all_positions(new_direction.value)
+            self.current_direction = new_direction
 
-        self.current_direction = new_direction
+        # IGNORE all other transitions (committed to direction)
+        elif old_direction != MacroDirection.FLAT and new_direction != old_direction:
+            logger.info(f"{'='*60}")
+            logger.info(f"⚠️  MACRO SIGNAL IGNORED: {old_direction.value} → {new_direction.value}")
+            logger.info(f"ALL IN OR DIE: Staying committed to {old_direction.value}")
+            logger.info(f"Will exit ONLY on Global TP (50% profit)")
+            logger.info(f"{'='*60}")
+            # Keep old direction, don't update
+
+        else:
+            # FLAT → FLAT or same direction, no action needed
+            self.current_direction = new_direction
 
     async def _close_all_positions_for_direction(self, direction: str):
         """Close all positions for a given direction"""
@@ -588,7 +603,7 @@ class MacroIndexBot:
 
         # Calculate margin per position (equal weight)
         margin_per_position = balance / len(self.whitelisted_symbols)
-        margin_per_position = max(margin_per_position, 1.0)  # Minimum $1
+        margin_per_position = max(margin_per_position, 2.0)  # Minimum $2 (with 5x leverage = $10 notional)
 
         opened = 0
         failed = 0

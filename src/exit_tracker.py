@@ -176,6 +176,53 @@ class ExitTracker:
 
         return event_id
 
+    def record_macro_flip(
+        self,
+        trigger_reason: str,
+        balance_before: float,
+        balance_after: float,
+        profit_usd: float,
+        positions_closed: int,
+        positions: List[dict]
+    ) -> str:
+        """Record a Macro Direction Flip event"""
+        event_id = f"FLIP_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        event = ExitEvent(
+            id=event_id,
+            timestamp=datetime.now().isoformat(),
+            event_type="MACRO_FLIP",
+            symbol="ALL",
+            trigger_percent=0.0,  # Not applicable for macro flips
+            threshold_percent=0.0,  # Not applicable for macro flips
+            balance_before=balance_before,
+            balance_after=balance_after,
+            profit_usd=profit_usd,
+            positions_closed=positions_closed,
+            positions=positions,
+            total_margin=sum(p.get('margin', 0) for p in positions)
+        )
+
+        self.events.append(event)
+        self._save_to_file()
+
+        # Async Redis save
+        try:
+            if self.redis:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(self._save_to_redis())
+        except Exception as e:
+            logger.error(f"Error saving to Redis: {e}")
+
+        logger.info(f"{'='*60}")
+        logger.info(f"MACRO FLIP RECORDED: {event_id}")
+        logger.info(f"Reason: {trigger_reason} | PnL: ${profit_usd:+.2f}")
+        logger.info(f"Positions closed: {positions_closed}")
+        logger.info(f"{'='*60}")
+
+        return event_id
+
     def record_stop_loss(
         self,
         symbol: str,

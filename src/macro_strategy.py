@@ -45,7 +45,7 @@ class MacroConfig:
 
     # GLOBAL TAKE PROFIT - Portfolio level (closes ALL positions)
     # Configurable via GLOBAL_TP_PERCENT env var (default 50.0%)
-    # Higher threshold = fewer exits, more profit per trade, better fee efficiency
+    # "All in or die" strategy - ride the trend until 50% profit
     GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "50.0"))
 
     # POST-TP COOLDOWN - Wait before opening new positions after TP closes all
@@ -53,7 +53,7 @@ class MacroConfig:
     POST_TP_COOLDOWN_SECONDS: int = int(os.getenv("POST_TP_COOLDOWN", "60"))
 
     # POSITION SIZING
-    LEVERAGE = 20  # 20x leverage (aggressive)
+    LEVERAGE = 5  # 5x leverage (conservative - safer risk management)
     MAX_POSITIONS = 61  # All coins
 
     # SCAN INTERVAL
