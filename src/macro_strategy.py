@@ -43,14 +43,9 @@ class MacroConfig:
     # DIRECTION CHANGE COOLDOWN (prevent whipsaws)
     DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
 
-    # GLOBAL TAKE PROFIT - Portfolio level (closes ALL positions)
-    # Configurable via GLOBAL_TP_PERCENT env var (default 50.0%)
-    # "All in or die" strategy - ride the trend until 50% profit
-    GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "50.0"))
-
-    # POST-TP COOLDOWN - Wait before opening new positions after TP closes all
-    # Prevents immediately re-entering volatile market after taking profit
-    POST_TP_COOLDOWN_SECONDS: int = int(os.getenv("POST_TP_COOLDOWN", "60"))
+    # NO TAKE PROFIT OR STOP LOSS
+    # Positions are held indefinitely until manual close or macro direction change
+    # GLOBAL_TP_PERCENT and POST_TP_COOLDOWN are disabled
 
     # POSITION SIZING
     LEVERAGE = 5  # 5x leverage (conservative - safer risk management)

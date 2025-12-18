@@ -8,7 +8,7 @@ Strategy:
 - Score >= +1 → LONG all coins
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
-- GLOBAL TP: Portfolio profit target closes ALL positions (configurable via GLOBAL_TP_PERCENT env)
+- NO AUTOMATED EXITS: Positions held indefinitely until manual close or direction change
 """
 import asyncio
 import sys
@@ -56,8 +56,8 @@ class MacroIndexBot:
     Macro Index Trading Bot
     - Calculates composite macro indicator across all whitelisted coins
     - Opens positions on ALL coins in same direction
-    - GLOBAL TP: Close all positions when portfolio profit reaches threshold
-    - NO individual SL/TP - only Global TP closes positions
+    - NO AUTOMATED EXITS: Positions held indefinitely until manual close
+    - NO Take Profit or Stop Loss logic
     """
 
     def __init__(self):
@@ -211,8 +211,7 @@ class MacroIndexBot:
         logger.info(f"  Leverage: {self.config.LEVERAGE}x")
         logger.info(f"  Timeframe: 24H (stable trend detection)")
         logger.info(f"  Direction Cooldown: {self.config.DIRECTION_CHANGE_COOLDOWN_SECONDS}s (1 hour)")
-        logger.info(f"  Global TP: {self.config.GLOBAL_TP_PERCENT}% (env: GLOBAL_TP_PERCENT)")
-        logger.info(f"  Post-TP Cooldown: {self.config.POST_TP_COOLDOWN_SECONDS}s (env: POST_TP_COOLDOWN)")
+        logger.info(f"  EXIT STRATEGY: NO AUTOMATED TP/SL - Positions held indefinitely")
         logger.info(f"  Long Trigger: Score >= {self.config.LONG_TRIGGER_SCORE}")
         logger.info(f"  Short Trigger: Score <= {self.config.SHORT_TRIGGER_SCORE}")
         logger.info("=" * 60)
@@ -558,44 +557,18 @@ class MacroIndexBot:
         net_profit = balance_after - balance_before
         logger.info(f"Gross PnL (REALIZED_PNL): ${actual_profit:+.4f} | Net profit (after fees): ${net_profit:+.4f} | Fees: ${actual_profit - net_profit:+.4f}")
 
-        # Record to TP tracker
-        tp_tracker.record_tp(
-            trigger_percent=trigger_percent,
-            threshold_percent=self.config.GLOBAL_TP_PERCENT,
-            balance_before=balance_before,
-            balance_after=balance_after,
-            positions=position_details,
-            total_margin=total_margin
-        )
-
-        # Record to unified exit tracker
-        exit_tracker.record_global_tp(
-            trigger_percent=trigger_percent,
-            threshold_percent=self.config.GLOBAL_TP_PERCENT,
-            balance_before=balance_before,
-            balance_after=balance_after,
-            positions=position_details,
-            total_margin=total_margin
-        )
+        # NOTE: TP tracker and exit tracker disabled (no automated TP anymore)
+        # This function is kept for manual close functionality only
 
         logger.info(f"{'='*60}")
-        logger.info(f"GLOBAL TP COMPLETE: Closed {closed}/{len(positions)} positions")
+        logger.info(f"MANUAL CLOSE COMPLETE: Closed {closed}/{len(positions)} positions")
         logger.info(f"Balance: ${balance_before:.4f} -> ${balance_after:.4f}")
         logger.info(f"NET PROFIT: ${net_profit:+.4f} (after fees)")
         logger.info(f"Gross PnL: ${actual_profit:+.4f} | Fees paid: ${actual_profit - net_profit:+.4f}")
-        logger.info(f"Cooldown: {self.config.POST_TP_COOLDOWN_SECONDS}s before reopening")
         logger.info(f"{'='*60}")
 
     async def _open_all_positions(self, direction: str):
         """Open positions on all whitelisted coins"""
-        # Check Global TP cooldown
-        if self.last_global_tp_time > 0:
-            time_since_tp = time.time() - self.last_global_tp_time
-            if time_since_tp < self.config.POST_TP_COOLDOWN_SECONDS:
-                remaining = int(self.config.POST_TP_COOLDOWN_SECONDS - time_since_tp)
-                logger.info(f"Global TP cooldown active. {remaining}s remaining. Skipping position opening.")
-                return
-
         logger.info(f"Opening {direction} positions on {len(self.whitelisted_symbols)} coins...")
 
         # Get available balance
@@ -682,13 +655,14 @@ class MacroIndexBot:
             logger.error(f"Error in position recovery check: {e}")
 
     async def _monitor_loop(self):
-        """Monitor open positions - Global TP only (no individual SL)"""
-        logger.info(f"Position monitor loop started (Global TP: {self.config.GLOBAL_TP_PERCENT}%)")
+        """Monitor open positions - NO TP/SL (positions held indefinitely)"""
+        logger.info("Position monitor loop started - NO AUTOMATED EXITS")
+        logger.info("Positions will be held until manual close or macro direction change")
         check_count = 0
 
         while self._running:
             try:
-                # CRITICAL: Sync with exchange every 12 checks (~1 minute) to catch all positions
+                # Sync with exchange every minute to keep position tracking accurate
                 if check_count % 12 == 0:
                     await self.position_tracker.sync_with_exchange()
 
@@ -699,22 +673,17 @@ class MacroIndexBot:
                     await asyncio.sleep(5)
                     continue
 
-                # === GLOBAL TP CHECK ===
+                # Calculate and log PnL for informational purposes only
                 total_pnl = 0
                 total_margin = 0
                 positions_with_price = 0
-                positions_without_price = 0
 
                 for p in positions:
-                    # Use safe price fetching with REST fallback
                     price = await self.data_feed.get_current_price_safe(p.symbol, max_age_seconds=10.0)
                     if price is None:
-                        positions_without_price += 1
-                        logger.debug(f"TP CHECK: No price for {p.symbol}, excluding from Global TP calc")
                         continue
 
                     positions_with_price += 1
-                    # Calculate margin - handle synced positions with margin=0
                     pos_margin = p.margin if p.margin > 0 else (p.quantity * p.entry_price) / self.config.LEVERAGE
 
                     if p.direction == "LONG":
@@ -724,40 +693,11 @@ class MacroIndexBot:
                     total_pnl += pnl
                     total_margin += pos_margin
 
-                # CRITICAL: Require at least 90% of positions to have valid prices
-                # This prevents false TP triggers when most prices are missing
-                total_positions = len(positions)
-                price_coverage = (positions_with_price / total_positions * 100) if total_positions > 0 else 0
-
-                if positions_without_price > 0 and price_coverage < 90:
-                    if check_count % 12 == 0:
-                        logger.warning(f"TP CHECK SKIPPED: Only {positions_with_price}/{total_positions} positions have prices ({price_coverage:.0f}%). Need 90%+")
-                    await asyncio.sleep(5)
-                    continue
-
-                if total_margin > 0:
-                    # FIX: Calculate TP percentage based on WALLET BALANCE, not margin
-                    # This gives the TRUE percentage gain of the account
+                # Log PnL every minute for monitoring only (no automated action)
+                if total_margin > 0 and check_count % 12 == 0:
                     wallet_balance = await self._get_wallet_balance()
                     global_pnl_pct = (total_pnl / wallet_balance) * 100 if wallet_balance > 0 else 0
-
-                    # Log Global PnL every minute
-                    if check_count % 12 == 0:
-                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% of wallet (${total_pnl:+.2f} / ${wallet_balance:.2f} balance) | {positions_with_price}/{total_positions} positions | TP: +{self.config.GLOBAL_TP_PERCENT}%")
-
-                    # Check if Global TP triggered
-                    if global_pnl_pct >= self.config.GLOBAL_TP_PERCENT:
-                        # Set cooldown IMMEDIATELY to prevent race condition with macro_loop
-                        self.last_global_tp_time = time.time()
-
-                        logger.info(f"{'='*60}")
-                        logger.info(f"GLOBAL TP TRIGGERED: +{global_pnl_pct:.2f}% of wallet (threshold: {self.config.GLOBAL_TP_PERCENT}%)")
-                        logger.info(f"Total PnL: ${total_pnl:.2f} | Wallet Balance: ${wallet_balance:.2f} | Margin Used: ${total_margin:.2f}")
-                        logger.info(f"{'='*60}")
-                        await self._close_all_positions_global_tp(
-                            trigger_percent=global_pnl_pct,
-                            total_margin=total_margin
-                        )
+                    logger.info(f"Portfolio PnL: {global_pnl_pct:+.2f}% (${total_pnl:+.2f} / ${wallet_balance:.2f} balance) | {positions_with_price}/{len(positions)} positions")
 
                 await asyncio.sleep(5)  # Check every 5 seconds
 
