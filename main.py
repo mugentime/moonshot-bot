@@ -318,30 +318,21 @@ class MacroIndexBot:
                 await asyncio.sleep(5)
 
     async def _handle_direction_change(self, score):
-        """Handle when macro direction changes - CLOSES OLD POSITIONS FIRST"""
+        """Handle when macro direction changes - NO POSITION CLOSING"""
         old_direction = self.current_direction
         new_direction = score.direction
 
         logger.info(f"{'='*60}")
         logger.info(f"MACRO DIRECTION CHANGE: {old_direction.value} -> {new_direction.value}")
+        logger.info(f"NOTE: Existing positions remain open - only Global TP closes positions")
         logger.info(f"{'='*60}")
 
-        # CRITICAL FIX: Close existing positions BEFORE opening new direction
-        # This prevents hedged positions (LONG + SHORT simultaneously)
-        # which result in zero net PnL but double the fees
-        if old_direction != MacroDirection.FLAT:
-            logger.info(f"Closing existing {old_direction.value} positions before opening {new_direction.value}...")
-            await self._close_all_positions_for_direction(old_direction.value)
-            logger.info(f"All {old_direction.value} positions closed")
-
-        # Open new positions for the new direction
+        # Open new positions (existing positions remain open)
+        # WARNING: This can create hedged positions (LONG + SHORT simultaneously)
         if new_direction != MacroDirection.FLAT:
-            logger.info(f"Opening {new_direction.value} positions...")
             await self._open_all_positions(new_direction.value)
-            logger.info(f"All {new_direction.value} positions opened")
 
         self.current_direction = new_direction
-        logger.info(f"Direction change complete: {old_direction.value} -> {new_direction.value}")
 
     async def _close_all_positions_for_direction(self, direction: str):
         """Close all positions for a given direction"""
@@ -349,6 +340,11 @@ class MacroIndexBot:
 
         positions = self.position_tracker.get_all_positions()
         closed = 0
+        closed_positions_data = []
+        total_pnl = 0
+
+        # Get balance BEFORE closing for tracking
+        balance_before = await self._get_wallet_balance()
 
         for position in positions:
             if position.direction == direction:
@@ -372,6 +368,9 @@ class MacroIndexBot:
                             pnl_pct = ((position.entry_price - current_price) / position.entry_price) * 100
 
                         pnl_usd = position.margin * (pnl_pct / 100) * self.config.LEVERAGE
+                        total_pnl += pnl_usd
+
+                        # Record in profit tracker
                         profit_tracker.record_exit(
                             symbol=symbol,
                             exit_price=current_price,
@@ -381,12 +380,46 @@ class MacroIndexBot:
                             peak_profit=0
                         )
 
+                        # Store position data for exit tracker
+                        closed_positions_data.append({
+                            'symbol': symbol,
+                            'direction': position.direction,
+                            'entry_price': position.entry_price,
+                            'exit_price': current_price,
+                            'pnl_usd': pnl_usd,
+                            'pnl_percent': pnl_pct,
+                            'margin': position.margin
+                        })
+
+                        # Record individual fee
+                        await fee_tracker.record_fee(
+                            symbol=symbol,
+                            side=position.direction,
+                            action="CLOSE",
+                            notional_value=position.margin * self.config.LEVERAGE
+                        )
+
                 except Exception as e:
                     logger.error(f"Error closing {symbol}: {e}")
 
                 await asyncio.sleep(0.05)  # Small delay between closes
 
-        logger.info(f"Closed {closed} {direction} positions")
+        # Get balance AFTER closing
+        balance_after = await self._get_wallet_balance()
+        actual_pnl = balance_after - balance_before
+
+        # Record in exit tracker as MACRO_FLIP event
+        if closed > 0:
+            exit_tracker.record_macro_flip(
+                trigger_reason=f"{direction} → Direction Change",
+                balance_before=balance_before,
+                balance_after=balance_after,
+                profit_usd=actual_pnl,
+                positions_closed=closed,
+                positions=closed_positions_data
+            )
+
+        logger.info(f"Closed {closed} {direction} positions (PnL: ${total_pnl:+.2f}, Actual: ${actual_pnl:+.2f})")
 
     async def _close_all_positions_global_tp(self, trigger_percent: float = 0, total_margin: float = 0):
         """Close ALL positions due to Global TP trigger"""
@@ -654,14 +687,18 @@ class MacroIndexBot:
                 # === GLOBAL TP CHECK ===
                 total_pnl = 0
                 total_margin = 0
+                positions_with_price = 0
+                positions_without_price = 0
 
                 for p in positions:
                     # Use safe price fetching with REST fallback
                     price = await self.data_feed.get_current_price_safe(p.symbol, max_age_seconds=10.0)
                     if price is None:
+                        positions_without_price += 1
                         logger.debug(f"TP CHECK: No price for {p.symbol}, excluding from Global TP calc")
                         continue
 
+                    positions_with_price += 1
                     # Calculate margin - handle synced positions with margin=0
                     pos_margin = p.margin if p.margin > 0 else (p.quantity * p.entry_price) / self.config.LEVERAGE
 
@@ -672,12 +709,23 @@ class MacroIndexBot:
                     total_pnl += pnl
                     total_margin += pos_margin
 
+                # CRITICAL: Require at least 90% of positions to have valid prices
+                # This prevents false TP triggers when most prices are missing
+                total_positions = len(positions)
+                price_coverage = (positions_with_price / total_positions * 100) if total_positions > 0 else 0
+
+                if positions_without_price > 0 and price_coverage < 90:
+                    if check_count % 12 == 0:
+                        logger.warning(f"TP CHECK SKIPPED: Only {positions_with_price}/{total_positions} positions have prices ({price_coverage:.0f}%). Need 90%+")
+                    await asyncio.sleep(5)
+                    continue
+
                 if total_margin > 0:
                     global_pnl_pct = (total_pnl / total_margin) * 100
 
                     # Log Global PnL every minute
                     if check_count % 12 == 0:
-                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% (${total_pnl:+.2f} / ${total_margin:.2f} margin) | TP: +{self.config.GLOBAL_TP_PERCENT}%")
+                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% (${total_pnl:+.2f} / ${total_margin:.2f} margin) | {positions_with_price}/{total_positions} positions | TP: +{self.config.GLOBAL_TP_PERCENT}%")
 
                     # Check if Global TP triggered
                     if global_pnl_pct >= self.config.GLOBAL_TP_PERCENT:
@@ -1206,6 +1254,10 @@ async def exits_ui():
                 emoji = "🎯"
                 type_color = "#22c55e"
                 type_label = "GLOBAL TP"
+            elif event.event_type == "MACRO_FLIP":
+                emoji = "🔄"
+                type_color = "#f59e0b"
+                type_label = "MACRO FLIP"
             else:
                 emoji = "🛑"
                 type_color = "#ef4444"
