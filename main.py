@@ -736,11 +736,14 @@ class MacroIndexBot:
                     continue
 
                 if total_margin > 0:
-                    global_pnl_pct = (total_pnl / total_margin) * 100
+                    # FIX: Calculate TP percentage based on WALLET BALANCE, not margin
+                    # This gives the TRUE percentage gain of the account
+                    wallet_balance = await self._get_wallet_balance()
+                    global_pnl_pct = (total_pnl / wallet_balance) * 100 if wallet_balance > 0 else 0
 
                     # Log Global PnL every minute
                     if check_count % 12 == 0:
-                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% (${total_pnl:+.2f} / ${total_margin:.2f} margin) | {positions_with_price}/{total_positions} positions | TP: +{self.config.GLOBAL_TP_PERCENT}%")
+                        logger.info(f"GLOBAL PnL: {global_pnl_pct:+.2f}% of wallet (${total_pnl:+.2f} / ${wallet_balance:.2f} balance) | {positions_with_price}/{total_positions} positions | TP: +{self.config.GLOBAL_TP_PERCENT}%")
 
                     # Check if Global TP triggered
                     if global_pnl_pct >= self.config.GLOBAL_TP_PERCENT:
@@ -748,8 +751,8 @@ class MacroIndexBot:
                         self.last_global_tp_time = time.time()
 
                         logger.info(f"{'='*60}")
-                        logger.info(f"GLOBAL TP TRIGGERED: +{global_pnl_pct:.2f}% (threshold: {self.config.GLOBAL_TP_PERCENT}%)")
-                        logger.info(f"Total PnL: ${total_pnl:.2f} | Margin: ${total_margin:.2f}")
+                        logger.info(f"GLOBAL TP TRIGGERED: +{global_pnl_pct:.2f}% of wallet (threshold: {self.config.GLOBAL_TP_PERCENT}%)")
+                        logger.info(f"Total PnL: ${total_pnl:.2f} | Wallet Balance: ${wallet_balance:.2f} | Margin Used: ${total_margin:.2f}")
                         logger.info(f"{'='*60}")
                         await self._close_all_positions_global_tp(
                             trigger_percent=global_pnl_pct,
