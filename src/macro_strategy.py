@@ -44,9 +44,9 @@ class MacroConfig:
     DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
 
     # GLOBAL TAKE PROFIT - Portfolio level (closes ALL positions)
-    # Configurable via GLOBAL_TP_PERCENT env var (default 10.0%)
-    # NOTE: With fees (~0.04% per trade), 10%+ needed for profit on small accounts
-    GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "10.0"))
+    # Configurable via GLOBAL_TP_PERCENT env var (default 50.0%)
+    # Higher threshold = fewer exits, more profit per trade, better fee efficiency
+    GLOBAL_TP_PERCENT: float = float(os.getenv("GLOBAL_TP_PERCENT", "50.0"))
 
     # POST-TP COOLDOWN - Wait before opening new positions after TP closes all
     # Prevents immediately re-entering volatile market after taking profit
