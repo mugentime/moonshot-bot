@@ -368,10 +368,26 @@ class MacroIndexBot:
             self.current_direction = new_direction
 
     async def _close_all_positions_for_direction(self, direction: str):
-        """Close all positions for a given direction"""
+        """Close all positions for a given direction - CRITICAL FIX: Query Binance directly"""
         logger.info(f"Closing all {direction} positions...")
 
-        positions = self.position_tracker.get_all_positions()
+        # CRITICAL FIX: Query Binance DIRECTLY instead of Redis cache
+        # Redis cache may be stale, causing positions to be missed during macro flip
+        try:
+            binance_positions = await self.data_feed.client.futures_position_information()
+            open_positions = [p for p in binance_positions if float(p['positionAmt']) != 0]
+        except Exception as e:
+            logger.error(f"Failed to fetch positions from Binance: {e}")
+            # Fallback to Redis if Binance fails (better than nothing)
+            open_positions = []
+            positions = self.position_tracker.get_all_positions()
+            for pos in positions:
+                open_positions.append({
+                    'symbol': pos.symbol,
+                    'positionAmt': str(pos.quantity) if pos.direction == "LONG" else str(-pos.quantity),
+                    'entryPrice': str(pos.entry_price)
+                })
+
         closed = 0
         closed_positions_data = []
         total_pnl = 0
@@ -379,9 +395,15 @@ class MacroIndexBot:
         # Get balance BEFORE closing for tracking
         balance_before = await self._get_wallet_balance()
 
-        for position in positions:
-            if position.direction == direction:
-                symbol = position.symbol
+        for position in open_positions:
+            # Filter by direction (positionAmt > 0 = LONG, < 0 = SHORT)
+            position_amt = float(position['positionAmt'])
+            position_direction = "LONG" if position_amt > 0 else "SHORT"
+
+            if position_direction == direction:
+                symbol = position['symbol']
+                entry_price = float(position['entryPrice'])
+
                 try:
                     if direction == "LONG":
                         result = await self.order_executor.close_long(symbol)
@@ -394,13 +416,24 @@ class MacroIndexBot:
                         current_price = await self.data_feed.get_current_price_safe(symbol)
                         if current_price is None:
                             logger.warning(f"No price for {symbol} after close, using entry price for PnL calc")
-                            current_price = position.entry_price
-                        if direction == "LONG":
-                            pnl_pct = ((current_price - position.entry_price) / position.entry_price) * 100
-                        else:
-                            pnl_pct = ((position.entry_price - current_price) / position.entry_price) * 100
+                            current_price = entry_price
 
-                        pnl_usd = position.margin * (pnl_pct / 100) * self.config.LEVERAGE
+                        if direction == "LONG":
+                            pnl_pct = ((current_price - entry_price) / entry_price) * 100
+                        else:
+                            pnl_pct = ((entry_price - current_price) / entry_price) * 100
+
+                        # Get margin from Redis tracker (if available) or estimate from position
+                        tracked_position = self.position_tracker.get_position(symbol)
+                        if tracked_position:
+                            margin = tracked_position.margin
+                        else:
+                            # Estimate margin from position quantity and entry price
+                            quantity = abs(position_amt)
+                            notional = quantity * entry_price
+                            margin = notional / self.config.LEVERAGE
+
+                        pnl_usd = margin * (pnl_pct / 100) * self.config.LEVERAGE
                         total_pnl += pnl_usd
 
                         # Record in profit tracker
@@ -416,20 +449,20 @@ class MacroIndexBot:
                         # Store position data for exit tracker
                         closed_positions_data.append({
                             'symbol': symbol,
-                            'direction': position.direction,
-                            'entry_price': position.entry_price,
+                            'direction': direction,
+                            'entry_price': entry_price,
                             'exit_price': current_price,
                             'pnl_usd': pnl_usd,
                             'pnl_percent': pnl_pct,
-                            'margin': position.margin
+                            'margin': margin
                         })
 
                         # Record individual fee
                         await fee_tracker.record_trade_fee(
                             symbol=symbol,
-                            side=position.direction,
+                            side=direction,
                             action="CLOSE",
-                            notional_value=position.margin * self.config.LEVERAGE
+                            notional_value=margin * self.config.LEVERAGE
                         )
 
                 except Exception as e:
