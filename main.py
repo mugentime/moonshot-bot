@@ -159,9 +159,13 @@ class MacroIndexBot:
         logger.info("INITIALIZING MACRO INDEX BOT")
         logger.info("=" * 60)
 
-        # Initialize data feed
-        await self.data_feed.initialize()
-        logger.info("Connected to Binance")
+        try:
+            # Initialize data feed
+            await self.data_feed.initialize()
+            logger.info("Connected to Binance")
+        except Exception as e:
+            logger.error(f"Failed to initialize data feed: {e}")
+            raise  # Can't continue without data feed
 
         # NOTE: Positions persist across restarts - no longer closing on startup
 
@@ -174,35 +178,64 @@ class MacroIndexBot:
             logger.info(f"Using {len(self.whitelisted_symbols)} whitelisted coins")
         else:
             # Fallback to pair filter
-            await self.pair_filter.initialize()
-            self.whitelisted_symbols = list(self.pair_filter.pairs.keys())
-            logger.info(f"Loaded {len(self.whitelisted_symbols)} trading pairs")
+            try:
+                await self.pair_filter.initialize()
+                self.whitelisted_symbols = list(self.pair_filter.pairs.keys())
+                logger.info(f"Loaded {len(self.whitelisted_symbols)} trading pairs")
+            except Exception as e:
+                logger.error(f"Failed to initialize pair filter: {e}")
+                raise
 
         # Initialize position tracker
-        await self.position_tracker.initialize()
-        logger.info("Position tracker ready")
+        try:
+            await self.position_tracker.initialize()
+            logger.info("Position tracker ready")
+        except Exception as e:
+            logger.error(f"Failed to initialize position tracker: {e}")
+            # Continue without position tracker - will use Binance directly
 
         # Initialize TP tracker with Redis
-        await tp_tracker.initialize()
-        logger.info("TP tracker ready")
+        try:
+            await tp_tracker.initialize()
+            logger.info("TP tracker ready")
+        except Exception as e:
+            logger.warning(f"Failed to initialize TP tracker: {e}")
+            # Non-critical - can continue
 
         # Initialize exit tracker with Redis
-        await exit_tracker.initialize()
-        logger.info("Exit tracker ready")
+        try:
+            await exit_tracker.initialize()
+            logger.info("Exit tracker ready")
+        except Exception as e:
+            logger.warning(f"Failed to initialize exit tracker: {e}")
+            # Non-critical - can continue
 
         # Initialize fee tracker with data feed for API access
-        fee_tracker.data_feed = self.data_feed
-        await fee_tracker.start_background_updates()
-        logger.info("Fee tracker ready")
+        try:
+            fee_tracker.data_feed = self.data_feed
+            await fee_tracker.start_background_updates()
+            logger.info("Fee tracker ready")
+        except Exception as e:
+            logger.warning(f"Failed to initialize fee tracker: {e}")
+            # Non-critical - can continue
 
         # Cancel any leftover STOP_MARKET orders from previous code versions
         # This ensures software SL has exclusive control
-        await self._cancel_all_stop_orders()
+        try:
+            await self._cancel_all_stop_orders()
+        except Exception as e:
+            logger.warning(f"Failed to cancel stop orders: {e}")
+            # Non-critical - can continue
 
         # Get starting balance
-        balance = await self.data_feed.get_account_balance()
-        profit_tracker.set_start_balance(balance)
-        logger.info(f"Starting balance: ${balance:.2f}")
+        try:
+            balance = await self.data_feed.get_account_balance()
+            profit_tracker.set_start_balance(balance)
+            logger.info(f"Starting balance: ${balance:.2f}")
+        except Exception as e:
+            logger.warning(f"Failed to get starting balance: {e}")
+            # Non-critical - set default
+            profit_tracker.set_start_balance(0)
 
         logger.info("=" * 60)
         logger.info("MACRO STRATEGY CONFIG (24H TIMEFRAME):")
@@ -235,8 +268,12 @@ class MacroIndexBot:
         logger.info("MACRO INDEX BOT STARTED")
 
         # Start WebSocket ticker stream for real-time prices
-        await self.data_feed.start_ticker_stream()
-        logger.info("Ticker stream started - Global TP monitoring active")
+        try:
+            await self.data_feed.start_ticker_stream()
+            logger.info("Ticker stream started - Global TP monitoring active")
+        except Exception as e:
+            logger.error(f"Failed to start ticker stream: {e}")
+            logger.warning("Bot will continue without real-time price stream")
 
         # Start macro calculation and monitor loops with exception handlers
         self._macro_task = asyncio.create_task(self._macro_loop(), name="macro_loop")
@@ -298,12 +335,20 @@ class MacroIndexBot:
 
                 # Check for direction change
                 if score.direction != self.current_direction:
-                    await self._handle_direction_change(score)
+                    try:
+                        await self._handle_direction_change(score)
+                    except Exception as e:
+                        logger.error(f"Error handling direction change: {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
                 else:
                     # RECOVERY: If direction is LONG/SHORT but we have no positions, re-open them
                     # This handles the case where positions were manually closed
                     if score.direction != MacroDirection.FLAT:
-                        await self._ensure_positions_open(score.direction.value)
+                        try:
+                            await self._ensure_positions_open(score.direction.value)
+                        except Exception as e:
+                            logger.error(f"Error ensuring positions open: {e}")
 
                 await asyncio.sleep(self.config.SCAN_INTERVAL)
 
