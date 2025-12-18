@@ -1,0 +1,530 @@
+"""
+Order Executor Module
+Executes orders on Binance Futures - Manual-only exit strategy
+"""
+import asyncio
+from typing import Optional
+from dataclasses import dataclass
+from loguru import logger
+from binance.enums import *
+
+
+@dataclass
+class OrderResult:
+    success: bool
+    order_id: Optional[str]
+    symbol: str
+    side: str
+    quantity: float
+    price: float
+    error: Optional[str] = None
+
+    @property
+    def entry_price(self) -> float:
+        """Alias for price for compatibility"""
+        return self.price
+
+
+class OrderExecutor:
+    """
+    Executes orders on Binance Futures
+    Handles market orders and position management
+    Manual-only exits: NO automated SL
+    """
+
+    def __init__(self, data_feed, leverage_config=None):
+        self.data_feed = data_feed
+        self.leverage_config = leverage_config
+
+    @property
+    def client(self):
+        """Get the Binance client from data_feed"""
+        return self.data_feed.client
+
+    async def initialize(self):
+        """Initialize with the Binance client (legacy, now automatic)"""
+        pass  # Client is now accessed via property
+
+    async def set_leverage(self, symbol: str, leverage: int) -> bool:
+        """Set leverage for a symbol"""
+        try:
+            await self.client.futures_change_leverage(
+                symbol=symbol,
+                leverage=leverage
+            )
+            logger.debug(f"Leverage set to {leverage}x for {symbol}")
+            return True
+        except Exception as e:
+            # Leverage might already be set
+            if "No need to change leverage" in str(e):
+                return True
+            logger.error(f"Error setting leverage for {symbol}: {e}")
+            return False
+
+    async def set_margin_type(self, symbol: str, margin_type: str = "CROSSED") -> bool:
+        """Set margin type (ISOLATED or CROSSED)"""
+        try:
+            await self.client.futures_change_margin_type(
+                symbol=symbol,
+                marginType=margin_type
+            )
+            logger.debug(f"Margin type set to {margin_type} for {symbol}")
+            return True
+        except Exception as e:
+            # Margin type might already be set
+            if "No need to change margin type" in str(e):
+                return True
+            logger.error(f"Error setting margin type for {symbol}: {e}")
+            return False
+
+    async def get_symbol_precision(self, symbol: str) -> tuple:
+        """Get quantity and price precision for a symbol"""
+        try:
+            exchange_info = await self.client.futures_exchange_info()
+
+            for s in exchange_info['symbols']:
+                if s['symbol'] == symbol:
+                    quantity_precision = s['quantityPrecision']
+                    price_precision = s['pricePrecision']
+
+                    # Get min quantity
+                    min_qty = 0.001
+                    for f in s['filters']:
+                        if f['filterType'] == 'LOT_SIZE':
+                            min_qty = float(f['minQty'])
+                            break
+
+                    return quantity_precision, price_precision, min_qty
+
+            return 3, 2, 0.001
+
+        except Exception as e:
+            logger.error(f"Error getting precision for {symbol}: {e}")
+            return 3, 2, 0.001
+
+    async def calculate_quantity(self, symbol: str, margin: float, leverage: int, price: float) -> float:
+        """Calculate order quantity from margin amount - ensures $10 minimum notional"""
+        try:
+            qty_precision, _, min_qty = await self.get_symbol_precision(symbol)
+
+            # Notional value = margin * leverage
+            notional = margin * leverage
+
+            # CRITICAL: Ensure minimum $10 notional (Binance requirement)
+            min_notional = 10.0
+            if notional < min_notional:
+                notional = min_notional
+                logger.debug(f"Boosted notional to ${min_notional} for {symbol}")
+
+            # Quantity = notional / price
+            quantity = notional / price
+
+            # Round to precision
+            quantity = round(quantity, qty_precision)
+
+            # Ensure minimum
+            quantity = max(quantity, min_qty)
+
+            return quantity
+
+        except Exception as e:
+            logger.error(f"Error calculating quantity for {symbol}: {e}")
+            return 0.0
+
+    async def open_long(
+        self,
+        symbol: str,
+        margin: float,
+        leverage: int
+    ) -> OrderResult:
+        """Open a long position"""
+        try:
+            # Set leverage
+            await self.set_leverage(symbol, leverage)
+            await self.set_margin_type(symbol, "CROSSED")
+
+            # Get current price
+            ticker = await self.data_feed.get_ticker(symbol)
+            if not ticker:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side="BUY", quantity=0, price=0,
+                    error="Could not get current price"
+                )
+
+            price = ticker.price
+            quantity = await self.calculate_quantity(symbol, margin, leverage, price)
+
+            if quantity <= 0:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side="BUY", quantity=0, price=price,
+                    error="Invalid quantity"
+                )
+
+            # Place market order
+            order = await self.client.futures_create_order(
+                symbol=symbol,
+                side=SIDE_BUY,
+                type=ORDER_TYPE_MARKET,
+                quantity=quantity
+            )
+
+            logger.info(f"🟢 LONG opened: {symbol} | Qty: {quantity} | Price: ~{price}")
+
+            # Get actual entry price from position (avgPrice in response is often 0)
+            actual_price = float(order.get('avgPrice', 0))
+            if actual_price <= 0:
+                # Query position to get real entry price
+                try:
+                    positions = await self.client.futures_position_information(symbol=symbol)
+                    for p in positions:
+                        if p['symbol'] == symbol and float(p['positionAmt']) != 0:
+                            actual_price = float(p['entryPrice'])
+                            break
+                except Exception:
+                    pass
+                # Fallback to ticker price
+                if actual_price <= 0:
+                    actual_price = price
+
+            return OrderResult(
+                success=True,
+                order_id=str(order['orderId']),
+                symbol=symbol,
+                side="BUY",
+                quantity=quantity,
+                price=actual_price
+            )
+
+        except Exception as e:
+            logger.error(f"Error opening long {symbol}: {e}")
+            return OrderResult(
+                success=False, order_id=None, symbol=symbol,
+                side="BUY", quantity=0, price=0,
+                error=str(e)
+            )
+
+    async def open_short(
+        self,
+        symbol: str,
+        margin: float,
+        leverage: int
+    ) -> OrderResult:
+        """Open a short position"""
+        try:
+            # Set leverage
+            await self.set_leverage(symbol, leverage)
+            await self.set_margin_type(symbol, "CROSSED")
+
+            # Get current price
+            ticker = await self.data_feed.get_ticker(symbol)
+            if not ticker:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side="SELL", quantity=0, price=0,
+                    error="Could not get current price"
+                )
+
+            price = ticker.price
+            quantity = await self.calculate_quantity(symbol, margin, leverage, price)
+
+            if quantity <= 0:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side="SELL", quantity=0, price=price,
+                    error="Invalid quantity"
+                )
+
+            # Place market order
+            order = await self.client.futures_create_order(
+                symbol=symbol,
+                side=SIDE_SELL,
+                type=ORDER_TYPE_MARKET,
+                quantity=quantity
+            )
+
+            logger.info(f"🔴 SHORT opened: {symbol} | Qty: {quantity} | Price: ~{price}")
+
+            # Get actual entry price from position (avgPrice in response is often 0)
+            actual_price = float(order.get('avgPrice', 0))
+            if actual_price <= 0:
+                # Query position to get real entry price
+                try:
+                    positions = await self.client.futures_position_information(symbol=symbol)
+                    for p in positions:
+                        if p['symbol'] == symbol and float(p['positionAmt']) != 0:
+                            actual_price = float(p['entryPrice'])
+                            break
+                except Exception:
+                    pass
+                # Fallback to ticker price
+                if actual_price <= 0:
+                    actual_price = price
+
+            return OrderResult(
+                success=True,
+                order_id=str(order['orderId']),
+                symbol=symbol,
+                side="SELL",
+                quantity=quantity,
+                price=actual_price
+            )
+
+        except Exception as e:
+            logger.error(f"Error opening short {symbol}: {e}")
+            return OrderResult(
+                success=False, order_id=None, symbol=symbol,
+                side="SELL", quantity=0, price=0,
+                error=str(e)
+            )
+
+    async def close_position(self, symbol: str, percent: float = 100) -> OrderResult:
+        """Close a position (fully or partially) - Manual-only strategy"""
+        try:
+            # Get current position
+            positions = await self.client.futures_position_information(symbol=symbol)
+
+            position = None
+            for p in positions:
+                if p['symbol'] == symbol and float(p['positionAmt']) != 0:
+                    position = p
+                    break
+
+            if not position:
+                # No position - still cancel any orphaned orders
+                await self.cancel_all_orders(symbol)
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side="", quantity=0, price=0,
+                    error="No position found"
+                )
+
+            position_amt = float(position['positionAmt'])
+
+            # Calculate quantity to close
+            close_qty = abs(position_amt) * (percent / 100)
+
+            # Round to precision
+            qty_precision, _, min_qty = await self.get_symbol_precision(symbol)
+            close_qty = round(close_qty, qty_precision)
+            close_qty = max(close_qty, min_qty)
+
+            # Determine side (opposite of position)
+            if position_amt > 0:
+                side = SIDE_SELL
+                direction = "LONG"
+            else:
+                side = SIDE_BUY
+                direction = "SHORT"
+
+            # CRITICAL: Cancel ALL orders BEFORE closing to avoid orphaned orders
+            if percent >= 100:
+                await self.cancel_all_orders(symbol)
+                logger.info(f"🧹 Cancelled all orders for {symbol} before full close")
+
+            # Close position with MARKET order (guaranteed execution)
+            order = await self.client.futures_create_order(
+                symbol=symbol,
+                side=side,
+                type=ORDER_TYPE_MARKET,
+                quantity=close_qty,
+                reduceOnly=True
+            )
+
+            logger.info(f"📤 Position closed: {symbol} {direction} | {percent}% | Qty: {close_qty}")
+
+            # VERIFY: Check if position is fully closed, retry if not
+            if percent >= 100:
+                await asyncio.sleep(0.5)  # Wait for order to settle
+                verify_positions = await self.client.futures_position_information(symbol=symbol)
+                for vp in verify_positions:
+                    if vp['symbol'] == symbol:
+                        remaining = abs(float(vp['positionAmt']))
+                        if remaining > 0:
+                            logger.warning(f"⚠️ Partial close detected for {symbol}, remaining: {remaining}. Closing remainder...")
+                            try:
+                                remainder_order = await self.client.futures_create_order(
+                                    symbol=symbol,
+                                    side=side,
+                                    type=ORDER_TYPE_MARKET,
+                                    quantity=remaining,
+                                    reduceOnly=True
+                                )
+                                logger.info(f"✅ Remainder closed: {symbol} | Qty: {remaining}")
+                            except Exception as re:
+                                logger.error(f"Failed to close remainder for {symbol}: {re}")
+                        break
+
+            return OrderResult(
+                success=True,
+                order_id=str(order['orderId']),
+                symbol=symbol,
+                side=side,
+                quantity=close_qty,
+                price=float(order.get('avgPrice', 0))
+            )
+
+        except Exception as e:
+            logger.error(f"Error closing position {symbol}: {e}")
+            return OrderResult(
+                success=False, order_id=None, symbol=symbol,
+                side="", quantity=0, price=0,
+                error=str(e)
+            )
+
+    async def cancel_all_orders(self, symbol: str):
+        """Cancel all open orders for a symbol"""
+        try:
+            await self.client.futures_cancel_all_open_orders(symbol=symbol)
+            logger.debug(f"All orders cancelled for {symbol}")
+        except Exception as e:
+            logger.error(f"Error cancelling orders for {symbol}: {e}")
+
+    async def close_long(self, symbol: str) -> OrderResult:
+        """Close a long position (convenience wrapper)"""
+        return await self.close_position(symbol, percent=100)
+
+    async def close_short(self, symbol: str) -> OrderResult:
+        """Close a short position (convenience wrapper)"""
+        return await self.close_position(symbol, percent=100)
+
+    async def get_open_positions(self) -> list:
+        """Get all open positions"""
+        try:
+            positions = await self.client.futures_position_information()
+
+            open_positions = []
+            for p in positions:
+                if float(p['positionAmt']) != 0:
+                    open_positions.append({
+                        'symbol': p['symbol'],
+                        'side': 'LONG' if float(p['positionAmt']) > 0 else 'SHORT',
+                        'quantity': abs(float(p['positionAmt'])),
+                        'entry_price': float(p['entryPrice']),
+                        'unrealized_pnl': float(p['unRealizedProfit']),
+                        'leverage': int(p['leverage'])
+                    })
+
+            return open_positions
+
+        except Exception as e:
+            logger.error(f"Error getting open positions: {e}")
+            return []
+
+    async def close_all_positions(self) -> list:
+        """
+        Close all open positions (Manual exit or Macro direction flip)
+        Returns list of closed position symbols
+        """
+        try:
+            positions = await self.get_open_positions()
+
+            if not positions:
+                return []
+
+            closed = []
+            for pos in positions:
+                result = await self.close_position(pos['symbol'], percent=100)
+                if result.success:
+                    closed.append(pos['symbol'])
+
+            logger.info(f"✅ Closed {len(closed)} positions: {', '.join(closed)}")
+            return closed
+
+        except Exception as e:
+            logger.error(f"Error closing all positions: {e}")
+            return []
+
+    async def add_to_position(self, symbol: str, margin: float, leverage: int) -> OrderResult:
+        """
+        Add margin to an existing position by placing an additional order.
+        Binance automatically averages the entry price.
+
+        Args:
+            symbol: Trading pair symbol
+            margin: Additional margin to add in USDT
+            leverage: Leverage to use
+
+        Returns:
+            OrderResult with new averaged entry price from Binance
+        """
+        try:
+            # Get current position to determine direction
+            positions = await self.client.futures_position_information(symbol=symbol)
+
+            position = None
+            for p in positions:
+                if p['symbol'] == symbol and float(p['positionAmt']) != 0:
+                    position = p
+                    break
+
+            if not position:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side="", quantity=0, price=0,
+                    error="No existing position to add to"
+                )
+
+            position_amt = float(position['positionAmt'])
+            direction = "LONG" if position_amt > 0 else "SHORT"
+
+            # Get current price
+            ticker = await self.data_feed.get_ticker(symbol)
+            if not ticker:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side=direction, quantity=0, price=0,
+                    error="Could not get current price"
+                )
+
+            price = ticker.price
+            quantity = await self.calculate_quantity(symbol, margin, leverage, price)
+
+            if quantity <= 0:
+                return OrderResult(
+                    success=False, order_id=None, symbol=symbol,
+                    side=direction, quantity=0, price=price,
+                    error="Invalid quantity calculated"
+                )
+
+            # Place order in same direction to add to position
+            side = SIDE_BUY if direction == "LONG" else SIDE_SELL
+
+            order = await self.client.futures_create_order(
+                symbol=symbol,
+                side=side,
+                type=ORDER_TYPE_MARKET,
+                quantity=quantity
+            )
+
+            # Get updated position info for new averaged entry price
+            await asyncio.sleep(0.3)  # Wait for position update
+            updated_positions = await self.client.futures_position_information(symbol=symbol)
+
+            new_entry_price = price  # Fallback
+            new_quantity = abs(position_amt) + quantity
+            for up in updated_positions:
+                if up['symbol'] == symbol and float(up['positionAmt']) != 0:
+                    new_entry_price = float(up['entryPrice'])
+                    new_quantity = abs(float(up['positionAmt']))
+                    break
+
+            logger.info(f"🔄 Added to {symbol} {direction}: +{quantity} qty @ {price} | New entry: {new_entry_price}")
+
+            return OrderResult(
+                success=True,
+                order_id=str(order['orderId']),
+                symbol=symbol,
+                side=side,
+                quantity=new_quantity,  # Total quantity after addition
+                price=new_entry_price   # New averaged entry price
+            )
+
+        except Exception as e:
+            logger.error(f"Error adding to position {symbol}: {e}")
+            return OrderResult(
+                success=False, order_id=None, symbol=symbol,
+                side="", quantity=0, price=0,
+                error=str(e)
+            )

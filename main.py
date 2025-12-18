@@ -75,7 +75,6 @@ class MacroIndexBot:
         # Trading state
         self.current_direction: MacroDirection = MacroDirection.FLAT
         self.whitelisted_symbols: list = []
-        self.last_global_tp_time: float = 0  # Track last Global TP for cooldown
 
     async def close_all_positions(self):
         """Close all open positions before starting fresh"""
@@ -318,31 +317,51 @@ class MacroIndexBot:
 
     async def _handle_direction_change(self, score):
         """
-        ALL IN OR DIE STRATEGY
-        - Only open positions when going FLAT → LONG or FLAT → SHORT
-        - Once committed to a direction, IGNORE all macro flips
-        - Only exit on Global TP (50% profit target)
+        MACRO FOLLOWING STRATEGY
+        - Opens positions when macro signals LONG or SHORT
+        - Closes positions when macro direction changes
+        - No automated TP/SL - positions held until direction change
         """
         old_direction = self.current_direction
         new_direction = score.direction
 
-        # ONLY act on FLAT → LONG or FLAT → SHORT transitions
+        # Case 1: FLAT → LONG or SHORT (open new positions)
         if old_direction == MacroDirection.FLAT and new_direction != MacroDirection.FLAT:
             logger.info(f"{'='*60}")
-            logger.info(f"🎯 ALL IN: {old_direction.value} → {new_direction.value}")
-            logger.info(f"Opening {new_direction.value} positions - RIDE OR DIE until Global TP")
+            logger.info(f"📈 MACRO SIGNAL: {new_direction.value}")
+            logger.info(f"Opening {new_direction.value} positions on all symbols")
             logger.info(f"{'='*60}")
             await self._open_all_positions(new_direction.value)
             self.current_direction = new_direction
 
-        # IGNORE all other transitions (committed to direction)
-        elif old_direction != MacroDirection.FLAT and new_direction != old_direction:
+        # Case 2: LONG/SHORT → FLAT (close all positions)
+        elif old_direction != MacroDirection.FLAT and new_direction == MacroDirection.FLAT:
             logger.info(f"{'='*60}")
-            logger.info(f"⚠️  MACRO SIGNAL IGNORED: {old_direction.value} → {new_direction.value}")
-            logger.info(f"ALL IN OR DIE: Staying committed to {old_direction.value}")
-            logger.info(f"Will exit ONLY on Global TP (50% profit)")
+            logger.info(f"📉 MACRO SIGNAL: FLAT (exit all positions)")
+            logger.info(f"Closing all {old_direction.value} positions")
             logger.info(f"{'='*60}")
-            # Keep old direction, don't update
+            await self._close_all_positions_for_direction(old_direction.value)
+            self.current_direction = MacroDirection.FLAT
+
+        # Case 3: LONG → SHORT or SHORT → LONG (reverse positions)
+        elif old_direction != MacroDirection.FLAT and new_direction != old_direction and new_direction != MacroDirection.FLAT:
+            logger.info(f"{'='*60}")
+            logger.info(f"🔄 DIRECTION REVERSAL: {old_direction.value} → {new_direction.value}")
+            logger.info(f"Step 1: Closing all {old_direction.value} positions")
+            logger.info(f"{'='*60}")
+
+            # Close old positions
+            await self._close_all_positions_for_direction(old_direction.value)
+
+            # Wait for settlement
+            await asyncio.sleep(2.0)
+
+            # Open new positions in opposite direction
+            logger.info(f"{'='*60}")
+            logger.info(f"Step 2: Opening {new_direction.value} positions")
+            logger.info(f"{'='*60}")
+            await self._open_all_positions(new_direction.value)
+            self.current_direction = new_direction
 
         else:
             # FLAT → FLAT or same direction, no action needed
@@ -435,137 +454,6 @@ class MacroIndexBot:
 
         logger.info(f"Closed {closed} {direction} positions (PnL: ${total_pnl:+.2f}, Actual: ${actual_pnl:+.2f})")
 
-    async def _close_all_positions_global_tp(self, trigger_percent: float = 0, total_margin: float = 0):
-        """Close ALL positions due to Global TP trigger"""
-        positions = self.position_tracker.get_all_positions()
-
-        # CRITICAL: Don't record TP events if no positions to close
-        if not positions:
-            logger.warning("Global TP triggered but NO POSITIONS to close - skipping record")
-            return
-
-        logger.info("Closing ALL positions for Global TP...")
-
-        # Get balance BEFORE closing
-        balance_before = await self._get_wallet_balance()
-
-        # Track symbols we're closing for later PnL lookup
-        symbols_to_close = [p.symbol for p in positions]
-        symbol_directions = {p.symbol: p.direction for p in positions}
-        close_start_time = int(time.time() * 1000)  # Timestamp for Binance query
-
-        closed = 0
-
-        for position in positions:
-            symbol = position.symbol
-            try:
-                if position.direction == "LONG":
-                    result = await self.order_executor.close_long(symbol)
-                else:
-                    result = await self.order_executor.close_short(symbol)
-
-                if result.success:
-                    closed += 1
-                    await self.position_tracker.remove_position(symbol)
-
-                    # Record fee for position close
-                    notional = position.margin * self.config.LEVERAGE if position.margin > 0 else 0
-                    await fee_tracker.record_trade_fee(
-                        symbol=symbol,
-                        side=position.direction,
-                        action="CLOSE",
-                        notional_value=notional,
-                        order_id=result.order_id
-                    )
-                else:
-                    logger.error(f"Failed to close {symbol}: {result.error}")
-
-            except Exception as e:
-                logger.error(f"Error closing {symbol}: {e}")
-
-            await asyncio.sleep(0.05)  # Small delay between closes
-
-        # Wait a moment for Binance to process all trades
-        await asyncio.sleep(1.0)
-
-        # Get balance AFTER closing
-        balance_after = await self._get_wallet_balance()
-
-        # Only record if we actually closed positions
-        if closed == 0:
-            logger.warning("No positions were actually closed - skipping TP record")
-            return
-
-        # Fetch ACTUAL realized PnL from Binance (source of truth)
-        position_details = []
-        actual_profit = 0
-        try:
-            income = await self.data_feed.client.futures_income_history(
-                incomeType='REALIZED_PNL',
-                startTime=close_start_time,
-                limit=200
-            )
-
-            # Group PnL by symbol
-            pnl_by_symbol = {}
-            for item in income:
-                sym = item.get('symbol', '')
-                if sym in symbols_to_close:
-                    pnl = float(item.get('income', 0))
-                    if sym not in pnl_by_symbol:
-                        pnl_by_symbol[sym] = 0
-                    pnl_by_symbol[sym] += pnl
-
-            # Calculate ACTUAL profit from sum of realized PnL (not balance diff which includes fees)
-            actual_profit = sum(pnl_by_symbol.values())
-
-            # Build position details with REAL PnL from Binance
-            for symbol in symbols_to_close:
-                real_pnl = pnl_by_symbol.get(symbol, 0)
-                direction = symbol_directions.get(symbol, 'LONG')
-
-                position_details.append({
-                    'symbol': symbol,
-                    'direction': direction,
-                    'entry_price': 0,  # Not needed - we have real PnL
-                    'exit_price': 0,   # Not needed - we have real PnL
-                    'pnl_usd': real_pnl,
-                    'pnl_percent': 0,  # Would need margin to calculate
-                    'margin': 0
-                })
-
-                # Record to profit tracker
-                profit_tracker.record_exit(
-                    symbol=symbol,
-                    exit_price=0,
-                    exit_reason="global_tp",
-                    pnl_percent=0,
-                    pnl_usd=real_pnl,
-                    peak_profit=0
-                )
-
-            logger.info(f"Fetched real PnL for {len(pnl_by_symbol)} symbols from Binance: ${actual_profit:+.4f}")
-
-        except Exception as e:
-            logger.error(f"Error fetching real PnL from Binance: {e}")
-            # Fallback: use balance difference
-            actual_profit = balance_after - balance_before
-            position_details = [{'symbol': 'ALL', 'direction': 'MIXED', 'pnl_usd': actual_profit}]
-
-        # NET PROFIT = real balance change (includes fees)
-        # REALIZED_PNL doesn't include trading fees - use actual wallet difference
-        net_profit = balance_after - balance_before
-        logger.info(f"Gross PnL (REALIZED_PNL): ${actual_profit:+.4f} | Net profit (after fees): ${net_profit:+.4f} | Fees: ${actual_profit - net_profit:+.4f}")
-
-        # NOTE: TP tracker and exit tracker disabled (no automated TP anymore)
-        # This function is kept for manual close functionality only
-
-        logger.info(f"{'='*60}")
-        logger.info(f"MANUAL CLOSE COMPLETE: Closed {closed}/{len(positions)} positions")
-        logger.info(f"Balance: ${balance_before:.4f} -> ${balance_after:.4f}")
-        logger.info(f"NET PROFIT: ${net_profit:+.4f} (after fees)")
-        logger.info(f"Gross PnL: ${actual_profit:+.4f} | Fees paid: ${actual_profit - net_profit:+.4f}")
-        logger.info(f"{'='*60}")
 
     async def _open_all_positions(self, direction: str):
         """Open positions on all whitelisted coins"""
@@ -574,14 +462,39 @@ class MacroIndexBot:
         # Get available balance
         balance = await self.data_feed.get_account_balance()
 
-        # Calculate margin per position (equal weight)
-        margin_per_position = balance / len(self.whitelisted_symbols)
-        margin_per_position = max(margin_per_position, 2.0)  # Minimum $2 (with 5x leverage = $10 notional)
+        # CRITICAL FIX: Validate balance BEFORE attempting to open positions
+        MIN_MARGIN = 2.0  # Minimum $2 per position (with 5x leverage = $10 notional)
+
+        # Calculate how many positions we can actually afford
+        max_positions = int(balance / MIN_MARGIN)
+        requested_positions = len(self.whitelisted_symbols)
+
+        if max_positions < requested_positions:
+            logger.warning(f"⚠️ INSUFFICIENT BALANCE: Can only open {max_positions}/{requested_positions} positions")
+            logger.warning(f"   Balance: ${balance:.2f} | Required: ${requested_positions * MIN_MARGIN:.2f}")
+
+            if max_positions == 0:
+                logger.error(f"❌ CANNOT OPEN ANY POSITIONS: Balance ${balance:.2f} < minimum ${MIN_MARGIN:.2f}")
+                return
+
+            # Limit to what we can afford
+            symbols_to_trade = self.whitelisted_symbols[:max_positions]
+            logger.info(f"Opening {len(symbols_to_trade)} positions instead of {requested_positions}")
+        else:
+            symbols_to_trade = self.whitelisted_symbols
+
+        # Calculate margin per position (equal weight across affordable positions)
+        margin_per_position = balance / len(symbols_to_trade)
+        margin_per_position = max(margin_per_position, MIN_MARGIN)  # Ensure minimum
+
+        total_margin_needed = margin_per_position * len(symbols_to_trade)
+
+        logger.info(f"Balance: ${balance:.2f} | Margin per position: ${margin_per_position:.2f} | Total: ${total_margin_needed:.2f}")
 
         opened = 0
         failed = 0
 
-        for symbol in self.whitelisted_symbols:
+        for symbol in symbols_to_trade:
             try:
                 # Open position (exits handled by Global TP only)
                 if direction == "LONG":
@@ -707,142 +620,8 @@ class MacroIndexBot:
                 logger.error(f"Monitor loop error: {e}")
                 await asyncio.sleep(5)
 
-    async def _execute_exit(self, symbol: str, position, exit_action: dict, current_price: float):
-        """Execute an exit trade"""
-        try:
-            direction = position.direction
-            entry_price = position.entry_price
 
-            # Calculate PnL
-            if direction == "LONG":
-                pnl_pct = ((current_price - entry_price) / entry_price) * 100 * self.config.LEVERAGE
-            else:
-                pnl_pct = ((entry_price - current_price) / entry_price) * 100 * self.config.LEVERAGE
 
-            pnl_usd = position.margin * (pnl_pct / 100)
-
-            # Close position
-            if direction == "LONG":
-                result = await self.order_executor.close_long(symbol)
-            else:
-                result = await self.order_executor.close_short(symbol)
-
-            if result.success:
-                # Record in profit tracker
-                profit_tracker.record_exit(
-                    symbol=symbol,
-                    exit_price=current_price,
-                    exit_reason=exit_action['reason'],
-                    pnl_percent=pnl_pct,
-                    pnl_usd=pnl_usd,
-                    peak_profit=0
-                )
-
-                status = "+" if pnl_usd > 0 else ""
-                reason = exit_action['reason'].upper()
-                logger.info(f"{reason}: {symbol} | PnL: ${status}{pnl_usd:.2f} ({pnl_pct:+.2f}%)")
-
-                # Remove from tracker after successful exit
-                await self.position_tracker.remove_position(symbol)
-            else:
-                logger.error(f"Exit failed: {symbol} - {result.error}")
-                # If position doesn't exist on Binance, remove from tracker to stop retry loop
-                if "No position found" in str(result.error) or "position" in str(result.error).lower():
-                    logger.warning(f"Removing stale position from tracker: {symbol}")
-                    await self.position_tracker.remove_position(symbol)
-
-        except Exception as e:
-            logger.error(f"Error executing exit: {e}")
-
-    async def _find_best_position(self, exclude_symbols: list = None):
-        """
-        Find the best performing position (highest PnL %).
-        Used for capital reallocation after SL closes a position.
-
-        Args:
-            exclude_symbols: List of symbols to exclude (e.g., just-closed position)
-
-        Returns:
-            TrackedPosition with highest PnL %, or None if no positions
-        """
-        exclude_symbols = exclude_symbols or []
-        positions = self.position_tracker.get_all_positions()
-
-        # Filter out excluded symbols
-        candidates = [p for p in positions if p.symbol not in exclude_symbols]
-
-        if not candidates:
-            return None
-
-        best_position = None
-        best_pnl_pct = float('-inf')
-
-        for p in candidates:
-            price = await self.data_feed.get_current_price_safe(p.symbol)
-            if price is None:
-                logger.debug(f"No price for {p.symbol}, skipping from best position calc")
-                continue
-            if p.direction == "LONG":
-                pnl_pct = ((price - p.entry_price) / p.entry_price) * 100 * self.config.LEVERAGE
-            else:
-                pnl_pct = ((p.entry_price - price) / p.entry_price) * 100 * self.config.LEVERAGE
-
-            if pnl_pct > best_pnl_pct:
-                best_pnl_pct = pnl_pct
-                best_position = p
-
-        return best_position
-
-    async def _reallocate_capital(self, freed_margin: float, closed_symbol: str):
-        """
-        Reallocate freed margin from closed position to the best performing position.
-        Called immediately after SL closes a position.
-
-        Args:
-            freed_margin: Margin freed from the closed position
-            closed_symbol: Symbol of the position that was just closed
-        """
-        try:
-            # Find best position (excluding the one just closed)
-            best_position = await self._find_best_position(exclude_symbols=[closed_symbol])
-
-            if not best_position:
-                logger.info(f"💰 No positions to reallocate ${freed_margin:.2f} to (all positions closed)")
-                return
-
-            # Calculate current PnL of best position for logging
-            price = await self.data_feed.get_current_price_safe(best_position.symbol)
-            if price is None:
-                logger.warning(f"No price for {best_position.symbol} in reallocation, using entry price")
-                price = best_position.entry_price
-            if best_position.direction == "LONG":
-                best_pnl_pct = ((price - best_position.entry_price) / best_position.entry_price) * 100 * self.config.LEVERAGE
-            else:
-                best_pnl_pct = ((best_position.entry_price - price) / best_position.entry_price) * 100 * self.config.LEVERAGE
-
-            logger.info(f"💰 REALLOCATING: ${freed_margin:.2f} from {closed_symbol} → {best_position.symbol} (best: {best_pnl_pct:+.2f}%)")
-
-            # Add to best position
-            result = await self.order_executor.add_to_position(
-                symbol=best_position.symbol,
-                margin=freed_margin,
-                leverage=self.config.LEVERAGE
-            )
-
-            if result.success:
-                # Update tracking with new size and entry
-                await self.position_tracker.update_position_size(
-                    symbol=best_position.symbol,
-                    new_quantity=result.quantity,
-                    new_entry_price=result.price,
-                    added_margin=freed_margin
-                )
-                logger.info(f"✅ Reallocation complete: {best_position.symbol} now has ${best_position.margin + freed_margin:.2f} margin")
-            else:
-                logger.error(f"❌ Reallocation failed: {result.error}")
-
-        except Exception as e:
-            logger.error(f"Error in capital reallocation: {e}")
 
     async def _get_wallet_balance(self) -> float:
         """Get current account equity (totalMarginBalance) from Binance"""

@@ -37,10 +37,12 @@ env/
 *.log
 logs/
 
-# Environment variables
+# Environment variables - CRITICAL: Never commit API keys
 .env
+*.env
 .env.local
 .env.*.local
+*.env.local
 
 # OS
 .DS_Store
