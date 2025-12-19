@@ -517,26 +517,12 @@ class MacroIndexBot:
         # Get available balance
         balance = await self.data_feed.get_account_balance()
 
-        # CRITICAL FIX: Validate balance BEFORE attempting to open positions
+        # Position limit removed - bot will attempt to open all whitelisted symbols
         MIN_MARGIN = 2.0  # Minimum $2 per position (with 5x leverage = $10 notional)
 
-        # Calculate how many positions we can actually afford
-        max_positions = int(balance / MIN_MARGIN)
-        requested_positions = len(self.whitelisted_symbols)
-
-        if max_positions < requested_positions:
-            logger.warning(f"⚠️ INSUFFICIENT BALANCE: Can only open {max_positions}/{requested_positions} positions")
-            logger.warning(f"   Balance: ${balance:.2f} | Required: ${requested_positions * MIN_MARGIN:.2f}")
-
-            if max_positions == 0:
-                logger.error(f"❌ CANNOT OPEN ANY POSITIONS: Balance ${balance:.2f} < minimum ${MIN_MARGIN:.2f}")
-                return
-
-            # Limit to what we can afford
-            symbols_to_trade = self.whitelisted_symbols[:max_positions]
-            logger.info(f"Opening {len(symbols_to_trade)} positions instead of {requested_positions}")
-        else:
-            symbols_to_trade = self.whitelisted_symbols
+        # Use ALL whitelisted symbols without balance-based limiting
+        symbols_to_trade = self.whitelisted_symbols
+        logger.info(f"🚀 Opening positions on ALL {len(symbols_to_trade)} whitelisted symbols (limit removed)")
 
         # Calculate margin per position (equal weight across affordable positions)
         margin_per_position = balance / len(symbols_to_trade)
