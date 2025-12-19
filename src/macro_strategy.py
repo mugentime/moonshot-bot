@@ -49,7 +49,6 @@ class MacroConfig:
 
     # POSITION SIZING
     LEVERAGE = 5  # 5x leverage (conservative - safer risk management)
-    MAX_POSITIONS = 61  # All coins
 
     # SCAN INTERVAL
     SCAN_INTERVAL = 30  # Calculate macro every 30 seconds
