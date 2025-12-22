@@ -362,15 +362,21 @@ class MacroIndexBot:
 
     async def _handle_direction_change(self, score):
         """
-        MANUAL EXIT ONLY - NO AUTOMATIC POSITION CLOSING
-        - Opens positions when macro signals LONG or SHORT from FLAT only
-        - NEVER closes positions automatically on direction change
-        - All exits are manual via close-all endpoint
+        Handle macro direction changes with automatic position closing on OPPOSITE flips.
+
+        Behavior:
+        - FLAT → LONG/SHORT: Open positions
+        - LONG → SHORT or SHORT → LONG: Close old positions, open new (after 1h cooldown)
+        - Any → FLAT: Keep positions open, update state only
+        - Same direction: No action
+
+        Note: Cooldown enforcement happens in MacroIndicator.calculate()
+        If we receive an opposite direction here, the cooldown has already passed.
         """
         old_direction = self.current_direction
         new_direction = score.direction
 
-        # ONLY open positions when going from FLAT to a direction
+        # Case 1: Opening from FLAT (unchanged behavior)
         if old_direction == MacroDirection.FLAT and new_direction != MacroDirection.FLAT:
             logger.info(f"{'='*60}")
             logger.info(f"📈 MACRO SIGNAL: {new_direction.value}")
@@ -378,16 +384,62 @@ class MacroIndexBot:
             logger.info(f"{'='*60}")
             await self._open_all_positions(new_direction.value)
             self.current_direction = new_direction
+            return
 
-        # ALL OTHER CASES: Log but DO NOT close positions
-        elif old_direction != MacroDirection.FLAT and new_direction != old_direction:
-            # Direction changed but we IGNORE it - no automatic closing
-            logger.info(f"📊 MACRO CHANGED: {old_direction.value} → {new_direction.value} (IGNORED - manual exit only)")
-            # DO NOT update direction - keep positions open
+        # Case 2: OPPOSITE direction flip (NEW BEHAVIOR - Auto close + open)
+        # LONG → SHORT or SHORT → LONG (cooldown already validated by macro_indicator)
+        if (old_direction == MacroDirection.LONG and new_direction == MacroDirection.SHORT) or \
+           (old_direction == MacroDirection.SHORT and new_direction == MacroDirection.LONG):
 
-        else:
-            # Same direction or FLAT → FLAT
+            logger.info(f"{'='*60}")
+            logger.info(f"🔄 MACRO FLIP DETECTED: {old_direction.value} → {new_direction.value}")
+            logger.info(f"Cooldown passed - executing automatic position flip")
+            logger.info(f"{'='*60}")
+
+            # Step 1: Close all positions in old direction
+            try:
+                logger.info(f"Step 1/2: Closing all {old_direction.value} positions...")
+                await self._close_all_positions_for_direction(old_direction.value)
+                logger.info(f"✅ Successfully closed {old_direction.value} positions")
+            except Exception as e:
+                logger.error(f"❌ CRITICAL: Failed to close {old_direction.value} positions: {e}")
+                logger.error(f"Aborting direction flip - positions remain open in {old_direction.value}")
+                # DO NOT update direction if close fails
+                return
+
+            # Step 2: Open positions in new direction
+            try:
+                logger.info(f"Step 2/2: Opening {new_direction.value} positions...")
+                await self._open_all_positions(new_direction.value)
+                logger.info(f"✅ Successfully opened {new_direction.value} positions")
+            except Exception as e:
+                logger.error(f"⚠️ WARNING: Closed {old_direction.value} but failed to open {new_direction.value}: {e}")
+                logger.error(f"Bot is now FLAT (no positions open)")
+                # Update to FLAT since we closed old but failed to open new
+                self.current_direction = MacroDirection.FLAT
+                return
+
+            # Both operations succeeded
             self.current_direction = new_direction
+            logger.info(f"{'='*60}")
+            logger.info(f"✅ MACRO FLIP COMPLETE: {old_direction.value} → {new_direction.value}")
+            logger.info(f"{'='*60}")
+            return
+
+        # Case 3: Direction change to FLAT (keep positions open)
+        if new_direction == MacroDirection.FLAT and old_direction != MacroDirection.FLAT:
+            logger.info(f"📊 MACRO CHANGED: {old_direction.value} → FLAT (keeping positions open)")
+            self.current_direction = new_direction
+            return
+
+        # Case 4: Same direction (no action needed)
+        if old_direction == new_direction:
+            self.current_direction = new_direction
+            return
+
+        # Case 5: Unexpected transition (safety catch)
+        logger.warning(f"Unexpected direction transition: {old_direction.value} → {new_direction.value}")
+        self.current_direction = new_direction
 
     async def _close_all_positions_for_direction(self, direction: str):
         """Close all positions for a given direction - CRITICAL FIX: Query Binance directly"""
