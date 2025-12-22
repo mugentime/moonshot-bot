@@ -24,7 +24,7 @@ class PositionSizingConfig:
     # MINIMUM $10 NOTIONAL per trade (Binance requirement)
     # With CROSSED margin, we can open more positions with shared margin
     MIN_NOTIONAL_USD = 10.0  # $10 minimum notional per trade (Binance min)
-    MIN_MARGIN_USD = float(os.getenv("MIN_MARGIN_USD", "2.00"))  # $2 minimum margin per position (with 5x leverage = $10 notional)
+    MIN_MARGIN_USD = float(os.getenv("MIN_MARGIN_USD", "0.50"))  # $0.50 minimum margin per position (20x-50x leverage = $10-25 notional, allows 80+ positions with $40)
     MAX_MARGIN_PERCENT = float(os.getenv("MAX_MARGIN_PERCENT", "15.0"))  # 15% max per trade (more aggressive)
     MAX_CONCURRENT_TRADES = int(os.getenv("MAX_CONCURRENT_TRADES", "231"))  # All coins
     RECALC_EQUITY_CHANGE_PERCENT = 10.0  # Recalculate when equity changes ±10%
@@ -35,9 +35,9 @@ class PositionSizingConfig:
 # =============================================================================
 
 class LeverageConfig:
-    DEFAULT = int(os.getenv("DEFAULT_LEVERAGE", "5"))
-    MIN = 5
-    MAX = int(os.getenv("MAX_LEVERAGE", "10"))
+    DEFAULT = int(os.getenv("DEFAULT_LEVERAGE", "20"))  # 20x = $10 notional with $0.50 margin (balanced risk/reward)
+    MIN = 10  # Minimum 10x for $0.50 margin = $5 notional
+    MAX = 20  # HARD CAP at 20x for safety (auto-fallback: 20x → 10x → 5x if needed)
 
 # =============================================================================
 # FEES

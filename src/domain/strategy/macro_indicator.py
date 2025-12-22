@@ -6,12 +6,16 @@ Strategy:
 - Uses 24h price change data from Binance tickers (NOT 5-minute noise)
 - Calculate macro score from 3 components:
   1. Majority vote (55%+ coins same direction on 24h)
-  2. Leader-follower (top 10% movers direction)
-  3. Aggregate velocity (average 24h change across all)
+  2. Leader-follower (majority of top 10% movers direction)
+  3. Aggregate velocity (average 24h change >= +/-1%)
 - Score >= +1 → LONG all coins
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
-- MANUAL EXITS ONLY: Positions held until manual close or macro direction flip
+
+Exit Strategy:
+- Positions held until macro direction change OR manual exit
+- Direction change closes opposing positions automatically
+- See main.py for exit logic implementation
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -42,7 +46,7 @@ class MacroConfig:
     DIRECTION_CHANGE_COOLDOWN_SECONDS = 3600  # 1 hour minimum between flips
 
     # POSITION SIZING
-    LEVERAGE = 5  # 5x leverage (conservative - safer risk management)
+    LEVERAGE = 20  # 20x leverage (balanced risk/reward with pre-filter protection)
 
     # SCAN INTERVAL
     SCAN_INTERVAL = 30  # Calculate macro every 30 seconds
@@ -68,7 +72,7 @@ class MacroIndicator:
     Calculates composite macro indicator using 24H TIMEFRAME data.
 
     Components (all based on 24h price changes):
-    1. Majority Vote: 70%+ coins moving same direction on 24h
+    1. Majority Vote: 55%+ coins moving same direction on 24h
     2. Leader-Follower: Direction of top 10% movers on 24h
     3. Aggregate Velocity: Average 24h change across all coins
 
@@ -95,6 +99,7 @@ class MacroIndicator:
             MacroScore with direction and component scores
         """
         if not symbols:
+            logger.warning("Macro indicator called with no symbols - returning FLAT")
             return MacroScore(
                 total_score=0,
                 majority_score=0,
@@ -112,6 +117,7 @@ class MacroIndicator:
         velocities = await self._get_24h_changes(symbols)
 
         if not velocities:
+            logger.warning(f"Failed to get 24h velocities for any symbols ({len(symbols)} requested) - returning FLAT")
             return MacroScore(
                 total_score=0,
                 majority_score=0,
@@ -164,7 +170,7 @@ class MacroIndicator:
             else:
                 # Cooldown not passed, keep old direction
                 remaining = int(cooldown - time_since_last_change)
-                logger.debug(f"Direction change blocked by cooldown. {remaining}s remaining. Raw: {raw_direction.value}, Keeping: {self.last_direction.value}")
+                logger.info(f"Direction change blocked by cooldown. {remaining}s remaining. Raw signal: {raw_direction.value}, Keeping: {self.last_direction.value}")
                 direction = self.last_direction
         else:
             direction = self.last_direction
@@ -221,7 +227,7 @@ class MacroIndicator:
 
         Returns:
             (score, coins_up, coins_down)
-            score: +1 if 60%+ up, -1 if 60%+ down, 0 otherwise
+            score: +1 if 55%+ up, -1 if 55%+ down, 0 otherwise
         """
         if not velocities:
             return 0, 0, 0
@@ -246,7 +252,7 @@ class MacroIndicator:
 
         Returns:
             (score, leader_avg_velocity)
-            score: +1 if top 10% are positive, -1 if negative
+            score: +1 if majority of top 10% are positive, -1 if negative
         """
         if not velocities:
             return 0, 0.0
@@ -258,14 +264,18 @@ class MacroIndicator:
         leader_count = max(1, int(len(sorted_velocities) * self.config.LEADER_PERCENT))
         leaders = sorted_velocities[:leader_count]
 
-        # Calculate average velocity of leaders
+        # Calculate average velocity of leaders for logging
         leader_velocities = [v for _, v in leaders]
         avg_leader_velocity = sum(leader_velocities) / len(leader_velocities)
 
-        # Direction based on leader average
-        if avg_leader_velocity > 0:
+        # Direction based on MAJORITY of leaders (not average)
+        # This prevents mixed signals from canceling out
+        leaders_up = sum(1 for v in leader_velocities if v > 0)
+        leaders_down = len(leader_velocities) - leaders_up
+
+        if leaders_up > leaders_down:
             return 1, avg_leader_velocity
-        elif avg_leader_velocity < 0:
+        elif leaders_down > leaders_up:
             return -1, avg_leader_velocity
         else:
             return 0, avg_leader_velocity

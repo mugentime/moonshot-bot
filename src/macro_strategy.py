@@ -6,13 +6,17 @@ Strategy:
 - Uses 24h price change data from Binance tickers (NOT 5-minute noise)
 - Calculate macro score from 3 components:
   1. Majority vote (55%+ coins same direction on 24h)
-  2. Leader-follower (top 10% movers direction)
-  3. Aggregate velocity (average 24h change across all)
+  2. Leader-follower (majority of top 10% movers direction)
+  3. Aggregate velocity (average 24h change >= +/-1%)
 - Score >= +1 → LONG all coins
 - Score <= -1 → SHORT all coins
 - 1 HOUR COOLDOWN between direction changes to prevent whipsaws
-- GLOBAL TP: Portfolio profit closes ALL positions (configurable via env)
-- NO STOP LOSS: Only Global TP closes positions (no individual SL)
+
+Exit Strategy:
+- Positions held until macro direction change OR manual exit
+- Direction change automatically closes opposing positions
+- NO individual stop loss or take profit per trade
+- Portfolio-wide exits only via direction flip
 """
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -48,7 +52,7 @@ class MacroConfig:
     # GLOBAL_TP_PERCENT and POST_TP_COOLDOWN are disabled
 
     # POSITION SIZING
-    LEVERAGE = 5  # 5x leverage (conservative - safer risk management)
+    LEVERAGE = 20  # 20x leverage (balanced risk/reward with pre-filter protection)
 
     # SCAN INTERVAL
     SCAN_INTERVAL = 30  # Calculate macro every 30 seconds

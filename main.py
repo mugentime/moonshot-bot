@@ -511,7 +511,7 @@ class MacroIndexBot:
 
 
     async def _open_all_positions(self, direction: str):
-        """Open positions on all whitelisted coins"""
+        """Open positions on whitelisted coins - with PRE-FILTER for aligned pairs only"""
         logger.info(f"Opening {direction} positions on {len(self.whitelisted_symbols)} coins...")
 
         # Get available balance
@@ -520,9 +520,45 @@ class MacroIndexBot:
         # Position limit removed - bot will attempt to open all whitelisted symbols
         MIN_MARGIN = 2.0  # Minimum $2 per position (with 5x leverage = $10 notional)
 
-        # Use ALL whitelisted symbols without balance-based limiting
-        symbols_to_trade = self.whitelisted_symbols
-        logger.info(f"🚀 Opening positions on ALL {len(symbols_to_trade)} whitelisted symbols (limit removed)")
+        # PRE-FILTER: Only trade pairs aligned with macro direction
+        logger.info("PRE-FILTER: Fetching 24h ticker data to filter aligned pairs...")
+        try:
+            tickers = await self.data_feed.client.futures_ticker()
+            ticker_map = {t['symbol']: float(t['priceChangePercent']) for t in tickers}
+
+            # Filter symbols based on direction alignment
+            total_symbols = len(self.whitelisted_symbols)
+            if direction == "LONG":
+                # Only LONG pairs that are ALREADY rising (24h change > +2%)
+                symbols_to_trade = [
+                    sym for sym in self.whitelisted_symbols
+                    if ticker_map.get(sym, 0) > 2.0
+                ]
+            elif direction == "SHORT":
+                # Only SHORT pairs that are ALREADY falling (24h change < -2%)
+                symbols_to_trade = [
+                    sym for sym in self.whitelisted_symbols
+                    if ticker_map.get(sym, 0) < -2.0
+                ]
+            else:
+                symbols_to_trade = self.whitelisted_symbols
+
+            filtered_count = len(symbols_to_trade)
+            rejected_count = total_symbols - filtered_count
+
+            logger.info("=" * 60)
+            logger.info("PRE-FILTER RESULTS:")
+            logger.info(f"  Total whitelisted pairs: {total_symbols}")
+            logger.info(f"  Aligned with {direction}: {filtered_count}")
+            logger.info(f"  Rejected (counter-trend): {rejected_count}")
+            logger.info(f"  Filter saved from {rejected_count} potential liquidations")
+            logger.info("=" * 60)
+
+        except Exception as e:
+            logger.error(f"Pre-filter failed: {e}. Trading all symbols as fallback.")
+            symbols_to_trade = self.whitelisted_symbols
+
+        logger.info(f"🚀 Opening positions on {len(symbols_to_trade)} pre-filtered symbols")
 
         # Calculate margin per position (equal weight across affordable positions)
         margin_per_position = balance / len(symbols_to_trade)
