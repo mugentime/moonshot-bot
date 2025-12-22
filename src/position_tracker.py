@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from loguru import logger
 import asyncio
+import aiohttp
 import time
 import json
 import redis.asyncio as redis
@@ -116,63 +117,78 @@ class PositionTracker:
             logger.error(f"Error saving positions to Redis: {e}")
     
     async def sync_with_exchange(self):
-        """Sync local tracking with actual exchange positions"""
+        """Sync local tracking with actual exchange positions with retry logic"""
         async with self._lock:  # Prevent race conditions
-            try:
-                # Get actual positions from exchange
-                account = await self.data_feed.client.futures_position_information()
+            # Retry loop for transient connection errors
+            for attempt in range(3):
+                try:
+                    # Get actual positions from exchange
+                    account = await self.data_feed.client.futures_position_information()
 
-                exchange_positions = {}
-                for p in account:
-                    if float(p['positionAmt']) != 0:
-                        symbol = p['symbol']
-                        entry_price = float(p['entryPrice'])
-                        # Skip positions with invalid entry price (would cause division by zero)
-                        if entry_price == 0:
-                            logger.warning(f"Skipping {symbol} - entry price is 0")
-                            continue
-                        exchange_positions[symbol] = {
-                            'quantity': abs(float(p['positionAmt'])),
-                            'entry_price': entry_price,
-                            'direction': 'LONG' if float(p['positionAmt']) > 0 else 'SHORT',
-                            'unrealized_pnl': float(p['unRealizedProfit']),
-                            'leverage': int(p['leverage'])
-                        }
+                    exchange_positions = {}
+                    for p in account:
+                        if float(p['positionAmt']) != 0:
+                            symbol = p['symbol']
+                            entry_price = float(p['entryPrice'])
+                            # Skip positions with invalid entry price (would cause division by zero)
+                            if entry_price == 0:
+                                logger.warning(f"Skipping {symbol} - entry price is 0")
+                                continue
+                            exchange_positions[symbol] = {
+                                'quantity': abs(float(p['positionAmt'])),
+                                'entry_price': entry_price,
+                                'direction': 'LONG' if float(p['positionAmt']) > 0 else 'SHORT',
+                                'unrealized_pnl': float(p['unRealizedProfit']),
+                                'leverage': int(p['leverage'])
+                            }
 
-                # Update local tracking
-                for symbol, ex_pos in exchange_positions.items():
-                    if symbol in self.positions:
-                        # Update existing
-                        self.positions[symbol].quantity = ex_pos['quantity']
-                        self.positions[symbol].unrealized_pnl = ex_pos['unrealized_pnl']
+                    # Update local tracking
+                    for symbol, ex_pos in exchange_positions.items():
+                        if symbol in self.positions:
+                            # Update existing
+                            self.positions[symbol].quantity = ex_pos['quantity']
+                            self.positions[symbol].unrealized_pnl = ex_pos['unrealized_pnl']
+                        else:
+                            # New position not tracked locally (maybe opened manually)
+                            self.positions[symbol] = TrackedPosition(
+                                symbol=symbol,
+                                direction=ex_pos['direction'],
+                                entry_price=ex_pos['entry_price'],
+                                quantity=ex_pos['quantity'],
+                                margin=0,  # Unknown
+                                leverage=ex_pos['leverage'],
+                                entry_time=time.time(),
+                                order_id="SYNCED",
+                                unrealized_pnl=ex_pos['unrealized_pnl']
+                            )
+                            logger.info(f"📥 Synced position from exchange: {symbol}")
+
+                    # Remove closed positions
+                    for symbol in list(self.positions.keys()):
+                        if symbol not in exchange_positions:
+                            del self.positions[symbol]
+                            logger.info(f"📤 Position no longer on exchange: {symbol}")
+
+                    # Save to Redis
+                    await self._save_to_redis()
+
+                    logger.debug(f"Synced {len(self.positions)} positions with exchange")
+                    break  # Success - exit retry loop
+
+                except (aiohttp.ClientConnectorError, aiohttp.ClientOSError,
+                        asyncio.TimeoutError, OSError) as e:
+                    # Retryable connection errors
+                    if attempt < 2:
+                        delay = 2.0 * (2 ** attempt)  # 2s, 4s, 8s
+                        logger.warning(f"Sync attempt {attempt+1}/3 failed ({e.__class__.__name__}), retrying in {delay}s...")
+                        await asyncio.sleep(delay)
                     else:
-                        # New position not tracked locally (maybe opened manually)
-                        self.positions[symbol] = TrackedPosition(
-                            symbol=symbol,
-                            direction=ex_pos['direction'],
-                            entry_price=ex_pos['entry_price'],
-                            quantity=ex_pos['quantity'],
-                            margin=0,  # Unknown
-                            leverage=ex_pos['leverage'],
-                            entry_time=time.time(),
-                            order_id="SYNCED",
-                            unrealized_pnl=ex_pos['unrealized_pnl']
-                        )
-                        logger.info(f"📥 Synced position from exchange: {symbol}")
+                        logger.error(f"Sync failed after 3 attempts: {e}")
 
-                # Remove closed positions
-                for symbol in list(self.positions.keys()):
-                    if symbol not in exchange_positions:
-                        del self.positions[symbol]
-                        logger.info(f"📤 Position no longer on exchange: {symbol}")
-
-                # Save to Redis
-                await self._save_to_redis()
-
-                logger.debug(f"Synced {len(self.positions)} positions with exchange")
-
-            except Exception as e:
-                logger.error(f"Error syncing with exchange: {e}")
+                except Exception as e:
+                    # Non-retryable errors (auth, API limits, etc.) - fail immediately
+                    logger.error(f"Non-retryable sync error: {e}")
+                    break
     
     async def add_position(
         self,

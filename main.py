@@ -65,7 +65,10 @@ class MacroIndexBot:
         self.data_feed = DataFeed()
         self.pair_filter = PairFilter(self.data_feed)
         self.position_tracker = PositionTracker(self.data_feed)
-        self.order_executor = OrderExecutor(self.data_feed)
+        self.order_executor = OrderExecutor(
+            self.data_feed,
+            position_tracker=self.position_tracker  # NEW: Enable immediate Redis tracking
+        )
         self.macro_indicator = None  # Initialize after data_feed
 
         self._running = False

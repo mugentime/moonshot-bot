@@ -32,9 +32,10 @@ class OrderExecutor:
     Manual-only exits: NO automated SL
     """
 
-    def __init__(self, data_feed, leverage_config=None):
+    def __init__(self, data_feed, leverage_config=None, position_tracker=None):
         self.data_feed = data_feed
         self.leverage_config = leverage_config
+        self.position_tracker = position_tracker  # NEW: For immediate Redis tracking
 
     @property
     def client(self):
@@ -45,21 +46,47 @@ class OrderExecutor:
         """Initialize with the Binance client (legacy, now automatic)"""
         pass  # Client is now accessed via property
 
-    async def set_leverage(self, symbol: str, leverage: int) -> bool:
-        """Set leverage for a symbol"""
-        try:
-            await self.client.futures_change_leverage(
-                symbol=symbol,
-                leverage=leverage
-            )
-            logger.debug(f"Leverage set to {leverage}x for {symbol}")
-            return True
-        except Exception as e:
-            # Leverage might already be set
-            if "No need to change leverage" in str(e):
-                return True
-            logger.error(f"Error setting leverage for {symbol}: {e}")
-            return False
+    async def set_leverage(self, symbol: str, leverage: int) -> int:
+        """
+        Set leverage for a symbol with auto-fallback.
+        Returns the actual leverage that was set.
+
+        IMPORTANT: Maximum leverage capped at 50x for safety.
+        If requested leverage is too high, automatically falls back to:
+        50x -> 40x -> 30x -> 25x -> 20x -> 10x -> 5x
+        """
+        # Cap at 50x maximum for safety
+        requested_leverage = min(leverage, 50)
+        fallback_levels = [requested_leverage, 40, 30, 25, 20, 10, 5]
+
+        for attempt_leverage in fallback_levels:
+            try:
+                await self.client.futures_change_leverage(
+                    symbol=symbol,
+                    leverage=attempt_leverage
+                )
+                if attempt_leverage != leverage:
+                    logger.warning(f"⚠️ {symbol}: {leverage}x not available, using {attempt_leverage}x instead")
+                else:
+                    logger.debug(f"Leverage set to {attempt_leverage}x for {symbol}")
+                return attempt_leverage
+            except Exception as e:
+                # Leverage might already be set
+                if "No need to change leverage" in str(e):
+                    return leverage
+
+                # Check if it's a max leverage error
+                if "Leverage is over the maximum allowed leverage" in str(e) or "leverage" in str(e).lower():
+                    # Try next lower leverage
+                    continue
+                else:
+                    # Different error, log and return what we can
+                    logger.error(f"Error setting leverage for {symbol}: {e}")
+                    return 5  # Fallback to safe 5x
+
+        # If all attempts failed, use minimum safe leverage
+        logger.error(f"❌ Could not set any leverage for {symbol}, using 5x as last resort")
+        return 5
 
     async def set_margin_type(self, symbol: str, margin_type: str = "CROSSED") -> bool:
         """Set margin type (ISOLATED or CROSSED)"""
@@ -102,8 +129,13 @@ class OrderExecutor:
             logger.error(f"Error getting precision for {symbol}: {e}")
             return 3, 2, 0.001
 
-    async def calculate_quantity(self, symbol: str, margin: float, leverage: int, price: float) -> float:
-        """Calculate order quantity from margin amount - ensures $10 minimum notional"""
+    async def calculate_quantity(self, symbol: str, margin: float, leverage: int, price: float) -> tuple:
+        """
+        Calculate order quantity from margin amount - ensures $10 minimum notional.
+        Returns (quantity, adjusted_margin) tuple.
+
+        If leverage is lower than expected, automatically increases margin to meet $10 minimum.
+        """
         try:
             qty_precision, _, min_qty = await self.get_symbol_precision(symbol)
 
@@ -112,9 +144,13 @@ class OrderExecutor:
 
             # CRITICAL: Ensure minimum $10 notional (Binance requirement)
             min_notional = 10.0
+            adjusted_margin = margin
+
             if notional < min_notional:
+                # Need to increase margin to reach $10 notional
+                adjusted_margin = min_notional / leverage
                 notional = min_notional
-                logger.debug(f"Boosted notional to ${min_notional} for {symbol}")
+                logger.debug(f"📊 {symbol}: Adjusted margin ${margin:.2f} → ${adjusted_margin:.2f} (leverage {leverage}x to reach ${min_notional} notional)")
 
             # Quantity = notional / price
             quantity = notional / price
@@ -125,11 +161,11 @@ class OrderExecutor:
             # Ensure minimum
             quantity = max(quantity, min_qty)
 
-            return quantity
+            return quantity, adjusted_margin
 
         except Exception as e:
             logger.error(f"Error calculating quantity for {symbol}: {e}")
-            return 0.0
+            return 0.0, margin
 
     async def open_long(
         self,
@@ -137,10 +173,10 @@ class OrderExecutor:
         margin: float,
         leverage: int
     ) -> OrderResult:
-        """Open a long position"""
+        """Open a long position with smart leverage fallback"""
         try:
-            # Set leverage
-            await self.set_leverage(symbol, leverage)
+            # Set leverage with auto-fallback (returns actual leverage set)
+            actual_leverage = await self.set_leverage(symbol, leverage)
             await self.set_margin_type(symbol, "CROSSED")
 
             # Get current price
@@ -153,7 +189,7 @@ class OrderExecutor:
                 )
 
             price = ticker.price
-            quantity = await self.calculate_quantity(symbol, margin, leverage, price)
+            quantity, adjusted_margin = await self.calculate_quantity(symbol, margin, actual_leverage, price)
 
             if quantity <= 0:
                 return OrderResult(
@@ -188,7 +224,7 @@ class OrderExecutor:
                 if actual_price <= 0:
                     actual_price = price
 
-            return OrderResult(
+            result = OrderResult(
                 success=True,
                 order_id=str(order['orderId']),
                 symbol=symbol,
@@ -196,6 +232,24 @@ class OrderExecutor:
                 quantity=quantity,
                 price=actual_price
             )
+
+            # Track position immediately in Redis (no 60s delay)
+            if result.success and self.position_tracker:
+                try:
+                    await self.position_tracker.add_position(
+                        symbol=symbol,
+                        direction="LONG",
+                        entry_price=actual_price,
+                        quantity=quantity,
+                        margin=adjusted_margin,
+                        leverage=actual_leverage,
+                        order_id=result.order_id
+                    )
+                    logger.debug(f"✅ Added {symbol} LONG to position tracker")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to track position {symbol}: {e}")
+
+            return result
 
         except Exception as e:
             logger.error(f"Error opening long {symbol}: {e}")
@@ -211,10 +265,10 @@ class OrderExecutor:
         margin: float,
         leverage: int
     ) -> OrderResult:
-        """Open a short position"""
+        """Open a short position with smart leverage fallback"""
         try:
-            # Set leverage
-            await self.set_leverage(symbol, leverage)
+            # Set leverage with auto-fallback (returns actual leverage set)
+            actual_leverage = await self.set_leverage(symbol, leverage)
             await self.set_margin_type(symbol, "CROSSED")
 
             # Get current price
@@ -227,7 +281,7 @@ class OrderExecutor:
                 )
 
             price = ticker.price
-            quantity = await self.calculate_quantity(symbol, margin, leverage, price)
+            quantity, adjusted_margin = await self.calculate_quantity(symbol, margin, actual_leverage, price)
 
             if quantity <= 0:
                 return OrderResult(
@@ -262,7 +316,7 @@ class OrderExecutor:
                 if actual_price <= 0:
                     actual_price = price
 
-            return OrderResult(
+            result = OrderResult(
                 success=True,
                 order_id=str(order['orderId']),
                 symbol=symbol,
@@ -270,6 +324,24 @@ class OrderExecutor:
                 quantity=quantity,
                 price=actual_price
             )
+
+            # Track position immediately in Redis (no 60s delay)
+            if result.success and self.position_tracker:
+                try:
+                    await self.position_tracker.add_position(
+                        symbol=symbol,
+                        direction="SHORT",
+                        entry_price=actual_price,
+                        quantity=quantity,
+                        margin=adjusted_margin,
+                        leverage=actual_leverage,
+                        order_id=result.order_id
+                    )
+                    logger.debug(f"✅ Added {symbol} SHORT to position tracker")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to track position {symbol}: {e}")
+
+            return result
 
         except Exception as e:
             logger.error(f"Error opening short {symbol}: {e}")
@@ -356,7 +428,7 @@ class OrderExecutor:
                                 logger.error(f"Failed to close remainder for {symbol}: {re}")
                         break
 
-            return OrderResult(
+            result = OrderResult(
                 success=True,
                 order_id=str(order['orderId']),
                 symbol=symbol,
@@ -364,6 +436,20 @@ class OrderExecutor:
                 quantity=close_qty,
                 price=float(order.get('avgPrice', 0))
             )
+
+            # Update position tracker immediately
+            if result.success and self.position_tracker:
+                try:
+                    if percent >= 100:
+                        await self.position_tracker.remove_position(symbol)
+                        logger.debug(f"✅ Removed {symbol} from tracker (full close)")
+                    else:
+                        await self.position_tracker.reduce_position(symbol, percent)
+                        logger.debug(f"✅ Reduced {symbol} by {percent}% in tracker")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to update tracker for {symbol}: {e}")
+
+            return result
 
         except Exception as e:
             logger.error(f"Error closing position {symbol}: {e}")
